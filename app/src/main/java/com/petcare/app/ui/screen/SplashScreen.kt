@@ -68,13 +68,16 @@ fun SplashScreen(
     var animationDone by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        // 1) Mascote entra com escala + leve quique (overshoot via spring com
-        // damping médio-baixo — ultrapassa 1f um pouco antes de assentar).
+        // 1) Mascote entra com escala + leve quique (overshoot via spring).
+        // DampingRatioMediumBouncy + StiffnessLow ficava sutil demais — o
+        // "quique" quase não era perceptível. LowBouncy (menos amortecimento)
+        // combinado com StiffnessMedium (mais rígido/rápido) faz a escala
+        // ultrapassar visivelmente 1f antes de assentar, sem ficar lento.
         mascotScale.animateTo(
             targetValue = 1f,
             animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow,
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessMedium,
             ),
         )
 
