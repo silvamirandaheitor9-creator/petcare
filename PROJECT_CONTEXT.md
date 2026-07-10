@@ -96,7 +96,7 @@
 | 34 | `icone_vermifugo.png` | ⬜ |
 | 35 | `icone_personalizado.png` | ⬜ |
 
-> **Nota:** o ZIP contém 36 arquivos — há 1 extra não listado na tabela do SPEC: `onboarding_temas.png`. Aguardando confirmação do usuário sobre o uso dessa imagem.
+> **Nota (resolvida em 2026-07-10):** o ZIP contém 36 arquivos — havia 1 extra não listado na tabela do SPEC: `onboarding_temas.png`. Confirmado com o usuário: **não usar** essa imagem em nenhuma tela. A Onboarding 6 (Escolha de tema) usa apenas o seletor nativo Sol/Lua, como já definido no SPEC.md.
 
 ---
 
