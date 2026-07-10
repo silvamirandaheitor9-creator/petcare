@@ -121,8 +121,9 @@ fun OnboardingScreen(
     val currentPage = pagerState.currentPage
     val isTermsPage = currentPage == termsIndex
 
-    // Estado de tema selecionado (tela 6)
     val selectedDark by viewModel.selectedDark.collectAsState()
+    // (e) Botão "Aceitar e continuar" fica desabilitado até termsChecked ser true
+    val termsChecked by viewModel.termsChecked.collectAsState()
 
     BackHandler(enabled = currentPage > 0) {
         scope.launch { pagerState.animateScrollToPage(currentPage - 1) }
@@ -180,13 +181,18 @@ fun OnboardingScreen(
                         selectedDark = selectedDark,
                         onSelect = { viewModel.selectTheme(it) },
                     )
-                    pages[page].isTermsPage -> TermsStubPage()
+                    // (a)(b)(c)(d)(e) — delegado a TermsPage.kt
+                    pages[page].isTermsPage -> TermsPage(
+                        isActive = pagerState.currentPage == page,
+                        checked = termsChecked,
+                        onCheckedChange = { viewModel.setTermsChecked(it) },
+                    )
                     else -> StandardOnboardingPage(data = pages[page])
                 }
             }
         }
 
-        // ── Controles inferiores: pegadas + botão Próximo ────────────────────
+        // ── Controles inferiores: pegadas + botão Próximo/Aceitar ────────────
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -200,6 +206,8 @@ fun OnboardingScreen(
             Spacer(Modifier.height(20.dp))
             NextButton(
                 label = if (isTermsPage) "Aceitar e continuar" else "Próximo",
+                // (e) Desabilitado na tela de Termos até checkbox ser marcado
+                enabled = if (isTermsPage) termsChecked else true,
                 onClick = {
                     if (currentPage < totalPages - 1) {
                         scope.launch { pagerState.animateScrollToPage(currentPage + 1) }
@@ -251,7 +259,7 @@ private fun StandardOnboardingPage(data: OnboardingPageData) {
     }
 }
 
-// ─── Tela 6 — Seletor de tema (SPEC seção 5) ─────────────────────────────────
+// ─── Tela 6 — Seletor de tema ─────────────────────────────────────────────────
 
 @Composable
 private fun ThemeSelectionPage(
@@ -280,8 +288,6 @@ private fun ThemeSelectionPage(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(36.dp))
-
-        // Cards lado a lado: Claro | Escuro
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -307,8 +313,6 @@ private fun ThemeSelectionPage(
         }
     }
 }
-
-// ─── Card individual de tema ──────────────────────────────────────────────────
 
 @Composable
 private fun ThemeCard(
@@ -363,20 +367,17 @@ private fun ThemeCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Ícone Sol ou Lua
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 modifier = Modifier.size(40.dp),
                 tint = iconTint,
             )
-            // Rótulo
             Text(
                 text = label,
                 style = MaterialTheme.typography.titleSmall,
                 color = if (isSelected) OrangePrimary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
             )
-            // Mini-preview: strip com cores do tema
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -418,46 +419,18 @@ private fun ThemeCard(
     }
 }
 
-// ─── Stub: tela 7 — Termos (tarefa 4) ────────────────────────────────────────
-
-@Composable
-private fun TermsStubPage() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = 28.dp),
-        ) {
-            Text(
-                text = "Antes de Começar",
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = "Termos e privacidade — será implementado na tarefa 4.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.50f),
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
-}
-
-// ─── Botão Próximo com efeito de pressão ─────────────────────────────────────
+// ─── Botão Próximo / Aceitar e continuar ─────────────────────────────────────
 
 @Composable
 private fun NextButton(
     label: String,
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.93f else 1f,
+        targetValue = if (isPressed && enabled) 0.93f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessHigh,
@@ -467,6 +440,7 @@ private fun NextButton(
 
     Button(
         onClick = onClick,
+        enabled = enabled,
         interactionSource = interactionSource,
         modifier = Modifier
             .scale(scale)
@@ -476,10 +450,13 @@ private fun NextButton(
         colors = ButtonDefaults.buttonColors(
             containerColor = OrangePrimary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f),
+            disabledContentColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.38f),
         ),
         elevation = ButtonDefaults.buttonElevation(
             defaultElevation = 4.dp,
             pressedElevation = 1.dp,
+            disabledElevation = 0.dp,
         ),
     ) {
         Text(

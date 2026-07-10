@@ -16,8 +16,6 @@ class OnboardingViewModel @Inject constructor(
 ) : ViewModel() {
 
     // ── Seleção de tema (tela 6) ─────────────────────────────────────────────
-    // Estado local para feedback imediato na UI.
-    // Salva no DataStore em tempo real para que ThemeViewModel aplique a troca ao vivo.
     private val _selectedDark = MutableStateFlow(false)
     val selectedDark: StateFlow<Boolean> = _selectedDark.asStateFlow()
 
@@ -26,7 +24,17 @@ class OnboardingViewModel @Inject constructor(
         viewModelScope.launch { prefs.setDarkTheme(dark) }
     }
 
-    // ── Conclusão do onboarding (chamado ao aceitar Termos, tela 7) ──────────
+    // ── Aceite dos termos (tela 7) ───────────────────────────────────────────
+    // Estado local do checkbox durante o onboarding.
+    // Salvo definitivamente em prefs.setTermsAccepted() só ao chamar completeOnboarding().
+    private val _termsChecked = MutableStateFlow(false)
+    val termsChecked: StateFlow<Boolean> = _termsChecked.asStateFlow()
+
+    fun setTermsChecked(checked: Boolean) {
+        _termsChecked.value = checked
+    }
+
+    // ── Conclusão do onboarding (chamado ao pressionar "Aceitar e continuar") ─
     fun completeOnboarding() {
         viewModelScope.launch {
             prefs.setOnboardingDone(true)
