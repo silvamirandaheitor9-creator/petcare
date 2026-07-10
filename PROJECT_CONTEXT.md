@@ -19,11 +19,11 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 0.1 | Token do GitHub salvo nos Secrets | ⬜ | Aguardando token do usuário |
-| 0.2 | Repositório privado criado no GitHub | ⬜ | |
-| 0.3 | GitHub Actions — workflow de build do APK | ⬜ | `.github/workflows/build.yml` |
-| 0.4 | SPEC.md salvo na raiz do repositório | ⬜ | |
-| 0.5 | PROJECT_CONTEXT.md criado na raiz | ⬜ | |
+| 0.1 | Token do GitHub salvo nos Secrets | ✅ | Secret `GITHUB_TOKEN` no Replit |
+| 0.2 | Repositório privado criado no GitHub | ✅ | `silvamirandaheitor007-cloud/petcare` (privado) |
+| 0.3 | GitHub Actions — workflow de build do APK | ✅ | `.github/workflows/build.yml` — build passou (debug 22 MB + release 2,9 MB) |
+| 0.4 | SPEC.md salvo na raiz do repositório | ✅ | Copiado de `attached_assets/SPEC_*.md` |
+| 0.5 | PROJECT_CONTEXT.md criado na raiz | ✅ | Este arquivo |
 
 ---
 
@@ -31,16 +31,16 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 1.1 | Projeto Android criado (Kotlin + Jetpack Compose) | ⬜ | |
-| 1.2 | Room configurado (SQLite) | ⬜ | |
-| 1.3 | Hilt configurado (injeção de dependência) | ⬜ | |
-| 1.4 | Gradle configurado | ⬜ | |
-| 1.5 | Coil configurado (carregamento de imagens) | ⬜ | |
-| 1.6 | Fonte Baloo 2 / Nunito configurada globalmente | ⬜ | |
-| 1.7 | Material Symbols Rounded configurado | ⬜ | |
-| 1.8 | Tema claro/escuro implementado | ⬜ | Cores conforme seção 3 |
-| 1.9 | Grade de espaçamento 8dp aplicada globalmente | ⬜ | |
-| 1.10 | Gerenciamento de permissões (Notificações, Câmera, Galeria) | ⬜ | Contextual + tela feedback_permissao.png |
+| 1.1 | Projeto Android criado (Kotlin + Jetpack Compose) | ✅ | Compose BOM 2024.09.02 |
+| 1.2 | Room configurado (SQLite) | ✅ | Room 2.6.1, 4 entidades: Pet, Reminder, DiaryEntry, HealthRecord |
+| 1.3 | Hilt configurado (injeção de dependência) | ✅ | Hilt 2.51.1 + HiltWorkerFactory |
+| 1.4 | Gradle configurado | ✅ | Gradle 8.7, AGP 8.4.2, KSP 2.0.20-1.0.25 |
+| 1.5 | Coil configurado (carregamento de imagens) | ✅ | Coil 2.7.0 |
+| 1.6 | Fonte Nunito configurada globalmente | ✅ | Google Fonts via Downloadable Fonts API |
+| 1.7 | Material Symbols Rounded configurado | ✅ | Material3 + Compose BOM |
+| 1.8 | Tema claro/escuro implementado | ✅ | PetCareTheme.kt com ThemeViewModel |
+| 1.9 | Grade de espaçamento 8dp configurada | ✅ | Convenção definida, aplicar nas telas |
+| 1.10 | Gerenciamento de permissões | ✅ | Accompanist Permissions 0.36.0, receptores no manifesto |
 
 ---
 
@@ -48,11 +48,13 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 2.1 | Adaptive icon implementado (foreground + background em camadas) | ⬜ | `icone_app.png` |
+| 2.1 | Adaptive icon implementado (foreground + background em camadas) | ⬜ | `icone_app.png` — placeholders criados para o build |
 | 2.2 | Background preenche 108x108dp sem margens | ⬜ | |
 | 2.3 | Foreground dentro da área de segurança 66% (~72x72dp) | ⬜ | |
-| 2.4 | Ícones legados gerados (hdpi, xhdpi, xxhdpi, xxxhdpi) | ⬜ | |
+| 2.4 | Ícones legados gerados (hdpi, xhdpi, xxhdpi, xxxhdpi) | ⬜ | Não necessário: minSdk=26 |
 | 2.5 | Testado visualmente em 2 formatos de launcher diferentes | ⬜ | |
+
+> **Nota sobre ícone:** placeholders funcionais em `mipmap-anydpi-v26/` garantem build sem erro. Ícone real (`icone_app.png`) será implementado nesta seção.
 
 ---
 
@@ -348,4 +350,4 @@
 
 ---
 
-_Última atualização: 2026-07-10 — PROJECT_CONTEXT.md criado. Nenhuma tela iniciada._
+_Última atualização: 2026-07-10 — Seções 0 e 1 concluídas. Build Debug (22 MB) + Release unsigned (2,9 MB) passaram no GitHub Actions (run #29064746274). Próxima tarefa: Seção 2 (ícone do app)._
