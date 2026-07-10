@@ -351,4 +351,4 @@
 
 ---
 
-_Última atualização: 2026-07-10 — Seções 0, 1 e 2 concluídas (exceto teste visual 2.5). minSdk=24. Build Debug (21 MB) + Release unsigned (2,9 MB) passaram no GitHub Actions (run #29084649031). APK disponível para instalar no celular._
+_Última atualização: 2026-07-10 — Seções 0, 1 e 2 concluídas (exceto teste visual 2.5). Seção 3 (base de design: shapes, spacing, cores, tipografia, ícones) implementada e aguardando validação visual do usuário — ver `DesignSystemPreviewScreen`, acessível automaticamente no primeiro lançamento (rota temporária "onboarding"). minSdk=24. Build passou no GitHub Actions (run #29106918516, conclusão: success). APK disponível para instalar no celular._
