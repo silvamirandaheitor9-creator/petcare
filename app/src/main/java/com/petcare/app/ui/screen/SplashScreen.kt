@@ -24,7 +24,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.petcare.app.R
-import com.petcare.app.debug.StartupTimer
 import com.petcare.app.ui.theme.OrangeGradEnd
 import com.petcare.app.ui.theme.OrangeGradStart
 import com.petcare.app.ui.theme.spacing
@@ -55,8 +54,6 @@ fun SplashScreen(
     isReady: Boolean,
     onNavigate: () -> Unit,
 ) {
-    remember { StartupTimer.mark("SplashScreen: composition start") }
-
     val spacing = MaterialTheme.spacing
     val density = LocalDensity.current
 
@@ -71,8 +68,6 @@ fun SplashScreen(
     var animationDone by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        StartupTimer.mark("LaunchedEffect(Unit): started (animation begins)")
-
         // 1) Mascote entra com escala + leve quique (overshoot via spring).
         mascotScale.animateTo(
             targetValue = 1f,
@@ -81,26 +76,21 @@ fun SplashScreen(
                 stiffness = Spring.StiffnessHigh,
             ),
         )
-        StartupTimer.mark("mascotScale animation done")
 
         // 2) Nome "PetCare" surge com fade + slide de baixo para cima.
         launch { titleOffset.animateTo(0f, tween(durationMillis = 420)) }
         titleAlpha.animateTo(1f, tween(durationMillis = 420))
-        StartupTimer.mark("title animation done")
 
         // 3) Frase final aparece por último, mesmo estilo de entrada.
         launch { subtitleOffset.animateTo(0f, tween(durationMillis = 380)) }
         subtitleAlpha.animateTo(1f, tween(durationMillis = 380))
-        StartupTimer.mark("subtitle animation done")
 
         // A partir daqui a animação mínima terminou de verdade.
         animationDone = true
-        StartupTimer.mark("animationDone = true")
     }
 
     LaunchedEffect(animationDone, isReady) {
         if (animationDone && isReady) {
-            StartupTimer.mark("onNavigate() called (animationDone && isReady)")
             onNavigate()
         }
     }
@@ -147,22 +137,6 @@ fun SplashScreen(
                         translationY = subtitleOffset.value
                     },
             )
-        }
-
-        // DEBUG TEMPORÁRIO: overlay com timestamps de startup. Remover após
-        // os números serem confirmados.
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(spacing.sm),
-        ) {
-            StartupTimer.marks.forEach { (label, t) ->
-                Text(
-                    text = "+${t}ms  $label",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White,
-                )
-            }
         }
     }
 }
