@@ -1,11 +1,14 @@
 package com.petcare.app.ui.screen.onboarding
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -17,22 +20,34 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -40,6 +55,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.petcare.app.R
 import com.petcare.app.ui.screen.onboarding.components.FootprintIndicator
+import com.petcare.app.ui.theme.BackgroundDark
+import com.petcare.app.ui.theme.BackgroundLight
+import com.petcare.app.ui.theme.OrangeDark
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.OnboardingViewModel
 import kotlinx.coroutines.launch
@@ -48,44 +66,37 @@ import kotlin.math.absoluteValue
 // ─── Dados das 7 páginas ──────────────────────────────────────────────────────
 
 private fun buildPages(): List<OnboardingPageData> = listOf(
-    // Tela 1 — Boas-vindas
     OnboardingPageData(
         imageRes = R.drawable.onboarding_1_boasvindas,
         title = "Bem-vindo ao PetCare!",
         subtitle = "Cuide dos seus pets com carinho — saúde, lembretes e memórias, tudo em um só lugar.",
     ),
-    // Tela 2 — Meus Pets
     OnboardingPageData(
         imageRes = R.drawable.onboarding_2_meuspets,
         title = "Seus Pets em Um Só Lugar",
         subtitle = "Cadastre cães, gatos e muito mais. Mantenha o histórico de saúde sempre à mão.",
     ),
-    // Tela 3 — Diário  (tarefa 2)
     OnboardingPageData(
         imageRes = R.drawable.onboarding_4_fotos,
         title = "Diário de Memórias",
         subtitle = "Registre os momentos especiais com fotos e edição criativa para nunca esquecer.",
     ),
-    // Tela 4 — Lembretes  (tarefa 2)
     OnboardingPageData(
         imageRes = R.drawable.onboarding_3_lembretes,
         title = "Nunca Perca um Cuidado",
         subtitle = "Lembretes de vacinas, consultas e remédios com notificações no horário certo.",
     ),
-    // Tela 5 — Assistente Mel  (tarefa 2)
     OnboardingPageData(
         imageRes = R.drawable.mel_avatar,
         title = "Conheça a Mel",
         subtitle = "A assistente do PetCare, sempre pronta para tirar suas dúvidas sobre os pets.",
     ),
-    // Tela 6 — Escolha de tema  (tarefa 3)
     OnboardingPageData(
         imageRes = null,
         title = "Escolha o Seu Estilo",
-        subtitle = "Tema claro ou escuro — você muda quando quiser na aba Perfil.",
+        subtitle = "Você pode mudar quando quiser na aba Perfil.",
         isThemePage = true,
     ),
-    // Tela 7 — Termos e privacidade  (tarefa 4)
     OnboardingPageData(
         imageRes = null,
         title = "Antes de Começar",
@@ -96,14 +107,6 @@ private fun buildPages(): List<OnboardingPageData> = listOf(
 
 // ─── Tela principal ───────────────────────────────────────────────────────────
 
-/**
- * OnboardingScreen — SPEC seção 5, tarefa 1 de 4.
- *
- * Tarefa 1 implementa: pager de 7 páginas, indicador de pegadas, botões
- * Próximo/Pular, gesto de voltar. Telas 1 e 2 são completas; 3–7 são stubs
- * visuais que validam a mecânica de navegação.
- * Telas 3–5 concluídas na tarefa 2, tela 6 na tarefa 3, tela 7 na tarefa 4.
- */
 @Composable
 fun OnboardingScreen(
     onFinished: () -> Unit,
@@ -118,7 +121,9 @@ fun OnboardingScreen(
     val currentPage = pagerState.currentPage
     val isTermsPage = currentPage == termsIndex
 
-    // Gesto de voltar do sistema: página anterior; fecha o app só na primeira página
+    // Estado de tema selecionado (tela 6)
+    val selectedDark by viewModel.selectedDark.collectAsState()
+
     BackHandler(enabled = currentPage > 0) {
         scope.launch { pagerState.animateScrollToPage(currentPage - 1) }
     }
@@ -129,7 +134,7 @@ fun OnboardingScreen(
             .background(MaterialTheme.colorScheme.background)
             .systemBarsPadding(),
     ) {
-        // ── Linha superior: espaço + botão Pular ─────────────────────────────
+        // ── Linha superior: botão Pular ──────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -147,7 +152,6 @@ fun OnboardingScreen(
                     )
                 }
             } else {
-                // Mantém a altura da linha mesmo sem o botão
                 Spacer(modifier = Modifier.height(48.dp))
             }
         }
@@ -160,7 +164,6 @@ fun OnboardingScreen(
                 .fillMaxWidth(),
             beyondViewportPageCount = 1,
         ) { page ->
-            // Fade proporcional ao deslocamento da página
             val offset =
                 ((pagerState.currentPage - page).toFloat() + pagerState.currentPageOffsetFraction)
                     .absoluteValue
@@ -172,7 +175,11 @@ fun OnboardingScreen(
                     .graphicsLayer { this.alpha = alpha },
             ) {
                 when {
-                    pages[page].isThemePage -> ThemeStubPage()
+                    pages[page].isThemePage -> ThemeSelectionPage(
+                        data = pages[page],
+                        selectedDark = selectedDark,
+                        onSelect = { viewModel.selectTheme(it) },
+                    )
                     pages[page].isTermsPage -> TermsStubPage()
                     else -> StandardOnboardingPage(data = pages[page])
                 }
@@ -206,7 +213,7 @@ fun OnboardingScreen(
     }
 }
 
-// ─── Layout padrão (telas 1–5): imagem grande + título + subtítulo ────────────
+// ─── Layout padrão (telas 1–5) ───────────────────────────────────────────────
 
 @Composable
 private fun StandardOnboardingPage(data: OnboardingPageData) {
@@ -216,7 +223,6 @@ private fun StandardOnboardingPage(data: OnboardingPageData) {
             .padding(horizontal = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Imagem ocupa a maior parte do espaço disponível
         data.imageRes?.let { res ->
             Image(
                 painter = painterResource(id = res),
@@ -228,8 +234,6 @@ private fun StandardOnboardingPage(data: OnboardingPageData) {
                 contentScale = ContentScale.Fit,
             )
         }
-
-        // Título
         Text(
             text = data.title,
             style = MaterialTheme.typography.headlineMedium,
@@ -237,8 +241,6 @@ private fun StandardOnboardingPage(data: OnboardingPageData) {
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(10.dp))
-
-        // Subtítulo descritivo (sem balão de fala — SPEC seção 5)
         Text(
             text = data.subtitle,
             style = MaterialTheme.typography.bodyLarge,
@@ -249,36 +251,174 @@ private fun StandardOnboardingPage(data: OnboardingPageData) {
     }
 }
 
-// ─── Stub: tela 6 — Tema (será implementada na tarefa 3) ─────────────────────
+// ─── Tela 6 — Seletor de tema (SPEC seção 5) ─────────────────────────────────
 
 @Composable
-private fun ThemeStubPage() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+private fun ThemeSelectionPage(
+    data: OnboardingPageData,
+    selectedDark: Boolean,
+    onSelect: (Boolean) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = 28.dp),
+        Text(
+            text = data.title,
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = data.subtitle,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(36.dp))
+
+        // Cards lado a lado: Claro | Escuro
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                text = "Escolha o Seu Estilo",
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onBackground,
+            ThemeCard(
+                icon = Icons.Outlined.LightMode,
+                label = "Claro",
+                previewBg = BackgroundLight,
+                previewAccent = OrangePrimary,
+                isSelected = !selectedDark,
+                onClick = { onSelect(false) },
+                modifier = Modifier.weight(1f),
             )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = "Seletor de tema — será implementado na tarefa 3.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.50f),
-                textAlign = TextAlign.Center,
+            ThemeCard(
+                icon = Icons.Outlined.DarkMode,
+                label = "Escuro",
+                previewBg = BackgroundDark,
+                previewAccent = OrangeDark,
+                isSelected = selectedDark,
+                onClick = { onSelect(true) },
+                modifier = Modifier.weight(1f),
             )
         }
     }
 }
 
-// ─── Stub: tela 7 — Termos (será implementada na tarefa 4) ───────────────────
+// ─── Card individual de tema ──────────────────────────────────────────────────
+
+@Composable
+private fun ThemeCard(
+    icon: ImageVector,
+    label: String,
+    previewBg: Color,
+    previewAccent: Color,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.05f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "theme_scale_$label",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (isSelected) OrangePrimary else Color(0xFFD9C5BA),
+        animationSpec = tween(durationMillis = 220),
+        label = "theme_border_$label",
+    )
+    val iconTint by animateColorAsState(
+        targetValue = if (isSelected) OrangePrimary else Color(0xFFBDAFAA),
+        animationSpec = tween(durationMillis = 220),
+        label = "theme_icon_$label",
+    )
+
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .scale(scale)
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = borderColor,
+                shape = MaterialTheme.shapes.medium,
+            ),
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isSelected) 6.dp else 1.dp,
+        ),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 20.dp, horizontal = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // Ícone Sol ou Lua
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                modifier = Modifier.size(40.dp),
+                tint = iconTint,
+            )
+            // Rótulo
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleSmall,
+                color = if (isSelected) OrangePrimary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
+            )
+            // Mini-preview: strip com cores do tema
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(previewBg),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                    horizontalAlignment = Alignment.Start,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.55f)
+                            .height(7.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(previewAccent),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.80f)
+                            .height(5.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(previewAccent.copy(alpha = 0.35f)),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.65f)
+                            .height(5.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(previewAccent.copy(alpha = 0.35f)),
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ─── Stub: tela 7 — Termos (tarefa 4) ────────────────────────────────────────
 
 @Composable
 private fun TermsStubPage() {
@@ -307,7 +447,7 @@ private fun TermsStubPage() {
     }
 }
 
-// ─── Botão Próximo com efeito de pressão (mola) ───────────────────────────────
+// ─── Botão Próximo com efeito de pressão ─────────────────────────────────────
 
 @Composable
 private fun NextButton(
@@ -332,7 +472,7 @@ private fun NextButton(
             .scale(scale)
             .fillMaxWidth(0.72f)
             .height(52.dp),
-        shape = MaterialTheme.shapes.large, // PillShape = 24dp (SPEC seção 3)
+        shape = MaterialTheme.shapes.large,
         colors = ButtonDefaults.buttonColors(
             containerColor = OrangePrimary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
