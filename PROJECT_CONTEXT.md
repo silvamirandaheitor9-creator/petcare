@@ -104,10 +104,13 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 3.1 | Cores do tema claro definidas | ⬜ | fundo #FFF8F3, laranja #FF7A3D, gradiente #FF9152→#FF5E3A |
-| 3.2 | Cores do tema escuro definidas | ⬜ | fundo #1E1A17, cards #2B2420, laranja #FF8C42 |
-| 3.3 | Fonte Baloo 2 ou Nunito em 100% dos textos | ⬜ | |
-| 3.4 | Raio de borda 16dp (cards) e 24dp (botões/pills) global | ⬜ | |
+| 3.1 | Cores do tema claro definidas | 🔄 | Já existiam em `PetCareTheme.kt`/`colors.xml`: fundo #FFF8F3, laranja #FF7A3D, gradiente #FF9152→#FF5E3A. Aguardando validação visual no celular via `DesignSystemPreviewScreen`. |
+| 3.2 | Cores do tema escuro definidas | 🔄 | Já existiam: fundo #1E1A17, cards #2B2420, laranja #FF8C42. Aguardando validação visual. |
+| 3.3 | Fonte Nunito em 100% dos textos | 🔄 | `PetCareTypography.kt` (Google Fonts) já cobria todos os estilos do Material3; nenhuma tela real construída ainda usa texto fora do Typography, então cobertura de 100% será reconfirmada tela a tela conforme forem implementadas. |
+| 3.4 | Raio de borda 16dp (cards) e 24dp (botões/pills) global | 🔄 | Novo: `PetCareShapes.kt` — `CardShape`/`MaterialTheme.shapes.medium` = 16dp, `PillShape`/`MaterialTheme.shapes.large` = 24dp, aplicado via `PetCareTheme(shapes = PetCareShapes)`. |
+| 3.5 | Grade de espaçamento 8dp (token reutilizável) | 🔄 | Novo: `PetCareSpacing.kt` — `MaterialTheme.spacing.{xs,sm,md,lg,xl,xxl}` = 8/16/24/32/40/48dp via `CompositionLocalProvider`. |
+| 3.6 | Ícones Material Symbols Rounded configurados | 🔄 | Já existia a dependência `material-icons-extended`; preview usa `Icons.Rounded.*` para confirmar disponibilidade/estilo. |
+| 3.7 | Preview de validação da base de design | 🔄 | Novo: `DesignSystemPreviewScreen.kt`, temporariamente acessível pela rota "onboarding" (ver nota abaixo) para inspeção visual no celular antes de qualquer tela real ser construída. Remover essa ligação temporária na tarefa da seção 5. |
 
 ---
 

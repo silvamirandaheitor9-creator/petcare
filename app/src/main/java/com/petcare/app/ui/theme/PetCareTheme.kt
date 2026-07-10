@@ -52,9 +52,12 @@ fun PetCareTheme(
     content: @Composable () -> Unit,
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography  = PetCareTypography,
-        content     = content,
-    )
+    androidx.compose.runtime.CompositionLocalProvider(LocalPetCareSpacing provides PetCareSpacing()) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography  = PetCareTypography,
+            shapes      = PetCareShapes,
+            content     = content,
+        )
+    }
 }

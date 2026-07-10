@@ -7,6 +7,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.petcare.app.ui.screen.DesignSystemPreviewScreen
 import com.petcare.app.ui.screen.SplashScreen
 import com.petcare.app.ui.viewmodel.AppViewModel
 
@@ -36,8 +37,11 @@ fun PetCareNavGraph() {
             )
         }
         composable(Screen.Onboarding.route) {
-            // TODO: Seção 5 — Onboarding (próxima tarefa)
-            SplashScreen(isReady = true, onNavigate = {})
+            // TEMPORÁRIO (tarefa seção 3 — base de design): mostra o preview da
+            // base de design (cores, tipografia, ícones, shapes, espaçamento)
+            // no lugar do onboarding real, só para validação visual no celular.
+            // Será substituído pela seção 5 (Onboarding) na próxima tarefa.
+            DesignSystemPreviewScreen()
         }
         composable(Screen.Main.route) {
             // TODO: Seção 6-15 — App principal (próximas tarefas)
