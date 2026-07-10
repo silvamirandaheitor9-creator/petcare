@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tema claro — seção 3 -->
+    <color name="background_light">#FFF8F3</color>
+    <color name="card_light">#FFFFFF</color>
+    <color name="orange_primary">#FF7A3D</color>
+    <color name="grad_start">#FF9152</color>
+    <color name="grad_end">#FF5E3A</color>
+    <!-- Tema escuro — seção 3 -->
+    <color name="background_dark">#1E1A17</color>
+    <color name="card_dark">#2B2420</color>
+    <color name="orange_dark">#FF8C42</color>
+    <!-- Splash -->
+    <color name="splash_background">#FF9152</color>
+</resources>

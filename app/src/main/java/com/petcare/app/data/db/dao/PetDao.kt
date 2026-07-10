@@ -1,0 +1,29 @@
+package com.petcare.app.data.db.dao
+
+import androidx.room.*
+import com.petcare.app.data.db.entity.Pet
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface PetDao {
+    @Query("SELECT * FROM pets ORDER BY createdAt DESC")
+    fun getAllPets(): Flow<List<Pet>>
+
+    @Query("SELECT COUNT(*) FROM pets")
+    fun getPetCount(): Flow<Int>
+
+    @Query("SELECT * FROM pets WHERE id = :id")
+    fun getPetById(id: Long): Flow<Pet?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPet(pet: Pet): Long
+
+    @Update
+    suspend fun updatePet(pet: Pet)
+
+    @Delete
+    suspend fun deletePet(pet: Pet)
+
+    @Query("DELETE FROM pets")
+    suspend fun deleteAllPets()
+}

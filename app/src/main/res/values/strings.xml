@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PetCare</string>
+    <string name="app_tagline">Cuidando dos seus pets com carinho</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Início</string>
+    <string name="nav_pets">Meus Pets</string>
+    <string name="nav_diary">Diário</string>
+    <string name="nav_reminders">Lembretes</string>
+    <string name="nav_profile">Perfil</string>
+
+    <!-- Onboarding -->
+    <string name="skip">Pular</string>
+    <string name="next">Próximo</string>
+    <string name="accept_and_continue">Aceitar e continuar</string>
+
+    <!-- Pet form -->
+    <string name="add_pet">Adicionar pet</string>
+    <string name="edit_pet">Editar pet</string>
+    <string name="pet_name">Nome do pet</string>
+    <string name="required_field">Campo obrigatório</string>
+
+    <!-- Empty states -->
+    <string name="empty_pets">Você ainda não cadastrou nenhum pet</string>
+    <string name="empty_diary">Nenhum momento registrado ainda</string>
+    <string name="empty_reminders">Nenhum lembrete cadastrado</string>
+    <string name="add_first_pet">Adicionar meu primeiro pet</string>
+
+    <!-- Mel assistant -->
+    <string name="mel_name">Mel — Assistente PetCare</string>
+    <string name="mel_disclaimer">As dicas do Mel são informativas e não substituem o veterinário.</string>
+
+    <!-- Backup -->
+    <string name="backup_saved">Prontinho! Seus dados estão salvos com segurança 🐾</string>
+
+    <!-- Deletion -->
+    <string name="delete_pet_confirm">Tem certeza que quer remover %s e todo o histórico dele? Essa ação não pode ser desfeita.</string>
+    <string name="delete">Remover</string>
+    <string name="cancel">Cancelar</string>
+
+    <!-- Notifications channel -->
+    <string name="notif_channel_name">Lembretes de saúde</string>
+    <string name="notif_action_done">Concluir</string>
+    <string name="notif_action_snooze">Adiar 1h</string>
+
+    <!-- Profile -->
+    <string name="user_name_hint">Como podemos te chamar?</string>
+    <string name="privacy_policy">Política de Privacidade</string>
+    <string name="terms_of_use">Termos de Uso</string>
+    <string name="about">Sobre o PetCare</string>
+    <string name="export_backup">Exportar backup</string>
+    <string name="import_backup">Importar backup</string>
+    <string name="delete_all_data">Apagar todos os dados</string>
+</resources>
