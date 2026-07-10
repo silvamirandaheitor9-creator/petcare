@@ -118,11 +118,11 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 4.1 | Tela Compose customizada (sem tela branca inicial) | 🔄 | `Theme.PetCare.Splash` (windowBackground laranja) já eliminava a tela branca antes mesmo desta tarefa; `SplashScreen.kt` agora tem o conteúdo Compose completo. Aguardando validação visual no celular. |
-| 4.2 | Animação: mascote com quique de entrada (escala + overshoot) | 🔄 | `mascote_splash.png` adicionado em `res/drawable/`; escala via `spring(dampingRatio = DampingRatioMediumBouncy)`. |
-| 4.3 | Animação: nome "PetCare" com fade/slide | 🔄 | Roda em sequência após o mascote. |
-| 4.4 | Animação: frase "Cuidando dos seus pets com carinho" | 🔄 | Roda em sequência após o nome. |
-| 4.5 | Navegação aguarda animação + carregamento do DataStore | 🔄 | `animationDone` (fim real das `animateTo`, sem `delay` arbitrário) combinado com `isReady` do `AppViewModel`; navega só quando ambos são verdadeiros. |
+| 4.1 | Tela Compose customizada (sem tela branca inicial) | ✅ | `Theme.PetCare.Splash` (windowBackground laranja) elimina a tela branca antes do primeiro frame Compose. Confirmado visualmente no celular. |
+| 4.2 | Animação: mascote com quique de entrada (escala + overshoot) | ✅ | Escala via `spring(dampingRatio = DampingRatioLowBouncy, stiffness = StiffnessHigh)`. Mascote visível e com quique perceptível, ~910ms (acima da meta de 400-500ms do SPEC, mas aceito pelo usuário — diferença visual pequena). |
+| 4.3 | Animação: nome "PetCare" com fade/slide | ✅ | Roda em sequência após o mascote (420ms). |
+| 4.4 | Animação: frase "Cuidando dos seus pets com carinho" | ✅ | Roda em sequência após o nome (380ms). |
+| 4.5 | Navegação aguarda animação + carregamento do DataStore | ✅ | `animationDone` (fim real das `animateTo`, sem `delay` arbitrário) combinado com `isReady` do `AppViewModel`; navega só quando ambos são verdadeiros. Tempo total até navegar ~1,93s. |
 
 ---
 
