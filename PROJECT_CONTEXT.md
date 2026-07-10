@@ -48,13 +48,11 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 2.1 | Adaptive icon implementado (foreground + background em camadas) | ⬜ | `icone_app.png` — placeholders criados para o build |
-| 2.2 | Background preenche 108x108dp sem margens | ⬜ | |
-| 2.3 | Foreground dentro da área de segurança 66% (~72x72dp) | ⬜ | |
-| 2.4 | Ícones legados gerados (hdpi, xhdpi, xxhdpi, xxxhdpi) | ⬜ | Não necessário: minSdk=26 |
-| 2.5 | Testado visualmente em 2 formatos de launcher diferentes | ⬜ | |
-
-> **Nota sobre ícone:** placeholders funcionais em `mipmap-anydpi-v26/` garantem build sem erro. Ícone real (`icone_app.png`) será implementado nesta seção.
+| 2.1 | Adaptive icon implementado (foreground + background em camadas) | ✅ | `mipmap-anydpi-v26/ic_launcher.xml` referencia background (gradient XML) + foreground (PNG 432×432) |
+| 2.2 | Background preenche 108x108dp sem margens | ✅ | `ic_launcher_background.xml`: gradiente #FF9152→#FF5E3A, shape retangular sem padding |
+| 2.3 | Foreground dentro da área de segurança 66% (~72x72dp) | ✅ | `icone_app.png` escalado a 288px e centralizado em canvas 432px transparente |
+| 2.4 | Ícones legados gerados (hdpi/xhdpi/xxhdpi/xxxhdpi) | ✅ | ic_launcher.png + ic_launcher_round.png em 72/96/144/192px via ImageMagick |
+| 2.5 | Testado visualmente em 2 formatos de launcher diferentes | ⬜ | Pendente — usuário irá instalar o APK no celular |
 
 ---
 
@@ -350,4 +348,4 @@
 
 ---
 
-_Última atualização: 2026-07-10 — Seções 0 e 1 concluídas. Build Debug (22 MB) + Release unsigned (2,9 MB) passaram no GitHub Actions (run #29064746274). Próxima tarefa: Seção 2 (ícone do app)._
+_Última atualização: 2026-07-10 — Seções 0, 1 e 2 concluídas (exceto teste visual 2.5). minSdk=24. Build Debug (21 MB) + Release unsigned (2,9 MB) passaram no GitHub Actions (run #29084649031). APK disponível para instalar no celular._
