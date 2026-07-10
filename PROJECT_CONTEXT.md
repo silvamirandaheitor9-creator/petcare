@@ -118,11 +118,11 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 4.1 | Tela Compose customizada (sem tela branca inicial) | ⬜ | |
-| 4.2 | Animação: mascote com quique de entrada (escala + overshoot) | ⬜ | `mascote_splash.png` |
-| 4.3 | Animação: nome "PetCare" com fade/slide | ⬜ | |
-| 4.4 | Animação: frase "Cuidando dos seus pets com carinho" | ⬜ | |
-| 4.5 | Navegação aguarda animação + carregamento do DataStore | ⬜ | Sem timer cego |
+| 4.1 | Tela Compose customizada (sem tela branca inicial) | 🔄 | `Theme.PetCare.Splash` (windowBackground laranja) já eliminava a tela branca antes mesmo desta tarefa; `SplashScreen.kt` agora tem o conteúdo Compose completo. Aguardando validação visual no celular. |
+| 4.2 | Animação: mascote com quique de entrada (escala + overshoot) | 🔄 | `mascote_splash.png` adicionado em `res/drawable/`; escala via `spring(dampingRatio = DampingRatioMediumBouncy)`. |
+| 4.3 | Animação: nome "PetCare" com fade/slide | 🔄 | Roda em sequência após o mascote. |
+| 4.4 | Animação: frase "Cuidando dos seus pets com carinho" | 🔄 | Roda em sequência após o nome. |
+| 4.5 | Navegação aguarda animação + carregamento do DataStore | 🔄 | `animationDone` (fim real das `animateTo`, sem `delay` arbitrário) combinado com `isReady` do `AppViewModel`; navega só quando ambos são verdadeiros. |
 
 ---
 
