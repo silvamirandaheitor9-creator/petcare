@@ -1,6 +1,9 @@
 package com.petcare.app.ui.screen.main
 
 import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -15,16 +18,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -34,7 +34,6 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -55,8 +54,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
@@ -64,6 +61,7 @@ import coil.request.ImageRequest
 import com.petcare.app.R
 import com.petcare.app.data.db.entity.DiaryEntry
 import com.petcare.app.data.db.entity.Pet
+import com.petcare.app.ui.screen.main.diary.DiaryPhotoEditorScreen
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.DiaryViewModel
 import kotlinx.coroutines.launch
@@ -81,6 +79,27 @@ fun DiaryScreen(
 ) {
     val entries by viewModel.entries.collectAsState()
     val pets by viewModel.pets.collectAsState()
+
+    // ── Fluxo do "+": escolher foto da galeria → editor de fotos (SPEC 9.8-9.11) ──
+    var pendingImageUri by remember { mutableStateOf<Uri?>(null) }
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) {
+            pendingImageUri = uri
+        } else {
+            onDismissAddEntryPlaceholder()
+        }
+    }
+    LaunchedEffect(showAddEntryPlaceholder) {
+        if (showAddEntryPlaceholder) {
+            pickImageLauncher.launch(
+                androidx.activity.result.PickVisualMediaRequest(
+                    ActivityResultContracts.PickVisualMedia.ImageOnly,
+                ),
+            )
+        }
+    }
 
     // Filtro por pet (SPEC 9.3) — sem chips de categoria (9.2). Só aparece
     // quando há pets cadastrados; "Todos" sempre visível como primeira opção.
@@ -161,9 +180,21 @@ fun DiaryScreen(
         )
     }
 
-    // ── Placeholder da tela "Nova entrada" (editor de fotos vem em tarefa futura) ──
-    if (showAddEntryPlaceholder) {
-        AddDiaryEntryPlaceholder(onClose = onDismissAddEntryPlaceholder)
+    // ── Editor de fotos: aberto depois que uma imagem é escolhida na galeria ──
+    pendingImageUri?.let { uri ->
+        DiaryPhotoEditorScreen(
+            imageUri = uri,
+            pets = pets,
+            onDismiss = {
+                pendingImageUri = null
+                onDismissAddEntryPlaceholder()
+            },
+            onSave = { petId, photoPath, caption ->
+                viewModel.addEntry(petId = petId, photoPath = photoPath, caption = caption)
+                pendingImageUri = null
+                onDismissAddEntryPlaceholder()
+            },
+        )
     }
 }
 
@@ -410,60 +441,6 @@ private fun EmptyDiarySection() {
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.60f),
                 textAlign = TextAlign.Center,
             )
-        }
-    }
-}
-
-// ─── Placeholder de "Nova entrada" (editor de fotos chega na próxima tarefa) ──
-
-@Composable
-private fun AddDiaryEntryPlaceholder(onClose: () -> Unit) {
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background,
-        ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                IconButton(
-                    onClick = onClose,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp),
-                ) {
-                    Icon(imageVector = Icons.Rounded.Close, contentDescription = "Fechar")
-                }
-
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(horizontal = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.PhotoLibrary,
-                        contentDescription = null,
-                        modifier = Modifier.size(56.dp),
-                        tint = OrangePrimary.copy(alpha = 0.55f),
-                    )
-                    Text(
-                        text = "Editor de fotos chegando em breve",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        textAlign = TextAlign.Center,
-                    )
-                    Text(
-                        text = "Em breve você vai poder escolher uma foto, ajustar cores, adicionar adesivos e escrever a legenda direto por aqui.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.60f),
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
         }
     }
 }

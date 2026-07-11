@@ -109,4 +109,7 @@ dependencies {
 
     // Permissions
     implementation(libs.accompanist.permissions)
+
+    // ExifInterface — correção de rotação da foto de origem no editor do Diário
+    implementation(libs.androidx.exifinterface)
 }

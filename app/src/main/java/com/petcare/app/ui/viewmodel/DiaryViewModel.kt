@@ -31,4 +31,13 @@ class DiaryViewModel @Inject constructor(
     fun deleteEntry(entry: DiaryEntry) {
         viewModelScope.launch { diaryDao.deleteEntry(entry) }
     }
+
+    /** Cria uma nova entrada a partir da foto editada (SPEC 9.8-9.11). */
+    fun addEntry(petId: Long, photoPath: String, caption: String) {
+        viewModelScope.launch {
+            diaryDao.insertEntry(
+                DiaryEntry(petId = petId, photoPath = photoPath, caption = caption.take(140)),
+            )
+        }
+    }
 }

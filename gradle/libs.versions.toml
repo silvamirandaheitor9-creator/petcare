@@ -15,6 +15,7 @@ coroutines = "1.9.0"
 admob = "23.5.0"
 work = "2.10.0"
 accompanist-permissions = "0.36.0"
+exifinterface = "1.3.7"
 
 [libraries]
 # AndroidX Core
@@ -69,6 +70,10 @@ accompanist-permissions = { group = "com.google.accompanist", name = "accompanis
 
 # Google Fonts
 compose-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts" }
+
+# ExifInterface — usado pelo editor de fotos do Diário (SPEC 9.8) para corrigir
+# a rotação da foto de origem conforme os metadados EXIF da câmera/galeria.
+androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

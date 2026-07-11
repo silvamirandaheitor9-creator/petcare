@@ -198,12 +198,12 @@
 | 9.3 | Filtro por pet (se houver filtro) | ✅ | `PetFilterRow`: chips "Todos" + um por pet, só exibidos quando há mais de um pet cadastrado (com 0 ou 1 pet a lista não é filtrável, então o chip some). |
 | 9.4 | Timeline vertical: foto grande, legenda ≤140 chars, data, pet relacionado | ✅ | `DiaryEntryCard` em `LazyColumn`: foto 240dp, legenda truncada defensivamente em 140 chars (já limitada na origem), data `dd/MM/yyyy`, nome do pet resolvido via `DiaryViewModel.pets`. |
 | 9.5 | Botão de compartilhar por entrada | ✅ | `shareDiaryEntry`: `Intent.ACTION_SEND` com a foto via `FileProvider` (`androidx.core.content.FileProvider`, novo provider `${applicationId}.fileprovider` registrado no manifesto) + legenda como texto. |
-| 9.6 | Botão de editar/excluir por entrada | ✅ (excluir) / ⬜ (editar) | Excluir: `AlertDialog` de confirmação → `DiaryViewModel.deleteEntry`. Editar: botão presente mas ainda TODO — depende do editor de fotos (9.8-9.11, tarefa futura). |
-| 9.7 | Botão "+" posicionado corretamente (não sobrepõe Mel) | ✅ | Reaproveita a pilha de FABs de `MainScreen.kt` (`hasAddFab = true` para `DIARY`); clique abre `AddDiaryEntryPlaceholder`. |
-| 9.8 | Editor de fotos embutido: crop, girar, filtros (Normal/Vívido/Suave) | ⬜ | Fora de escopo desta tarefa — tarefa futura dedicada ao editor. |
-| 9.9 | Editor de fotos: sliders de brilho, contraste, saturação | ⬜ | Idem 9.8. |
-| 9.10 | Editor de fotos: adesivos temáticos (patinhas, coração, moldura polaroid) | ⬜ | Idem 9.8. |
-| 9.11 | Editor de fotos: texto sobre a imagem (tipografia do app) | ⬜ | Idem 9.8. |
+| 9.6 | Botão de editar/excluir por entrada | ✅ (excluir) / ⬜ (editar) | Excluir: `AlertDialog` de confirmação → `DiaryViewModel.deleteEntry`. Editar (entrada já existente): botão presente mas ainda TODO — fora de escopo desta parte; o editor agora existe, mas só é usado no fluxo de criação (9.8-9.11). |
+| 9.7 | Botão "+" posicionado corretamente (não sobrepõe Mel) | ✅ | Reaproveita a pilha de FABs de `MainScreen.kt` (`hasAddFab = true` para `DIARY`); clique abre o seletor de foto da galeria (`PickVisualMedia`) e, ao escolher, o editor `DiaryPhotoEditorScreen`. |
+| 9.8 | Editor de fotos embutido: crop, girar, filtros (Normal/Vívido/Suave) | ✅ | `DiaryPhotoEditorScreen.kt`: etapa 1 = cortar (pan/zoom dentro de moldura quadrada fixa, estilo Instagram) + girar em incrementos de 90°; etapa 2 = filtros via matriz de cor (`buildDiaryColorMatrix`/`DiaryPhotoEditorUtils.kt`). Sem câmera (só galeria) e sem crop livre por handles — decisões de escopo. |
+| 9.9 | Editor de fotos: sliders de brilho, contraste, saturação | ✅ | 3 `Slider` (-100..100) combinados com o filtro escolhido na mesma matriz de cor 4x5, usada tanto na prévia (`ColorFilter.colorMatrix`) quanto na exportação (`ColorMatrixColorFilter`). |
+| 9.10 | Editor de fotos: adesivos temáticos (patinhas, coração, moldura polaroid) | ✅ | Patinha e coração desenhados nativamente via `android.graphics.Path`/`Canvas` (`drawPawSticker`/`drawHeartSticker`) — não há nenhuma imagem de adesivo no pacote de assets, então optou-se por desenho vetorial próprio na cor laranja/rosa do app, reaproveitado igual na prévia e na exportação. Moldura polaroid = borda branca desenhada (toggle). Arrastar para posicionar; sem handles de redimensionar/rotacionar (decisão de escopo, SPEC só pede a existência dos adesivos). |
+| 9.11 | Editor de fotos: texto sobre a imagem (tipografia do app) | ✅ | Texto livre arrastável, cor selecionável (branco/preto/laranja). Prévia usa a Nunito real do app; a imagem final exportada usa `sans-serif-medium` em negrito como fallback, já que a Nunito é uma Google Font baixável assíncrona sem arquivo .ttf estático no projeto (limitação conhecida, documentada). |
 | 9.12 | Animação: efeito polaroid ao adicionar entrada | ✅ | `PolaroidReveal` (`DiaryScreen.kt`): rotação -9°→0° + escala 0.82→1 com `spring(DampingRatioMediumBouncy)`; só toca para entradas inseridas após o carregamento inicial da tela (`hasLoadedOnce`/`knownEntryIds`). |
 | 9.13 | Banner AdMob | ⬜ | Fora de escopo desta tarefa (tratado junto com uma tarefa futura). |
 
@@ -325,7 +325,7 @@
 |---|------|--------|-------|
 | 17.1 | 100% local (Room + armazenamento interno para fotos) | ⬜ | |
 | 17.2 | Sem login / sem conta / sem nuvem | ⬜ | |
-| 17.3 | Bug fix: ao salvar foto, desenhar sobre fundo branco antes de comprimir (sem fundo preto) | ⬜ | |
+| 17.3 | Bug fix: ao salvar foto, desenhar sobre fundo branco antes de comprimir (sem fundo preto) | ✅ | Implementado no editor de fotos do Diário (9.8-9.11): `flattenOnWhiteBackground` em `DiaryPhotoEditorUtils.kt`, chamado dentro de `saveDiaryPhotoJpeg` antes do `compress(JPEG)`. Aplicar a mesma regra em qualquer outro fluxo de salvar foto que for criado depois (ex.: foto de perfil do pet). |
 
 ---
 
@@ -351,4 +351,4 @@
 
 ---
 
-_Última atualização: 2026-07-11 — Seção 9 parte 1 (aba Diário: estrutura, timeline vertical, filtro por pet, compartilhar/excluir por entrada, empty state centralizada, animação polaroid ao adicionar) concluída. Fora de escopo desta parte (tarefas futuras): editor de fotos embutido (9.8-9.11), botão de editar entrada (depende do editor) e banner AdMob (9.13). Como ainda não há pets cadastrados, a aba mostra apenas o estado vazio — timeline, filtro, compartilhar e animação polaroid ficam pendentes de verificação visual com dados reais. Seção 8 (aba Meus Pets) concluída anteriormente. Seções 0–8 e 9 (parte 1) concluídas._
+_Última atualização: 2026-07-11 — Seção 9 parte 2 (editor de fotos embutido no Diário: cortar/girar, filtros Normal/Vívido/Suave, sliders de brilho/contraste/saturação, adesivos patinha/coração desenhados nativamente, moldura polaroid, texto sobre a imagem, regra do fundo branco antes do JPEG) concluída. O botão "+" agora abre a galeria (`PickVisualMedia`, sem câmera — decisão de escopo) e, ao escolher uma foto, o editor completo; ao salvar, grava uma `DiaryEntry` real via Room. Fora de escopo: botão de editar entrada já existente (9.6, ainda TODO) e banner AdMob (9.13). Limitação conhecida: a fonte do texto exportado usa `sans-serif-medium` como fallback (a Nunito é uma Google Font baixável, sem .ttf estático disponível fora do Compose). Sem emulador Android neste ambiente — validação de compilação depende do build do GitHub Actions; validação visual real depende do usuário no celular. Seção 9 (partes 1 e 2) concluída. Seções 0–8 e 9 concluídas._
