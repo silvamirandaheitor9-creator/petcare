@@ -19,8 +19,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -152,22 +150,6 @@ fun DiaryPhotoEditorScreen(
     // atrás da barra de gestos mesmo com systemBarsPadding aplicado).
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
-            // TODO DEBUG (temporário — remover após confirmação visual): marcador
-            // incondicional no topo, antes de qualquer lógica/condição/step, para
-            // confirmar se este trecho de Composable é executado.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp)
-                    .background(Color.Magenta),
-            ) {
-                Text(
-                    text = "MARCADOR DEBUG TOPO",
-                    color = Color.Yellow,
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier.padding(16.dp),
-                )
-            }
             TopAppBar(
                 title = { Text(if (step == 0) "Cortar e girar" else "Ajustar foto") },
                 navigationIcon = {
@@ -379,52 +361,34 @@ private fun CropRotateStep(
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             modifier = Modifier.fillMaxWidth().padding(horizontal = MaterialTheme.spacing.sm),
         )
-        // TODO DEBUG (temporário — remover após confirmação visual): Box ciano
-        // continua aqui só para você confirmar visualmente que a Row inteira (não
-        // uma fatia) aparece numa posição utilizável. O fix real é o
-        // .navigationBarsPadding().imePadding() abaixo, que empurra este bloco para
-        // cima da barra de gestos/navegação — o systemBarsPadding() do Column raiz
-        // não estava sendo suficiente para esse Dialog especificamente.
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Cyan)
-                .navigationBarsPadding()
-                .imePadding()
-                .padding(8.dp),
+                .padding(MaterialTheme.spacing.sm),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(MaterialTheme.spacing.sm),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            TextButton(onClick = onRotate) {
+                Icon(Icons.Rounded.RotateRight, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text("Girar")
+            }
+            Button(
+                onClick = {
+                    val cropSizePx = (frameSizePx / totalScale)
+                    val leftPx = (workingBitmap.width - cropSizePx) / 2f - panOffset.x / totalScale
+                    val topPx = (workingBitmap.height - cropSizePx) / 2f - panOffset.y / totalScale
+                    val cropped = cropBitmapToSquareRegion(
+                        bitmap = workingBitmap,
+                        left = leftPx.roundToInt(),
+                        top = topPx.roundToInt(),
+                        size = cropSizePx.roundToInt(),
+                    )
+                    onCropApplied(cropped)
+                },
+                modifier = Modifier.height(56.dp),
             ) {
-                TextButton(onClick = onRotate) {
-                    Icon(Icons.Rounded.RotateRight, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Girar")
-                }
-                Button(
-                    onClick = {
-                        val cropSizePx = (frameSizePx / totalScale)
-                        val leftPx = (workingBitmap.width - cropSizePx) / 2f - panOffset.x / totalScale
-                        val topPx = (workingBitmap.height - cropSizePx) / 2f - panOffset.y / totalScale
-                        val cropped = cropBitmapToSquareRegion(
-                            bitmap = workingBitmap,
-                            left = leftPx.roundToInt(),
-                            top = topPx.roundToInt(),
-                            size = cropSizePx.roundToInt(),
-                        )
-                        onCropApplied(cropped)
-                    },
-                    modifier = Modifier
-                        .height(56.dp)
-                        .border(width = 4.dp, color = Color.Red, shape = RoundedCornerShape(8.dp)),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCCFF00)),
-                ) {
-                    Text("Avançar", color = Color.Black, fontWeight = FontWeight.ExtraBold)
-                }
+                Text("Avançar")
             }
         }
     }
