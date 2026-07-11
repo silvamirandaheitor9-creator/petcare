@@ -163,13 +163,13 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 7.1 | Header com saudação por horário (Bom dia/tarde/noite + nome) | ⬜ | |
-| 7.2 | Card de estatísticas (Total pets / Próxima vacina / Próxima consulta) | ⬜ | Sem palavra "Em dia"; "--" quando vazio |
-| 7.3 | Card de dica do Mel (banco ≥30 dicas cães/gatos, ≥10 demais) | ⬜ | 100% factualmente corretas |
-| 7.4 | Lista de pets como cards horizontais (foto + nome + dado rápido) | ⬜ | |
-| 7.5 | Estado vazio: `vazio_meuspets.png` centralizada + botão pill animado | ⬜ | |
-| 7.6 | Banner AdMob posicionado abaixo, com espaçamento adequado | ⬜ | |
-| 7.7 | Sem seções "Próximos Lembretes" nem prévia do Diário | ⬜ | |
+| 7.1 | Header com saudação por horário (Bom dia/tarde/noite + nome) | ✅ | `PetCareTopBar` em `MainScreen.kt` exibe greeting + `warmPhrase` como subtitle; hora lida via `Calendar`. |
+| 7.2 | Card de estatísticas (Total pets / Próxima vacina / Próxima consulta) | ✅ | `StatsCard` 3 colunas com dividers; mostra "--" (sem "Em dia") quando reminders null. `HomeViewModel`. |
+| 7.3 | Card de dica do Mel (banco ≥30 dicas cães/gatos, ≥10 demais) | ✅ | `MelTips.kt`: 32 cachorro, 33 gato, 11 pássaro, 10 peixe, 10 réptil, 11 roedor. Baseadas em WSAVA/CFMV. |
+| 7.4 | Lista de pets como cards horizontais (foto + nome + dado rápido) | ✅ | `LazyRow` com `PetHorizontalCard` (140dp, foto circular 64dp, nome, idade calculada). Coil + fallback. |
+| 7.5 | Estado vazio: `vazio_meuspets.png` centralizada + botão pill animado | ✅ | `EmptyPetsSection`: imagem 68% largura, título caloroso, botão pill OrangePrimary com `InfiniteTransition` escala 1→1.055. |
+| 7.6 | Banner AdMob posicionado abaixo, com espaçamento adequado | ✅ | `BannerAdView` via `AndroidView(AdView)`, test ID, 28dp spacer acima. `MobileAds.init()` já no Application. |
+| 7.7 | Sem seções "Próximos Lembretes" nem prévia do Diário | ✅ | `HomeScreen` contém apenas: stats, dica, lista de pets / estado vazio, banner. Nenhuma outra seção. |
 
 ---
 
@@ -351,4 +351,4 @@
 
 ---
 
-_Última atualização: 2026-07-11 — Seção 6 (navegação global: 5 abas + FAB Mel) concluída e testada no celular. Commit: ba874c1. Seções 0–6 concluídas._
+_Última atualização: 2026-07-11 — Seção 7 (aba Início: stats, dica Mel, pets list, empty state, AdMob) concluída. Commit: 0ad7b53. Seções 0–7 concluídas._
