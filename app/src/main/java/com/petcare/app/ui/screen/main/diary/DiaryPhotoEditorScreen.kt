@@ -342,8 +342,11 @@ private fun CropRotateStep(
     }
 
     Column(Modifier.fillMaxSize()) {
+        // TODO DEBUG (temporário — remover após diagnosticar): weight reduzido de
+        // 1f para 0.5f para testar a hipótese de que o Box da imagem está tomando
+        // espaço demais e empurrando a Row do "Avançar" para fora da área visível.
         Box(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
+            modifier = Modifier.weight(0.5f).fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
             Canvas(
