@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -380,13 +382,18 @@ private fun CropRotateStep(
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             modifier = Modifier.fillMaxWidth().padding(horizontal = MaterialTheme.spacing.sm),
         )
-        // TODO DEBUG (temporário — remover após diagnosticar): Box ciano envolvendo
-        // a Row (por fora, não dentro dela) para confirmar se este trecho de código
-        // é alcançado/executado, mesmo que os botões dentro continuem invisíveis.
+        // TODO DEBUG (temporário — remover após confirmação visual): Box ciano
+        // continua aqui só para você confirmar visualmente que a Row inteira (não
+        // uma fatia) aparece numa posição utilizável. O fix real é o
+        // .navigationBarsPadding().imePadding() abaixo, que empurra este bloco para
+        // cima da barra de gestos/navegação — o systemBarsPadding() do Column raiz
+        // não estava sendo suficiente para esse Dialog especificamente.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.Cyan)
+                .navigationBarsPadding()
+                .imePadding()
                 .padding(8.dp),
         ) {
             Row(
