@@ -152,6 +152,22 @@ fun DiaryPhotoEditorScreen(
     ) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
+                // TODO DEBUG (temporário — remover após diagnosticar): marcador
+                // incondicional no topo, antes de qualquer lógica/condição/step,
+                // para confirmar se este trecho de Composable é executado.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(80.dp)
+                        .background(Color.Magenta),
+                ) {
+                    Text(
+                        text = "MARCADOR DEBUG TOPO",
+                        color = Color.Yellow,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
                 TopAppBar(
                     title = { Text(if (step == 0) "Cortar e girar" else "Ajustar foto") },
                     navigationIcon = {
