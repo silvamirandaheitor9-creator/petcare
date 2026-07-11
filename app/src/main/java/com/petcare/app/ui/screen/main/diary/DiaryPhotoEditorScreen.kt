@@ -342,11 +342,8 @@ private fun CropRotateStep(
     }
 
     Column(Modifier.fillMaxSize()) {
-        // TODO DEBUG (temporário — remover após diagnosticar): weight reduzido de
-        // 1f para 0.5f para testar a hipótese de que o Box da imagem está tomando
-        // espaço demais e empurrando a Row do "Avançar" para fora da área visível.
         Box(
-            modifier = Modifier.weight(0.5f).fillMaxWidth(),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
             Canvas(
@@ -383,40 +380,47 @@ private fun CropRotateStep(
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             modifier = Modifier.fillMaxWidth().padding(horizontal = MaterialTheme.spacing.sm),
         )
-        Row(
+        // TODO DEBUG (temporário — remover após diagnosticar): Box ciano envolvendo
+        // a Row (por fora, não dentro dela) para confirmar se este trecho de código
+        // é alcançado/executado, mesmo que os botões dentro continuem invisíveis.
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(MaterialTheme.spacing.sm),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+                .background(Color.Cyan)
+                .padding(8.dp),
         ) {
-            TextButton(onClick = onRotate) {
-                Icon(Icons.Rounded.RotateRight, contentDescription = null)
-                Spacer(Modifier.width(6.dp))
-                Text("Girar")
-            }
-            // TODO DEBUG (temporário — remover após confirmar visibilidade):
-            // borda vermelha grossa + fundo verde-limão + altura explícita para
-            // diagnosticar se este botão está sendo cortado/tamanho zero/não desenhado.
-            Button(
-                onClick = {
-                    val cropSizePx = (frameSizePx / totalScale)
-                    val leftPx = (workingBitmap.width - cropSizePx) / 2f - panOffset.x / totalScale
-                    val topPx = (workingBitmap.height - cropSizePx) / 2f - panOffset.y / totalScale
-                    val cropped = cropBitmapToSquareRegion(
-                        bitmap = workingBitmap,
-                        left = leftPx.roundToInt(),
-                        top = topPx.roundToInt(),
-                        size = cropSizePx.roundToInt(),
-                    )
-                    onCropApplied(cropped)
-                },
+            Row(
                 modifier = Modifier
-                    .height(56.dp)
-                    .border(width = 4.dp, color = Color.Red, shape = RoundedCornerShape(8.dp)),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCCFF00)),
+                    .fillMaxWidth()
+                    .padding(MaterialTheme.spacing.sm),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Avançar", color = Color.Black, fontWeight = FontWeight.ExtraBold)
+                TextButton(onClick = onRotate) {
+                    Icon(Icons.Rounded.RotateRight, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Girar")
+                }
+                Button(
+                    onClick = {
+                        val cropSizePx = (frameSizePx / totalScale)
+                        val leftPx = (workingBitmap.width - cropSizePx) / 2f - panOffset.x / totalScale
+                        val topPx = (workingBitmap.height - cropSizePx) / 2f - panOffset.y / totalScale
+                        val cropped = cropBitmapToSquareRegion(
+                            bitmap = workingBitmap,
+                            left = leftPx.roundToInt(),
+                            top = topPx.roundToInt(),
+                            size = cropSizePx.roundToInt(),
+                        )
+                        onCropApplied(cropped)
+                    },
+                    modifier = Modifier
+                        .height(56.dp)
+                        .border(width = 4.dp, color = Color.Red, shape = RoundedCornerShape(8.dp)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCCFF00)),
+                ) {
+                    Text("Avançar", color = Color.Black, fontWeight = FontWeight.ExtraBold)
+                }
             }
         }
     }
