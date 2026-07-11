@@ -62,11 +62,11 @@
 |---|---------|-------------------|
 | 1 | `icone_app.png` | ⬜ |
 | 2 | `mascote_splash.png` | ⬜ |
-| 3 | `onboarding_1_boasvindas.png` | ⬜ |
-| 4 | `onboarding_2_meuspets.png` | ⬜ |
-| 5 | `onboarding_4_fotos.png` | ⬜ |
-| 6 | `onboarding_3_lembretes.png` | ⬜ |
-| 7 | `mel_avatar.png` | ⬜ |
+| 3 | `onboarding_1_boasvindas.png` | ✅ |
+| 4 | `onboarding_2_meuspets.png` | ✅ |
+| 5 | `onboarding_4_fotos.png` | ✅ |
+| 6 | `onboarding_3_lembretes.png` | ✅ |
+| 7 | `mel_avatar.png` | ✅ |
 | 8 | `vazio_meuspets.png` | ⬜ |
 | 9 | `vazio_lembretes.png` | ⬜ |
 | 10 | `vazio_diario.png` | ⬜ |
@@ -130,20 +130,20 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 5.1 | Tela 1 — Boas-vindas (`onboarding_1_boasvindas.png`) | ⬜ | |
-| 5.2 | Tela 2 — Meus Pets (`onboarding_2_meuspets.png`) | ⬜ | |
-| 5.3 | Tela 3 — Diário (`onboarding_4_fotos.png`) | ⬜ | |
-| 5.4 | Tela 4 — Lembretes (`onboarding_3_lembretes.png`) | ⬜ | |
-| 5.5 | Tela 5 — Assistente Mel (`mel_avatar.png`) | ⬜ | |
-| 5.6 | Tela 6 — Escolha de tema (seletor visual Sol/Lua, sem imagem) | ⬜ | |
-| 5.7 | Tela 7 — Termos e privacidade (redesenhada) | ⬜ | Com tópicos visuais + rolagem + checkbox |
-| 5.8 | Transição: slide horizontal + fade entre páginas | ⬜ | |
-| 5.9 | Indicador de progresso: pegadas (não bolinhas) | ⬜ | |
-| 5.10 | Botão "Próximo" com efeito de pressão | ⬜ | |
-| 5.11 | Botão "Pular" (todas exceto Termos) → vai para tela de Termos | ⬜ | |
-| 5.12 | Botão voltar do sistema navega entre páginas | ⬜ | |
-| 5.13 | Texto completo da Política de Privacidade (seção 19) | ⬜ | |
-| 5.14 | Texto completo dos Termos de Uso (seção 19) | ⬜ | |
+| 5.1 | Tela 1 — Boas-vindas (`onboarding_1_boasvindas.png`) | ✅ | Imagem real + título + subtítulo. Testado no celular. |
+| 5.2 | Tela 2 — Meus Pets (`onboarding_2_meuspets.png`) | ✅ | Imagem real + título + subtítulo. Testado no celular. |
+| 5.3 | Tela 3 — Diário (`onboarding_4_fotos.png`) | ✅ | Imagem real + título + subtítulo. Testado no celular. |
+| 5.4 | Tela 4 — Lembretes (`onboarding_3_lembretes.png`) | ✅ | Imagem real + título + subtítulo. Testado no celular. |
+| 5.5 | Tela 5 — Assistente Mel (`mel_avatar.png`) | ✅ | Imagem real + título + subtítulo. Testado no celular. |
+| 5.6 | Tela 6 — Escolha de tema (seletor visual Sol/Lua, sem imagem) | ✅ | Dois cards (LightMode/DarkMode) com borda laranja animada + escala no selecionado. Tema muda ao vivo via DataStore → ThemeViewModel. Preferência persiste. Testado no celular. |
+| 5.7 | Tela 7 — Termos e privacidade | ✅ | Ícone escudo + "Antes de começar" + 4 tópicos visuais + animação escalonada (graphicsLayer+Animatable) + link "Ler texto completo" + scroll obrigatório libera checkbox + botão desabilitado até aceite. Testado no celular. |
+| 5.8 | Transição: slide horizontal + fade entre páginas | ✅ | `graphicsLayer { alpha = (1 - offset * 0.55).coerceIn(0,1) }` dentro do `HorizontalPager`. Testado no celular. |
+| 5.9 | Indicador de progresso: pegadas (não bolinhas) | ✅ | `FootprintIndicator` com ícone pata laranja (selecionado) vs cinza (demais). Testado no celular. |
+| 5.10 | Botão "Próximo" com efeito de pressão | ✅ | `spring(DampingRatioMediumBouncy)` na escala ao pressionar via `MutableInteractionSource`. Testado no celular. |
+| 5.11 | Botão "Pular" (todas exceto Termos) → vai para tela de Termos | ✅ | `animateScrollToPage(termsIndex)`. Oculto na tela 7. Testado no celular. |
+| 5.12 | Botão voltar do sistema navega entre páginas | ✅ | `BackHandler(enabled = currentPage > 0)` com `animateScrollToPage(currentPage - 1)`. Testado no celular. |
+| 5.13 | Texto completo da Política de Privacidade (seção 19) | ✅ | `PRIVACY_TEXT` em `TermsPage.kt` — aba "Privacidade" no diálogo. Texto exato da seção 19, datado "Julho de 2026". Testado no celular. |
+| 5.14 | Texto completo dos Termos de Uso (seção 19) | ✅ | `TERMS_TEXT` em `TermsPage.kt` — aba "Termos de Uso" no diálogo. Texto exato da seção 19, datado "Julho de 2026". Testado no celular. |
 
 ---
 
@@ -306,8 +306,8 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 16.1 | Splash: mascote com quique de entrada | ⬜ | |
-| 16.2 | Onboarding: slide + fade; pegadas no progresso | ⬜ | |
+| 16.1 | Splash: mascote com quique de entrada | ✅ | Concluído com seção 4. |
+| 16.2 | Onboarding: slide + fade; pegadas no progresso; animação escalonada Termos | ✅ | Concluído com seção 5. |
 | 16.3 | Navegação: ícone selecionado faz "pulo" | ⬜ | |
 | 16.4 | FAB: respiração sutil; "+" vira "×" | ⬜ | |
 | 16.5 | Sucesso: `feedback_sucesso.png` bounce + partículas de pegadas | ⬜ | |
@@ -345,10 +345,10 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 19.1 | Política de Privacidade (exatamente o texto da seção 19) | ⬜ | |
-| 19.2 | Termos de Uso (exatamente o texto da seção 19) | ⬜ | |
-| 19.3 | Sobre o PetCare (exatamente o texto da seção 19) | ⬜ | |
+| 19.1 | Política de Privacidade (exatamente o texto da seção 19) | ✅ | `PRIVACY_TEXT` em `TermsPage.kt` — aba "Privacidade" no diálogo da tela 7. Testado no celular ("Julho de 2026" confirmado). |
+| 19.2 | Termos de Uso (exatamente o texto da seção 19) | ✅ | `TERMS_TEXT` em `TermsPage.kt` — aba "Termos de Uso" no diálogo da tela 7. Testado no celular ("Julho de 2026" confirmado). |
+| 19.3 | Sobre o PetCare (exatamente o texto da seção 19) | ⬜ | Será implementado na aba Perfil (seção 14.6). |
 
 ---
 
-_Última atualização: 2026-07-10 — Seções 0, 1 e 2 concluídas (exceto teste visual 2.5). Seção 3 (base de design: shapes, spacing, cores, tipografia, ícones) implementada e aguardando validação visual do usuário — ver `DesignSystemPreviewScreen`, acessível automaticamente no primeiro lançamento (rota temporária "onboarding"). minSdk=24. Build passou no GitHub Actions (run #29106918516, conclusão: success). APK disponível para instalar no celular._
+_Última atualização: 2026-07-11 — Seção 5 (onboarding, 7 telas) concluída e testada no celular. Commits: telas 1-5 + FootprintIndicator + navegação (tarefas 1-2), tela 6 Seleção de tema `2dfda8f` (tarefa 3), tela 7 Termos `e8c9a58` (tarefa 4). Textos legais 19.1 e 19.2 implementados. Imagens 3-7 usadas e confirmadas._
