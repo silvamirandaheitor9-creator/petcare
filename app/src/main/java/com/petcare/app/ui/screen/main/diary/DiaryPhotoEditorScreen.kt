@@ -376,6 +376,9 @@ private fun CropRotateStep(
                 Spacer(Modifier.width(6.dp))
                 Text("Girar")
             }
+            // TODO DEBUG (temporário — remover após confirmar visibilidade):
+            // borda vermelha grossa + fundo verde-limão + altura explícita para
+            // diagnosticar se este botão está sendo cortado/tamanho zero/não desenhado.
             Button(
                 onClick = {
                     val cropSizePx = (frameSizePx / totalScale)
@@ -389,9 +392,12 @@ private fun CropRotateStep(
                     )
                     onCropApplied(cropped)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                modifier = Modifier
+                    .height(56.dp)
+                    .border(width = 4.dp, color = Color.Red, shape = RoundedCornerShape(8.dp)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCCFF00)),
             ) {
-                Text("Avançar")
+                Text("Avançar", color = Color.Black, fontWeight = FontWeight.ExtraBold)
             }
         }
     }
