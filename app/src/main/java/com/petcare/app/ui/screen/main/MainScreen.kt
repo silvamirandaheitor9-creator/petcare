@@ -38,6 +38,7 @@ import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -53,10 +54,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.petcare.app.R
 import com.petcare.app.ui.theme.OrangeGradEnd
 import com.petcare.app.ui.theme.OrangeGradStart
 import com.petcare.app.ui.theme.OrangePrimary
+import com.petcare.app.ui.viewmodel.HomeViewModel
+import java.util.Calendar
 
 // ─── Definição das 5 abas ────────────────────────────────────────────────────
 
@@ -66,11 +70,11 @@ private enum class MainTab(
     /** Quando true, exibe o FAB "+" empilhado abaixo do FAB do Mel. */
     val hasAddFab: Boolean,
 ) {
-    HOME(label = "Início",     icon = Icons.Rounded.Home,        hasAddFab = false),
-    PETS(label = "Meus Pets",  icon = Icons.Rounded.Pets,        hasAddFab = true),
-    DIARY(label = "Diário",    icon = Icons.Rounded.AutoStories,  hasAddFab = true),
-    REMINDERS(label = "Lembretes", icon = Icons.Rounded.Alarm,   hasAddFab = true),
-    PROFILE(label = "Perfil",  icon = Icons.Rounded.Person,      hasAddFab = false),
+    HOME(label = "Início",         icon = Icons.Rounded.Home,        hasAddFab = false),
+    PETS(label = "Meus Pets",      icon = Icons.Rounded.Pets,        hasAddFab = true),
+    DIARY(label = "Diário",        icon = Icons.Rounded.AutoStories,  hasAddFab = true),
+    REMINDERS(label = "Lembretes", icon = Icons.Rounded.Alarm,       hasAddFab = true),
+    PROFILE(label = "Perfil",      icon = Icons.Rounded.Person,      hasAddFab = false),
 }
 
 // ─── Tela principal ───────────────────────────────────────────────────────────
@@ -81,13 +85,42 @@ fun MainScreen() {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val currentTab = MainTab.entries[selectedTabIndex]
 
-    // Mel bottom sheet (seção 15 implementará a lógica real)
+    // ── Saudação contextual para a aba Início ────────────────────────────────
+    // HomeViewModel é injetado aqui para obter o nome do usuário;
+    // a mesma instância é repassada ao HomeScreen para evitar duplicação.
+    val homeViewModel: HomeViewModel = hiltViewModel()
+    val userName by homeViewModel.userName.collectAsState()
+
+    val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
+    val greeting = remember(userName, hour) {
+        val name = userName.trim()
+        when {
+            hour < 12 -> if (name.isNotBlank()) "Bom dia, $name! ☀️" else "Bom dia! ☀️"
+            hour < 18 -> if (name.isNotBlank()) "Boa tarde, $name! 🌤️" else "Boa tarde! 🌤️"
+            else      -> if (name.isNotBlank()) "Boa noite, $name! 🌙" else "Boa noite! 🌙"
+        }
+    }
+    val warmPhrase = remember(hour) {
+        when {
+            hour < 12 -> "Como estão os pets hoje?"
+            hour < 18 -> "Tudo bem com os seus bichinhos?"
+            else      -> "Como foi o dia dos seus pets?"
+        }
+    }
+
+    // Mel bottom sheet (seção 15 implementará a lógica real de IA)
     var showMelSheet by remember { mutableStateOf(false) }
     val melSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Scaffold(
-        // (SPEC) Cabeçalho: só texto sobre gradiente laranja — sem imagem do mascote
-        topBar = { PetCareTopBar(title = currentTab.label) },
+        // (SPEC §7) Aba Início: greeting personalizado com horário.
+        // Demais abas: título padrão da aba.
+        topBar = {
+            PetCareTopBar(
+                title    = if (selectedTabIndex == 0) greeting else currentTab.label,
+                subtitle = if (selectedTabIndex == 0) warmPhrase else null,
+            )
+        },
         bottomBar = {
             PetCareBottomBar(
                 tabs = MainTab.entries,
@@ -101,12 +134,21 @@ fun MainScreen() {
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
-            // Conteúdo da aba — placeholder até as seções 7-14
-            TabPlaceholder(tab = currentTab)
+            // ── Conteúdo da aba ───────────────────────────────────────────────
+            when (currentTab) {
+                MainTab.HOME ->
+                    // (SPEC §7) Conteúdo real da aba Início
+                    HomeScreen(
+                        viewModel = homeViewModel,
+                        onAddPet  = { selectedTabIndex = MainTab.PETS.ordinal },
+                    )
+                else ->
+                    // Placeholder para as demais abas (seções 8-14)
+                    TabPlaceholder(tab = currentTab)
+            }
 
             // ── FAB: pilha vertical no canto inferior direito ─────────────────
-            // (SPEC 6): "Quando uma tela tiver os dois botões, empilhe-os
-            // verticalmente — o botão do Mel fica acima do botão de ação."
+            // (SPEC 6): Mel acima do FAB de ação; ambos nunca se sobrepõem
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -114,10 +156,10 @@ fun MainScreen() {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.End,
             ) {
-                // 1) Mel — sempre visível em todas as abas, sempre acima
+                // 1) Mel — sempre visível, sempre acima
                 MelFab(onClick = { showMelSheet = true })
 
-                // 2) "+" — apenas nas abas com ação de adicionar (Pets, Diário, Lembretes)
+                // 2) "+" — apenas nas abas com ação de adicionar
                 if (currentTab.hasAddFab) {
                     AddFab(
                         contentDescription = "Adicionar ${currentTab.label}",
@@ -128,7 +170,7 @@ fun MainScreen() {
         }
     }
 
-    // ── Bottom sheet placeholder do Mel (seção 15 implementará a IA completa) ─
+    // ── Bottom sheet placeholder do Mel ──────────────────────────────────────
     if (showMelSheet) {
         ModalBottomSheet(
             onDismissRequest = { showMelSheet = false },
@@ -167,26 +209,42 @@ fun MainScreen() {
     }
 }
 
-// ─── Cabeçalho: gradiente laranja + título (SPEC: nunca imagem pequena) ───────
+// ─── Cabeçalho: gradiente laranja + título + subtitle opcional ────────────────
+// (SPEC §7): saudação personalizada com horário no header da aba Início.
+// Para as demais abas: só title (sem subtitle), verticalmente centralizado.
 
 @Composable
-private fun PetCareTopBar(title: String) {
+private fun PetCareTopBar(
+    title: String,
+    subtitle: String? = null,
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(
                 Brush.horizontalGradient(listOf(OrangeGradStart, OrangeGradEnd)),
             )
-            // Aplica o inset da status bar — necessário pois usamos enableEdgeToEdge()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(
+                horizontal = 20.dp,
+                vertical   = if (subtitle != null) 10.dp else 16.dp,
+            ),
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text       = title,
+                style      = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color      = Color.White,
+            )
+            if (!subtitle.isNullOrEmpty()) {
+                Text(
+                    text  = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.82f),
+                )
+            }
+        }
     }
 }
 
@@ -200,26 +258,25 @@ private fun PetCareBottomBar(
 ) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = OrangePrimary,
+        contentColor   = OrangePrimary,
         tonalElevation = 4.dp,
     ) {
         tabs.forEachIndexed { index, tab ->
             val isSelected = selectedIndex == index
 
-            // (SPEC 6.5) Ícone selecionado faz "pulo" via spring com overshoot
             val scale by animateFloatAsState(
                 targetValue = if (isSelected) 1.22f else 1f,
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessHigh,
+                    stiffness    = Spring.StiffnessHigh,
                 ),
                 label = "tab_jump_${tab.name}",
             )
 
             NavigationBarItem(
                 selected = isSelected,
-                onClick = { onTabSelected(index) },
-                icon = {
+                onClick  = { onTabSelected(index) },
+                icon     = {
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = tab.label,
@@ -230,15 +287,15 @@ private fun PetCareBottomBar(
                 },
                 label = {
                     Text(
-                        text = tab.label,
+                        text  = tab.label,
                         style = MaterialTheme.typography.labelSmall,
                     )
                 },
                 alwaysShowLabel = true,
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = OrangePrimary,
-                    selectedTextColor = OrangePrimary,
-                    indicatorColor = OrangePrimary.copy(alpha = 0.12f),
+                    selectedIconColor   = OrangePrimary,
+                    selectedTextColor   = OrangePrimary,
+                    indicatorColor      = OrangePrimary.copy(alpha = 0.12f),
                     unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                     unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                 ),
@@ -252,19 +309,19 @@ private fun PetCareBottomBar(
 @Composable
 private fun MelFab(onClick: () -> Unit) {
     FloatingActionButton(
-        onClick = onClick,
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = OrangePrimary,
-        elevation = FloatingActionButtonDefaults.elevation(
-            defaultElevation = 6.dp,
-            pressedElevation = 2.dp,
+        onClick          = onClick,
+        containerColor   = MaterialTheme.colorScheme.surface,
+        contentColor     = OrangePrimary,
+        elevation        = FloatingActionButtonDefaults.elevation(
+            defaultElevation  = 6.dp,
+            pressedElevation  = 2.dp,
         ),
         modifier = Modifier.size(56.dp),
     ) {
         Image(
-            painter = painterResource(R.drawable.mel_avatar_pequeno),
+            painter            = painterResource(R.drawable.mel_avatar_pequeno),
             contentDescription = "Mel — Assistente PetCare",
-            modifier = Modifier.size(40.dp),
+            modifier           = Modifier.size(40.dp),
         )
     }
 }
@@ -277,25 +334,24 @@ private fun AddFab(
     onClick: () -> Unit,
 ) {
     SmallFloatingActionButton(
-        onClick = onClick,
+        onClick        = onClick,
         containerColor = OrangePrimary,
-        contentColor = Color.White,
-        elevation = FloatingActionButtonDefaults.elevation(
+        contentColor   = Color.White,
+        elevation      = FloatingActionButtonDefaults.elevation(
             defaultElevation = 4.dp,
             pressedElevation = 1.dp,
         ),
         modifier = Modifier.size(44.dp),
     ) {
         Icon(
-            imageVector = Icons.Rounded.Add,
+            imageVector        = Icons.Rounded.Add,
             contentDescription = contentDescription,
-            modifier = Modifier.size(22.dp),
+            modifier           = Modifier.size(22.dp),
         )
     }
 }
 
-// ─── Conteúdo placeholder de cada aba ────────────────────────────────────────
-// Será substituído aba por aba nas seções 7-14 do SPEC.
+// ─── Placeholder para abas ainda não implementadas (seções 8-14) ─────────────
 
 @Composable
 private fun TabPlaceholder(tab: MainTab) {
@@ -308,13 +364,13 @@ private fun TabPlaceholder(tab: MainTab) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
-                imageVector = tab.icon,
+                imageVector        = tab.icon,
                 contentDescription = null,
-                modifier = Modifier.size(56.dp),
-                tint = OrangePrimary.copy(alpha = 0.35f),
+                modifier           = Modifier.size(56.dp),
+                tint               = OrangePrimary.copy(alpha = 0.35f),
             )
             Text(
-                text = tab.label,
+                text  = tab.label,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.35f),
             )
