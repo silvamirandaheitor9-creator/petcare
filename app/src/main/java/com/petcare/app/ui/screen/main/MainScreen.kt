@@ -122,6 +122,10 @@ fun MainScreen() {
     var showMelSheet by remember { mutableStateOf(false) }
     val melSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    // Placeholder "Nova entrada" do Diário — o editor de fotos real chega numa
+    // tarefa futura (SPEC 9.8-9.11); por ora o "+" só abre esta tela simples.
+    var showAddDiaryEntry by remember { mutableStateOf(false) }
+
     Scaffold(
         // (SPEC §7) Aba Início: greeting personalizado com horário.
         // Demais abas: título padrão da aba.
@@ -156,8 +160,14 @@ fun MainScreen() {
                 MainTab.PETS ->
                     // (SPEC §8) Conteúdo real da aba Meus Pets
                     PetsScreen(viewModel = petsViewModel)
+                MainTab.DIARY ->
+                    // (SPEC §9 — parte 1) Conteúdo real da aba Diário
+                    DiaryScreen(
+                        showAddEntryPlaceholder = showAddDiaryEntry,
+                        onDismissAddEntryPlaceholder = { showAddDiaryEntry = false },
+                    )
                 else ->
-                    // Placeholder para as demais abas (seções 9-14)
+                    // Placeholder para as demais abas (seções 10, 14)
                     TabPlaceholder(tab = currentTab)
             }
 
@@ -177,7 +187,14 @@ fun MainScreen() {
                 if (currentTab.hasAddFab) {
                     AddFab(
                         contentDescription = "Adicionar ${currentTab.label}",
-                        onClick = { /* TODO seções 8-10: navegar para formulário */ },
+                        onClick = {
+                            when (currentTab) {
+                                MainTab.DIARY -> showAddDiaryEntry = true
+                                // Pets: aguarda o formulário "Novo Pet" (seção futura).
+                                // Lembretes: aguarda a seção 10.
+                                else -> { /* TODO: seções futuras */ }
+                            }
+                        },
                     )
                 }
             }
@@ -386,7 +403,7 @@ private fun AddFab(
     }
 }
 
-// ─── Placeholder para abas ainda não implementadas (seções 9-14) ─────────────
+// ─── Placeholder para abas ainda não implementadas (seções 10, 14) ───────────
 
 @Composable
 private fun TabPlaceholder(tab: MainTab) {

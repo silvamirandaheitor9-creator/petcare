@@ -193,19 +193,19 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 9.1 | Estado vazio: `vazio_diario.png` centralizada | ⬜ | |
-| 9.2 | Sem chips de filtro por categoria | ⬜ | |
-| 9.3 | Filtro por pet (se houver filtro) | ⬜ | |
-| 9.4 | Timeline vertical: foto grande, legenda ≤140 chars, data, pet relacionado | ⬜ | |
-| 9.5 | Botão de compartilhar por entrada | ⬜ | |
-| 9.6 | Botão de editar/excluir por entrada | ⬜ | |
-| 9.7 | Botão "+" posicionado corretamente (não sobrepõe Mel) | ⬜ | |
-| 9.8 | Editor de fotos embutido: crop, girar, filtros (Normal/Vívido/Suave) | ⬜ | |
-| 9.9 | Editor de fotos: sliders de brilho, contraste, saturação | ⬜ | |
-| 9.10 | Editor de fotos: adesivos temáticos (patinhas, coração, moldura polaroid) | ⬜ | |
-| 9.11 | Editor de fotos: texto sobre a imagem (tipografia do app) | ⬜ | |
-| 9.12 | Animação: efeito polaroid ao adicionar entrada | ⬜ | Rotação → endireita com bounce |
-| 9.13 | Banner AdMob | ⬜ | |
+| 9.1 | Estado vazio: `vazio_diario.png` centralizada | ✅ | `EmptyDiarySection` (`DiaryScreen.kt`): `Box(fillMaxSize, contentAlignment = Center)`, mesmo padrão validado nas seções 7 e 8; sem botão (a aba já tem FAB "+" próprio). |
+| 9.2 | Sem chips de filtro por categoria | ✅ | `DiaryScreen.kt` não tem nenhum chip de categoria — apenas o filtro por pet (9.3). |
+| 9.3 | Filtro por pet (se houver filtro) | ✅ | `PetFilterRow`: chips "Todos" + um por pet, só exibidos quando há mais de um pet cadastrado (com 0 ou 1 pet a lista não é filtrável, então o chip some). |
+| 9.4 | Timeline vertical: foto grande, legenda ≤140 chars, data, pet relacionado | ✅ | `DiaryEntryCard` em `LazyColumn`: foto 240dp, legenda truncada defensivamente em 140 chars (já limitada na origem), data `dd/MM/yyyy`, nome do pet resolvido via `DiaryViewModel.pets`. |
+| 9.5 | Botão de compartilhar por entrada | ✅ | `shareDiaryEntry`: `Intent.ACTION_SEND` com a foto via `FileProvider` (`androidx.core.content.FileProvider`, novo provider `${applicationId}.fileprovider` registrado no manifesto) + legenda como texto. |
+| 9.6 | Botão de editar/excluir por entrada | ✅ (excluir) / ⬜ (editar) | Excluir: `AlertDialog` de confirmação → `DiaryViewModel.deleteEntry`. Editar: botão presente mas ainda TODO — depende do editor de fotos (9.8-9.11, tarefa futura). |
+| 9.7 | Botão "+" posicionado corretamente (não sobrepõe Mel) | ✅ | Reaproveita a pilha de FABs de `MainScreen.kt` (`hasAddFab = true` para `DIARY`); clique abre `AddDiaryEntryPlaceholder`. |
+| 9.8 | Editor de fotos embutido: crop, girar, filtros (Normal/Vívido/Suave) | ⬜ | Fora de escopo desta tarefa — tarefa futura dedicada ao editor. |
+| 9.9 | Editor de fotos: sliders de brilho, contraste, saturação | ⬜ | Idem 9.8. |
+| 9.10 | Editor de fotos: adesivos temáticos (patinhas, coração, moldura polaroid) | ⬜ | Idem 9.8. |
+| 9.11 | Editor de fotos: texto sobre a imagem (tipografia do app) | ⬜ | Idem 9.8. |
+| 9.12 | Animação: efeito polaroid ao adicionar entrada | ✅ | `PolaroidReveal` (`DiaryScreen.kt`): rotação -9°→0° + escala 0.82→1 com `spring(DampingRatioMediumBouncy)`; só toca para entradas inseridas após o carregamento inicial da tela (`hasLoadedOnce`/`knownEntryIds`). |
+| 9.13 | Banner AdMob | ⬜ | Fora de escopo desta tarefa (tratado junto com uma tarefa futura). |
 
 ---
 
@@ -313,7 +313,7 @@
 | 16.5 | Sucesso: `feedback_sucesso.png` bounce + partículas de pegadas | ⬜ | |
 | 16.6 | Desbloquear: `feedback_desbloquear.png` efeito "caixa abrindo" | ⬜ | |
 | 16.7 | Lembretes: check com traço desenhado; swipe com rastro de pegada | ⬜ | |
-| 16.8 | Diário: efeito polaroid | ⬜ | |
+| 16.8 | Diário: efeito polaroid | ✅ | Concluído com a seção 9 (parte 1) — `PolaroidReveal` em `DiaryScreen.kt`. |
 | 16.9 | Troca de tema: transição suave ~300-400ms | ⬜ | |
 | 16.10 | Carregamento: animação do Mel em loop | ⬜ | |
 
@@ -351,4 +351,4 @@
 
 ---
 
-_Última atualização: 2026-07-11 — Seção 8 (aba Meus Pets: grade 2 colunas, badge "X/10" no título, sexo/castração, empty state centralizada, stagger + compressão ao toque, AdMob) concluída. Ações de "+"/tocar card permanecem TODO no-op — dependem dos formulários/telas de seções futuras. Seções 0–8 concluídas._
+_Última atualização: 2026-07-11 — Seção 9 parte 1 (aba Diário: estrutura, timeline vertical, filtro por pet, compartilhar/excluir por entrada, empty state centralizada, animação polaroid ao adicionar) concluída. Fora de escopo desta parte (tarefas futuras): editor de fotos embutido (9.8-9.11), botão de editar entrada (depende do editor) e banner AdMob (9.13). Como ainda não há pets cadastrados, a aba mostra apenas o estado vazio — timeline, filtro, compartilhar e animação polaroid ficam pendentes de verificação visual com dados reais. Seção 8 (aba Meus Pets) concluída anteriormente. Seções 0–8 e 9 (parte 1) concluídas._
