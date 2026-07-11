@@ -8,18 +8,19 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.petcare.app.ui.screen.SplashScreen
+import com.petcare.app.ui.screen.main.MainScreen
 import com.petcare.app.ui.screen.onboarding.OnboardingScreen
 import com.petcare.app.ui.viewmodel.AppViewModel
 
 sealed class Screen(val route: String) {
-    object Splash    : Screen("splash")
-    object Onboarding: Screen("onboarding")
-    object Main      : Screen("main")
+    object Splash     : Screen("splash")
+    object Onboarding : Screen("onboarding")
+    object Main       : Screen("main")
 }
 
 @Composable
 fun PetCareNavGraph() {
-    val navController   = rememberNavController()
+    val navController  = rememberNavController()
     val appViewModel: AppViewModel = hiltViewModel()
     val isOnboardingDone by appViewModel.isOnboardingDone.collectAsState()
     val isReady          by appViewModel.isReady.collectAsState()
@@ -28,7 +29,7 @@ fun PetCareNavGraph() {
 
         composable(Screen.Splash.route) {
             SplashScreen(
-                isReady   = isReady,
+                isReady    = isReady,
                 onNavigate = {
                     val dest = if (isOnboardingDone) Screen.Main.route else Screen.Onboarding.route
                     navController.navigate(dest) {
@@ -39,8 +40,6 @@ fun PetCareNavGraph() {
         }
 
         composable(Screen.Onboarding.route) {
-            // SPEC seção 5 — tarefa 1: pager + pegadas + Próximo/Pular + gesto voltar
-            // Tarefa 4 adicionará a lógica completa de aceite dos Termos.
             OnboardingScreen(
                 onFinished = {
                     navController.navigate(Screen.Main.route) {
@@ -50,9 +49,10 @@ fun PetCareNavGraph() {
             )
         }
 
+        // Seção 6 — casca de navegação global (5 abas + FAB do Mel)
+        // O conteúdo real de cada aba virá nas seções 7-14.
         composable(Screen.Main.route) {
-            // TODO: Seção 6–15 — app principal (próximas tarefas)
-            SplashScreen(isReady = true, onNavigate = {})
+            MainScreen()
         }
     }
 }
