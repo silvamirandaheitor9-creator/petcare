@@ -79,7 +79,7 @@
 | 17 | `feedback_desbloquear.png` | ⬜ |
 | 18 | `feedback_erro.png` | ⬜ |
 | 19 | `feedback_permissao.png` | ⬜ |
-| 20 | `mel_avatar_pequeno.png` | ⬜ |
+| 20 | `mel_avatar_pequeno.png` | ✅ |
 | 21 | `avatar_pet_padrao.png` | ⬜ |
 | 22 | `icone_especie_cachorro.png` | ⬜ |
 | 23 | `icone_especie_gato.png` | ⬜ |
@@ -151,11 +151,11 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 6.1 | Bottom navigation com 5 abas | ⬜ | Início, Meus Pets, Diário, Lembretes, Perfil |
-| 6.2 | Cabeçalhos sem imagem do mascote (só texto + gradiente laranja) | ⬜ | |
-| 6.3 | Botão flutuante Mel (`mel_avatar_pequeno.png`) em todas as 5 abas | ⬜ | |
-| 6.4 | Mel nunca sobrepõe outro FAB — empilhados, Mel acima | ⬜ | |
-| 6.5 | Ícone selecionado faz "pulo" (animação) | ⬜ | |
+| 6.1 | Bottom navigation com 5 abas | ✅ | `NavigationBar` Material3 com 5 abas. `MainScreen.kt`. Testado no celular. |
+| 6.2 | Cabeçalhos sem imagem do mascote (só texto + gradiente laranja) | ✅ | `PetCareTopBar`: gradiente `OrangeGradStart→OrangeGradEnd`, título branco, sem ilustração. Testado no celular. |
+| 6.3 | Botão flutuante Mel (`mel_avatar_pequeno.png`) em todas as 5 abas | ✅ | `MelFab` 56dp branco com `mel_avatar_pequeno.png`; visível em todas as abas. Testado no celular. |
+| 6.4 | Mel nunca sobrepõe outro FAB — empilhados, Mel acima | ✅ | `Column` vertical no `Box`: Mel acima, `AddFab` 44dp laranja abaixo. Só em Meus Pets/Diário/Lembretes. Testado no celular. |
+| 6.5 | Ícone selecionado faz "pulo" (animação) | ✅ | `animateFloatAsState` + `spring(DampingRatioMediumBouncy, StiffnessHigh)` na escala do ícone. Testado no celular. |
 
 ---
 
@@ -351,4 +351,4 @@
 
 ---
 
-_Última atualização: 2026-07-11 — Seção 5 (onboarding, 7 telas) concluída e testada no celular. Commits: telas 1-5 + FootprintIndicator + navegação (tarefas 1-2), tela 6 Seleção de tema `2dfda8f` (tarefa 3), tela 7 Termos `e8c9a58` (tarefa 4). Textos legais 19.1 e 19.2 implementados. Imagens 3-7 usadas e confirmadas._
+_Última atualização: 2026-07-11 — Seção 6 (navegação global: 5 abas + FAB Mel) concluída e testada no celular. Commit: ba874c1. Seções 0–6 concluídas._
