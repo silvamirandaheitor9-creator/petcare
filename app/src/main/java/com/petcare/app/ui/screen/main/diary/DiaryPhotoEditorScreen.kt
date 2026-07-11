@@ -82,8 +82,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.petcare.app.data.db.entity.Pet
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.theme.spacing
@@ -148,131 +146,130 @@ fun DiaryPhotoEditorScreen(
     }
     BackHandler(onBack = ::handleBack)
 
-    Dialog(
-        onDismissRequest = { if (!isSaving) onDismiss() },
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            Column(Modifier.fillMaxSize().systemBarsPadding()) {
-                // TODO DEBUG (temporário — remover após diagnosticar): marcador
-                // incondicional no topo, antes de qualquer lógica/condição/step,
-                // para confirmar se este trecho de Composable é executado.
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp)
-                        .background(Color.Magenta),
-                ) {
-                    Text(
-                        text = "MARCADOR DEBUG TOPO",
-                        color = Color.Yellow,
-                        fontWeight = FontWeight.ExtraBold,
-                        modifier = Modifier.padding(16.dp),
-                    )
-                }
-                TopAppBar(
-                    title = { Text(if (step == 0) "Cortar e girar" else "Ajustar foto") },
-                    navigationIcon = {
-                        IconButton(onClick = ::handleBack, enabled = !isSaving) {
-                            Icon(Icons.Rounded.ArrowBack, contentDescription = "Voltar")
+    // Tela cheia normal do NavGraph (deixou de ser Dialog — SPEC 9.8-9.11 bug fix:
+    // Dialog tem propagação de WindowInsets diferente/menos confiável em algumas
+    // janelas do que uma composable de rota normal, o que escondia a Row de baixo
+    // atrás da barra de gestos mesmo com systemBarsPadding aplicado).
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(Modifier.fillMaxSize().systemBarsPadding()) {
+            // TODO DEBUG (temporário — remover após confirmação visual): marcador
+            // incondicional no topo, antes de qualquer lógica/condição/step, para
+            // confirmar se este trecho de Composable é executado.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .background(Color.Magenta),
+            ) {
+                Text(
+                    text = "MARCADOR DEBUG TOPO",
+                    color = Color.Yellow,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.padding(16.dp),
+                )
+            }
+            TopAppBar(
+                title = { Text(if (step == 0) "Cortar e girar" else "Ajustar foto") },
+                navigationIcon = {
+                    IconButton(onClick = ::handleBack, enabled = !isSaving) {
+                        Icon(Icons.Rounded.ArrowBack, contentDescription = "Voltar")
+                    }
+                },
+            )
+
+            when {
+                isLoadingSource -> LoadingBox()
+                sourceBitmap == null -> ErrorBox(onDismiss = onDismiss)
+                step == 0 -> CropRotateStep(
+                    workingBitmap = sourceBitmap!!,
+                    onRotate = {
+                        scope.launch {
+                            val rotated = withContext(Dispatchers.Default) {
+                                rotateBitmap(sourceBitmap!!, 90f)
+                            }
+                            sourceBitmap = rotated
+                        }
+                    },
+                    onCropApplied = { cropped ->
+                        croppedBitmap = cropped
+                        step = 1
+                    },
+                )
+                else -> DecorateAndSaveStep(
+                    baseBitmap = croppedBitmap!!,
+                    filter = filter,
+                    onFilterChange = { filter = it },
+                    adjustments = adjustments,
+                    onAdjustmentsChange = { adjustments = it },
+                    showPolaroidFrame = showPolaroidFrame,
+                    onTogglePolaroidFrame = { showPolaroidFrame = !showPolaroidFrame },
+                    stickers = stickers,
+                    texts = texts,
+                    selectedOverlayId = selectedOverlayId,
+                    onSelectOverlay = { selectedOverlayId = it },
+                    onAddSticker = { type ->
+                        val jitterX = (Random.nextFloat() - 0.5f) * 0.16f
+                        val jitterY = (Random.nextFloat() - 0.5f) * 0.16f
+                        stickers.add(
+                            DiaryStickerItem(
+                                id = nextOverlayId++,
+                                type = type,
+                                offsetFraction = Offset(0.5f + jitterX, 0.5f + jitterY),
+                            ),
+                        )
+                    },
+                    onRequestAddText = { textDialogVisible = true },
+                    onRemoveSelected = {
+                        selectedOverlayId?.let { id ->
+                            stickers.removeAll { it.id == id }
+                            texts.removeAll { it.id == id }
+                        }
+                        selectedOverlayId = null
+                    },
+                    onDragSticker = { id, delta ->
+                        val idx = stickers.indexOfFirst { it.id == id }
+                        if (idx >= 0) {
+                            val current = stickers[idx]
+                            stickers[idx] = current.copy(
+                                offsetFraction = clampFraction(current.offsetFraction + delta),
+                            )
+                        }
+                    },
+                    onDragText = { id, delta ->
+                        val idx = texts.indexOfFirst { it.id == id }
+                        if (idx >= 0) {
+                            val current = texts[idx]
+                            texts[idx] = current.copy(
+                                offsetFraction = clampFraction(current.offsetFraction + delta),
+                            )
+                        }
+                    },
+                    caption = caption,
+                    onCaptionChange = { if (it.length <= 140) caption = it },
+                    pets = pets,
+                    selectedPetId = selectedPetId,
+                    onSelectPet = { selectedPetId = it },
+                    isSaving = isSaving,
+                    onSave = {
+                        val petId = selectedPetId ?: return@DecorateAndSaveStep
+                        isSaving = true
+                        scope.launch {
+                            val photoPath = withContext(Dispatchers.Default) {
+                                val matrix = buildDiaryColorMatrix(filter, adjustments)
+                                val rendered = renderFinalDiaryPhoto(
+                                    baseBitmap = croppedBitmap!!,
+                                    colorMatrixValues = matrix,
+                                    stickers = stickers.toList(),
+                                    texts = texts.toList(),
+                                    withPolaroidFrame = showPolaroidFrame,
+                                )
+                                saveDiaryPhotoJpeg(context, rendered)
+                            }
+                            isSaving = false
+                            onSave(petId, photoPath, caption.trim())
                         }
                     },
                 )
-
-                when {
-                    isLoadingSource -> LoadingBox()
-                    sourceBitmap == null -> ErrorBox(onDismiss = onDismiss)
-                    step == 0 -> CropRotateStep(
-                        workingBitmap = sourceBitmap!!,
-                        onRotate = {
-                            scope.launch {
-                                val rotated = withContext(Dispatchers.Default) {
-                                    rotateBitmap(sourceBitmap!!, 90f)
-                                }
-                                sourceBitmap = rotated
-                            }
-                        },
-                        onCropApplied = { cropped ->
-                            croppedBitmap = cropped
-                            step = 1
-                        },
-                    )
-                    else -> DecorateAndSaveStep(
-                        baseBitmap = croppedBitmap!!,
-                        filter = filter,
-                        onFilterChange = { filter = it },
-                        adjustments = adjustments,
-                        onAdjustmentsChange = { adjustments = it },
-                        showPolaroidFrame = showPolaroidFrame,
-                        onTogglePolaroidFrame = { showPolaroidFrame = !showPolaroidFrame },
-                        stickers = stickers,
-                        texts = texts,
-                        selectedOverlayId = selectedOverlayId,
-                        onSelectOverlay = { selectedOverlayId = it },
-                        onAddSticker = { type ->
-                            val jitterX = (Random.nextFloat() - 0.5f) * 0.16f
-                            val jitterY = (Random.nextFloat() - 0.5f) * 0.16f
-                            stickers.add(
-                                DiaryStickerItem(
-                                    id = nextOverlayId++,
-                                    type = type,
-                                    offsetFraction = Offset(0.5f + jitterX, 0.5f + jitterY),
-                                ),
-                            )
-                        },
-                        onRequestAddText = { textDialogVisible = true },
-                        onRemoveSelected = {
-                            selectedOverlayId?.let { id ->
-                                stickers.removeAll { it.id == id }
-                                texts.removeAll { it.id == id }
-                            }
-                            selectedOverlayId = null
-                        },
-                        onDragSticker = { id, delta ->
-                            val idx = stickers.indexOfFirst { it.id == id }
-                            if (idx >= 0) {
-                                val current = stickers[idx]
-                                stickers[idx] = current.copy(
-                                    offsetFraction = clampFraction(current.offsetFraction + delta),
-                                )
-                            }
-                        },
-                        onDragText = { id, delta ->
-                            val idx = texts.indexOfFirst { it.id == id }
-                            if (idx >= 0) {
-                                val current = texts[idx]
-                                texts[idx] = current.copy(
-                                    offsetFraction = clampFraction(current.offsetFraction + delta),
-                                )
-                            }
-                        },
-                        caption = caption,
-                        onCaptionChange = { if (it.length <= 140) caption = it },
-                        pets = pets,
-                        selectedPetId = selectedPetId,
-                        onSelectPet = { selectedPetId = it },
-                        isSaving = isSaving,
-                        onSave = {
-                            val petId = selectedPetId ?: return@DecorateAndSaveStep
-                            isSaving = true
-                            scope.launch {
-                                val photoPath = withContext(Dispatchers.Default) {
-                                    val matrix = buildDiaryColorMatrix(filter, adjustments)
-                                    val rendered = renderFinalDiaryPhoto(
-                                        baseBitmap = croppedBitmap!!,
-                                        colorMatrixValues = matrix,
-                                        stickers = stickers.toList(),
-                                        texts = texts.toList(),
-                                        withPolaroidFrame = showPolaroidFrame,
-                                    )
-                                    saveDiaryPhotoJpeg(context, rendered)
-                                }
-                                isSaving = false
-                                onSave(petId, photoPath, caption.trim())
-                            }
-                        },
-                    )
-                }
             }
         }
     }

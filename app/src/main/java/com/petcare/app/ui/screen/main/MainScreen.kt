@@ -1,5 +1,6 @@
 package com.petcare.app.ui.screen.main
 
+import android.net.Uri
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -85,7 +86,9 @@ private enum class MainTab(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    onNavigateToDiaryPhotoEditor: (Uri) -> Unit = {},
+) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val currentTab = MainTab.entries[selectedTabIndex]
 
@@ -165,6 +168,7 @@ fun MainScreen() {
                     DiaryScreen(
                         showAddEntryPlaceholder = showAddDiaryEntry,
                         onDismissAddEntryPlaceholder = { showAddDiaryEntry = false },
+                        onNavigateToPhotoEditor = onNavigateToDiaryPhotoEditor,
                     )
                 else ->
                     // Placeholder para as demais abas (seções 10, 14)

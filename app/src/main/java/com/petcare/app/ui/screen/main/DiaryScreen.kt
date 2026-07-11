@@ -61,7 +61,6 @@ import coil.request.ImageRequest
 import com.petcare.app.R
 import com.petcare.app.data.db.entity.DiaryEntry
 import com.petcare.app.data.db.entity.Pet
-import com.petcare.app.ui.screen.main.diary.DiaryPhotoEditorScreen
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.DiaryViewModel
 import kotlinx.coroutines.launch
@@ -76,20 +75,21 @@ fun DiaryScreen(
     viewModel: DiaryViewModel = hiltViewModel(),
     showAddEntryPlaceholder: Boolean = false,
     onDismissAddEntryPlaceholder: () -> Unit = {},
+    // (bug fix SPEC 9.8-9.11) O editor de fotos deixou de ser um Dialog interno
+    // e virou uma rota de tela cheia normal do NavGraph — ver PetCareNavGraph.
+    onNavigateToPhotoEditor: (Uri) -> Unit = {},
 ) {
     val entries by viewModel.entries.collectAsState()
     val pets by viewModel.pets.collectAsState()
 
     // ── Fluxo do "+": escolher foto da galeria → editor de fotos (SPEC 9.8-9.11) ──
-    var pendingImageUri by remember { mutableStateOf<Uri?>(null) }
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
         if (uri != null) {
-            pendingImageUri = uri
-        } else {
-            onDismissAddEntryPlaceholder()
+            onNavigateToPhotoEditor(uri)
         }
+        onDismissAddEntryPlaceholder()
     }
     LaunchedEffect(showAddEntryPlaceholder) {
         if (showAddEntryPlaceholder) {
@@ -180,22 +180,6 @@ fun DiaryScreen(
         )
     }
 
-    // ── Editor de fotos: aberto depois que uma imagem é escolhida na galeria ──
-    pendingImageUri?.let { uri ->
-        DiaryPhotoEditorScreen(
-            imageUri = uri,
-            pets = pets,
-            onDismiss = {
-                pendingImageUri = null
-                onDismissAddEntryPlaceholder()
-            },
-            onSave = { petId, photoPath, caption ->
-                viewModel.addEntry(petId = petId, photoPath = photoPath, caption = caption)
-                pendingImageUri = null
-                onDismissAddEntryPlaceholder()
-            },
-        )
-    }
 }
 
 // ─── Filtro por pet (chips) ────────────────────────────────────────────────────
