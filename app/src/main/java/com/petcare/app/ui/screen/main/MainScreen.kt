@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Alarm
@@ -60,6 +62,8 @@ import com.petcare.app.ui.theme.OrangeGradEnd
 import com.petcare.app.ui.theme.OrangeGradStart
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.HomeViewModel
+import com.petcare.app.ui.viewmodel.PET_LIMIT_FREE
+import com.petcare.app.ui.viewmodel.PetsViewModel
 import java.util.Calendar
 
 // ─── Definição das 5 abas ────────────────────────────────────────────────────
@@ -91,6 +95,12 @@ fun MainScreen() {
     val homeViewModel: HomeViewModel = hiltViewModel()
     val userName by homeViewModel.userName.collectAsState()
 
+    // ── Badge "X/10" da aba Meus Pets (SPEC 8.2) ─────────────────────────────
+    // PetsViewModel é injetado aqui (e repassado ao PetsScreen) para que o
+    // contador fique disponível ao PetCareTopBar sem duplicar a instância.
+    val petsViewModel: PetsViewModel = hiltViewModel()
+    val petCount by petsViewModel.petCount.collectAsState()
+
     val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
     val greeting = remember(userName, hour) {
         val name = userName.trim()
@@ -119,6 +129,7 @@ fun MainScreen() {
             PetCareTopBar(
                 title    = if (selectedTabIndex == 0) greeting else currentTab.label,
                 subtitle = if (selectedTabIndex == 0) warmPhrase else null,
+                badge    = if (currentTab == MainTab.PETS) "$petCount/$PET_LIMIT_FREE" else null,
             )
         },
         bottomBar = {
@@ -142,8 +153,11 @@ fun MainScreen() {
                         viewModel = homeViewModel,
                         onAddPet  = { selectedTabIndex = MainTab.PETS.ordinal },
                     )
+                MainTab.PETS ->
+                    // (SPEC §8) Conteúdo real da aba Meus Pets
+                    PetsScreen(viewModel = petsViewModel)
                 else ->
-                    // Placeholder para as demais abas (seções 8-14)
+                    // Placeholder para as demais abas (seções 9-14)
                     TabPlaceholder(tab = currentTab)
             }
 
@@ -217,6 +231,8 @@ fun MainScreen() {
 private fun PetCareTopBar(
     title: String,
     subtitle: String? = null,
+    /** Selo opcional exibido ao lado do título — ex.: "3/10" na aba Meus Pets (SPEC 8.2). */
+    badge: String? = null,
 ) {
     Box(
         modifier = Modifier
@@ -231,12 +247,31 @@ private fun PetCareTopBar(
             ),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text       = title,
-                style      = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color      = Color.White,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text       = title,
+                    style      = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color.White,
+                )
+                if (!badge.isNullOrEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .background(Color.White.copy(alpha = 0.22f), RoundedCornerShape(50))
+                            .padding(horizontal = 10.dp, vertical = 3.dp),
+                    ) {
+                        Text(
+                            text  = badge,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
+                        )
+                    }
+                }
+            }
             if (!subtitle.isNullOrEmpty()) {
                 Text(
                     text  = subtitle,
@@ -351,7 +386,7 @@ private fun AddFab(
     }
 }
 
-// ─── Placeholder para abas ainda não implementadas (seções 8-14) ─────────────
+// ─── Placeholder para abas ainda não implementadas (seções 9-14) ─────────────
 
 @Composable
 private fun TabPlaceholder(tab: MainTab) {

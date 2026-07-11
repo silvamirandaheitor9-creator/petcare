@@ -177,15 +177,15 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 8.1 | Sem chips de ordenação | ⬜ | |
-| 8.2 | Badge "X/10" integrado ao título | ⬜ | |
-| 8.3 | Grade 2 colunas de cards (foto, nome, espécie/raça, badge sexo/castração) | ⬜ | |
-| 8.4 | Placeholder `avatar_pet_padrao.png` quando sem foto | ⬜ | |
-| 8.5 | Estado vazio: `vazio_meuspets.png` centralizada | ⬜ | |
-| 8.6 | Botão "+" posicionado corretamente (não sobrepõe Mel) | ⬜ | |
-| 8.7 | Animação: stagger de entrada nos cards | ⬜ | |
-| 8.8 | Animação: compressão ao tocar num card | ⬜ | |
-| 8.9 | Banner AdMob | ⬜ | |
+| 8.1 | Sem chips de ordenação | ✅ | `PetsScreen.kt`: apenas a grade, sem controles de ordenação/filtro. |
+| 8.2 | Badge "X/10" integrado ao título | ✅ | `PetCareTopBar` (`MainScreen.kt`) ganhou parâmetro `badge`; pill branca translúcida ao lado do título, populada via `PetsViewModel.petCount` só na aba Meus Pets. |
+| 8.3 | Grade 2 colunas de cards (foto, nome, espécie/raça, badge sexo/castração) | ✅ | `LazyVerticalGrid(GridCells.Fixed(2))` + `PetGridCard`; badge de sexo (ícone Male/Female) e castração (ícone ContentCut) via `SexCastrationBadge`. |
+| 8.4 | Placeholder `avatar_pet_padrao.png` quando sem foto | ✅ | `AsyncImage` com `fallback`/`error`/`placeholder` = `avatar_pet_padrao`, mesmo padrão do `PetHorizontalCard` da Home. |
+| 8.5 | Estado vazio: `vazio_meuspets.png` centralizada | ✅ | `EmptyPetsGridState`: `Box(fillMaxSize, contentAlignment = Center)` — corrige o bug de canto documentado; sem botão (a aba já tem FAB "+" próprio). |
+| 8.6 | Botão "+" posicionado corretamente (não sobrepõe Mel) | ✅ | Já satisfeito pela pilha de FABs compartilhada em `MainScreen.kt` (`hasAddFab = true` para `PETS`); ação ainda é TODO no-op — formulário "Novo Pet" é escopo de seção futura. |
+| 8.7 | Animação: stagger de entrada nos cards | ✅ | `StaggeredPetCard`: `LaunchedEffect` com delay proporcional ao índice (60ms/item, teto 400ms) + `AnimatedVisibility` (fade + slide vertical). |
+| 8.8 | Animação: compressão ao tocar num card | ✅ | `PetGridCard`: `MutableInteractionSource` + `collectIsPressedAsState` → `animateFloatAsState` (escala 0.96 ao pressionar). Tap ainda não navega (detalhe do pet é seção futura). |
+| 8.9 | Banner AdMob | ✅ | Cópia privada de `BannerAdView` em `PetsScreen.kt` (mesmo padrão da Home), como item de largura total ao final da grade. |
 
 ---
 
@@ -351,4 +351,4 @@
 
 ---
 
-_Última atualização: 2026-07-11 — Seção 7 (aba Início: stats, dica Mel, pets list, empty state, AdMob) concluída. Commit: 0ad7b53. Seções 0–7 concluídas._
+_Última atualização: 2026-07-11 — Seção 8 (aba Meus Pets: grade 2 colunas, badge "X/10" no título, sexo/castração, empty state centralizada, stagger + compressão ao toque, AdMob) concluída. Ações de "+"/tocar card permanecem TODO no-op — dependem dos formulários/telas de seções futuras. Seções 0–8 concluídas._
