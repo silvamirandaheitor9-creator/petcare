@@ -1,5 +1,10 @@
 package com.petcare.app.ui.screen.main.reminders
 
+import android.app.AlarmManager
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessTime
+import androidx.compose.material.icons.rounded.AlarmOn
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Notes
@@ -61,6 +67,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -87,6 +94,7 @@ fun NewReminderScreen(
     onDismiss: () -> Unit = {},
     onSaved: () -> Unit = {},
 ) {
+    val context = LocalContext.current
     val pets by viewModel.pets.collectAsState()
 
     // Carrega lembrete existente no modo edição.
@@ -97,6 +105,8 @@ fun NewReminderScreen(
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    // Diálogo exibido quando SCHEDULE_EXACT_ALARM não foi concedida pelo usuário
+    var showAlarmPermissionDialog by remember { mutableStateOf(false) }
 
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -280,7 +290,20 @@ fun NewReminderScreen(
 
                 // Botão salvar
                 Button(
-                    onClick = { viewModel.saveReminder(onSaved) },
+                    onClick = {
+                        // Verifica se o alarme exato pode ser agendado (Android 12+/API 31+).
+                        // Sem essa permissão o lembrete é salvo mas nunca dispara no horário.
+                        val alarmManager =
+                            context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                        val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            alarmManager.canScheduleExactAlarms()
+                        } else true
+                        if (!canExact) {
+                            showAlarmPermissionDialog = true
+                        } else {
+                            viewModel.saveReminder(onSaved)
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),
@@ -311,6 +334,51 @@ fun NewReminderScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
+    }
+
+    // ── Diálogo: permissão de alarme exato não concedida ─────────────────────
+    // Aparece quando o usuário toca em Salvar mas SCHEDULE_EXACT_ALARM não está ativa.
+    // Direciona para Configurações → Apps → Acesso especial → Alarmes e lembretes.
+    if (showAlarmPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showAlarmPermissionDialog = false },
+            icon = {
+                Icon(
+                    Icons.Rounded.AlarmOn,
+                    contentDescription = null,
+                    tint = OrangePrimary,
+                )
+            },
+            title = { Text("Permissão de alarme necessária") },
+            text = {
+                Text(
+                    "Para o lembrete disparar exatamente no horário escolhido, o PetCare " +
+                    "precisa da permissão de Alarmes e lembretes.\n\n" +
+                    "Toque em \"Abrir configurações\", ative o PetCare na lista e " +
+                    "volte para criar o lembrete."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showAlarmPermissionDialog = false
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                            context.startActivity(intent)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                    shape = RoundedCornerShape(24.dp),
+                ) {
+                    Text("Abrir configurações", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAlarmPermissionDialog = false }) {
+                    Text("Agora não")
+                }
+            },
+        )
     }
 
     // ── Diálogo de erro ao salvar ─────────────────────────────────────────────
