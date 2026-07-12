@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.google.android.gms.ads.MobileAds
+import com.petcare.app.data.notifications.NotificationChannels
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,9 @@ class PetCareApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        // Registra os canais de notificação obrigatórios no Android 8+ (API 26+).
+        // Sem isso o sistema descarta todas as notificações silenciosamente.
+        NotificationChannels.createChannels(this)
         // MobileAds.initialize() faz I/O de disco síncrono na primeira
         // execução e pode levar segundos — se chamado direto aqui, ele
         // bloqueia o main thread ANTES da MainActivity/Compose existirem,

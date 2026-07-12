@@ -5,8 +5,12 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import com.petcare.app.data.db.entity.Reminder
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -51,6 +55,17 @@ class ReminderScheduler @Inject constructor(
                 AlarmManager.RTC_WAKEUP,
                 reminder.dateTimeMillis,
                 pendingIntent,
+            )
+            // TODO DEBUG — remover antes do release
+            val fmt = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
+            val humanTime = fmt.format(Date(reminder.dateTimeMillis))
+            val nowMs = System.currentTimeMillis()
+            val diffMin = (reminder.dateTimeMillis - nowMs) / 60_000
+            Log.d(
+                "ReminderScheduler",
+                "setExactAndAllowWhileIdle agendado | id=${reminder.id} " +
+                "targetMs=${reminder.dateTimeMillis} ($humanTime) | " +
+                "nowMs=$nowMs | dispara em ${diffMin}min",
             )
         } else {
             alarmManager.setAndAllowWhileIdle(
