@@ -75,6 +75,7 @@ import com.petcare.app.ui.viewmodel.NewReminderViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import java.util.TimeZone
 
 // ─── Tela "Novo Lembrete" / Editar Lembrete (SPEC §10 — redesign completo) ───
 
@@ -88,15 +89,10 @@ fun NewReminderScreen(
 ) {
     val pets by viewModel.pets.collectAsState()
 
+    // Carrega lembrete existente no modo edição.
+    // A auto-seleção de pet agora é feita no ViewModel.init — não precisa de LaunchedEffect aqui.
     LaunchedEffect(reminderId) {
         if (reminderId > 0L) viewModel.loadReminder(reminderId)
-    }
-
-    // Pré-seleciona o primeiro pet se ainda não há seleção e há pets disponíveis
-    LaunchedEffect(pets) {
-        if (viewModel.selectedPetId <= 0L && pets.isNotEmpty()) {
-            viewModel.selectedPetId = pets.first().id
-        }
     }
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -317,26 +313,62 @@ fun NewReminderScreen(
         }
     }
 
+    // ── Diálogo de erro ao salvar ─────────────────────────────────────────────
+    val saveError = viewModel.saveError
+    if (saveError != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.clearError() },
+            title = { Text("Não foi possível salvar") },
+            text = { Text(saveError) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearError() }) { Text("OK") }
+            },
+        )
+    }
+
     // ── DatePicker Dialog ─────────────────────────────────────────────────────
     if (showDatePicker) {
-        val cal = Calendar.getInstance().apply { timeInMillis = viewModel.dateTimeMillis }
+        // O DatePicker do Material3 sempre trabalha em UTC à meia-noite.
+        // Convertemos o instante local → Y/M/D → meia-noite UTC para inicialização.
+        val localCal = remember(viewModel.dateTimeMillis) {
+            Calendar.getInstance().apply { timeInMillis = viewModel.dateTimeMillis }
+        }
+        val utcMidnightInitial = remember(viewModel.dateTimeMillis) {
+            Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                set(Calendar.YEAR,         localCal.get(Calendar.YEAR))
+                set(Calendar.MONTH,        localCal.get(Calendar.MONTH))
+                set(Calendar.DAY_OF_MONTH, localCal.get(Calendar.DAY_OF_MONTH))
+                set(Calendar.HOUR_OF_DAY,  0)
+                set(Calendar.MINUTE,       0)
+                set(Calendar.SECOND,       0)
+                set(Calendar.MILLISECOND,  0)
+            }.timeInMillis
+        }
+
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = viewModel.dateTimeMillis,
+            initialSelectedDateMillis = utcMidnightInitial,
         )
+
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { selectedDate ->
-                        val selectedCal = Calendar.getInstance().apply {
-                            timeInMillis = selectedDate
-                            // Preserva hora e minuto do valor atual
-                            set(Calendar.HOUR_OF_DAY, cal.get(Calendar.HOUR_OF_DAY))
-                            set(Calendar.MINUTE, cal.get(Calendar.MINUTE))
-                            set(Calendar.SECOND, 0)
-                            set(Calendar.MILLISECOND, 0)
+                    datePickerState.selectedDateMillis?.let { selectedUtcMillis ->
+                        // DatePicker retorna UTC à meia-noite.
+                        // Extraímos Y/M/D no fuso UTC e aplicamos ao Calendar local,
+                        // preservando a hora/minuto que o usuário já configurou.
+                        val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                            timeInMillis = selectedUtcMillis
                         }
-                        viewModel.dateTimeMillis = selectedCal.timeInMillis
+                        val newCal = Calendar.getInstance().apply {
+                            timeInMillis = viewModel.dateTimeMillis
+                            set(Calendar.YEAR,         utcCal.get(Calendar.YEAR))
+                            set(Calendar.MONTH,        utcCal.get(Calendar.MONTH))
+                            set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH))
+                            set(Calendar.SECOND,       0)
+                            set(Calendar.MILLISECOND,  0)
+                        }
+                        viewModel.dateTimeMillis = newCal.timeInMillis
                     }
                     showDatePicker = false
                 }) { Text("OK") }
@@ -351,11 +383,13 @@ fun NewReminderScreen(
 
     // ── TimePicker Dialog ─────────────────────────────────────────────────────
     if (showTimePicker) {
-        val cal = Calendar.getInstance().apply { timeInMillis = viewModel.dateTimeMillis }
+        val timeCal = remember(viewModel.dateTimeMillis) {
+            Calendar.getInstance().apply { timeInMillis = viewModel.dateTimeMillis }
+        }
         val timePickerState = rememberTimePickerState(
-            initialHour = cal.get(Calendar.HOUR_OF_DAY),
-            initialMinute = cal.get(Calendar.MINUTE),
-            is24Hour = true,
+            initialHour   = timeCal.get(Calendar.HOUR_OF_DAY),
+            initialMinute = timeCal.get(Calendar.MINUTE),
+            is24Hour      = true,
         )
         Dialog(onDismissRequest = { showTimePicker = false }) {
             Surface(
@@ -385,8 +419,8 @@ fun NewReminderScreen(
                             val newCal = Calendar.getInstance().apply {
                                 timeInMillis = viewModel.dateTimeMillis
                                 set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                                set(Calendar.MINUTE, timePickerState.minute)
-                                set(Calendar.SECOND, 0)
+                                set(Calendar.MINUTE,      timePickerState.minute)
+                                set(Calendar.SECOND,      0)
                                 set(Calendar.MILLISECOND, 0)
                             }
                             viewModel.dateTimeMillis = newCal.timeInMillis
@@ -404,12 +438,12 @@ fun NewReminderScreen(
 private data class CategoryItem(val key: String, val label: String, @DrawableRes val icon: Int)
 
 private val CATEGORIES = listOf(
-    CategoryItem("vacina",      "Vacina",      R.drawable.icone_vacina),
-    CategoryItem("consulta",    "Consulta",    R.drawable.icone_consulta),
-    CategoryItem("banho",       "Banho",       R.drawable.icone_banho),
-    CategoryItem("medicacao",   "Medicação",   R.drawable.icone_medicacao),
-    CategoryItem("alimentacao", "Alimentação", R.drawable.icone_alimentacao),
-    CategoryItem("vermifugo",   "Vermífugo",   R.drawable.icone_vermifugo),
+    CategoryItem("vacina",       "Vacina",       R.drawable.icone_vacina),
+    CategoryItem("consulta",     "Consulta",     R.drawable.icone_consulta),
+    CategoryItem("banho",        "Banho",        R.drawable.icone_banho),
+    CategoryItem("medicacao",    "Medicação",    R.drawable.icone_medicacao),
+    CategoryItem("alimentacao",  "Alimentação",  R.drawable.icone_alimentacao),
+    CategoryItem("vermifugo",    "Vermífugo",    R.drawable.icone_vermifugo),
     CategoryItem("personalizado","Personalizado",R.drawable.icone_personalizado),
 )
 
@@ -531,8 +565,8 @@ private fun PetDropdown(
             onValueChange = {},
             readOnly = true,
             modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             shape = RoundedCornerShape(16.dp),
             colors = outlinedFieldColors(),
@@ -554,7 +588,7 @@ private fun PetDropdown(
     }
 }
 
-// ─── Wrapper de seção do formulário ──────────────────────────────────────────
+// ─── Seção de formulário com rótulo ──────────────────────────────────────────
 
 @Composable
 private fun FormSection(title: String, content: @Composable () -> Unit) {
@@ -563,19 +597,18 @@ private fun FormSection(title: String, content: @Composable () -> Unit) {
             text = title,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
         )
         content()
     }
 }
 
-// ─── Cores padrão para OutlinedTextField ─────────────────────────────────────
+// ─── Cores padrão dos campos de texto ────────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun outlinedFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor   = OrangePrimary,
     unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
-    focusedLabelColor    = OrangePrimary,
     cursorColor          = OrangePrimary,
+    focusedLabelColor    = OrangePrimary,
 )

@@ -13,6 +13,7 @@ import com.petcare.app.data.db.entity.Reminder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -40,8 +41,24 @@ class NewReminderViewModel @Inject constructor(
     var isSaving by mutableStateOf(false)
         private set
 
+    var saveError by mutableStateOf<String?>(null)
+        private set
+
+    // Auto-seleciona o primeiro pet assim que a lista carregar do DB,
+    // sem depender de LaunchedEffect no composable (que é assíncrono).
+    init {
+        viewModelScope.launch {
+            val petList = pets.first { it.isNotEmpty() }
+            if (selectedPetId <= 0L) {
+                selectedPetId = petList.first().id
+            }
+        }
+    }
+
     val isValid: Boolean
         get() = title.isNotBlank() && selectedPetId > 0
+
+    fun clearError() { saveError = null }
 
     fun loadReminder(reminderId: Long) {
         if (reminderId <= 0L || editingReminderId == reminderId) return
@@ -60,12 +77,26 @@ class NewReminderViewModel @Inject constructor(
     fun saveReminder(onDone: () -> Unit) {
         if (!isValid || isSaving) return
         isSaving = true
+        saveError = null
         viewModelScope.launch {
-            if (editingReminderId > 0) {
-                val existing = reminderDao.getReminderById(editingReminderId)
-                if (existing != null) {
-                    reminderDao.updateReminder(
-                        existing.copy(
+            try {
+                if (editingReminderId > 0) {
+                    val existing = reminderDao.getReminderById(editingReminderId)
+                    if (existing != null) {
+                        reminderDao.updateReminder(
+                            existing.copy(
+                                title = title.trim(),
+                                petId = selectedPetId,
+                                category = category,
+                                dateTimeMillis = dateTimeMillis,
+                                recurrence = recurrence,
+                                notes = notes.trim(),
+                            )
+                        )
+                    }
+                } else {
+                    reminderDao.insertReminder(
+                        Reminder(
                             title = title.trim(),
                             petId = selectedPetId,
                             category = category,
@@ -75,20 +106,12 @@ class NewReminderViewModel @Inject constructor(
                         )
                     )
                 }
-            } else {
-                reminderDao.insertReminder(
-                    Reminder(
-                        title = title.trim(),
-                        petId = selectedPetId,
-                        category = category,
-                        dateTimeMillis = dateTimeMillis,
-                        recurrence = recurrence,
-                        notes = notes.trim(),
-                    )
-                )
+                onDone()
+            } catch (e: Exception) {
+                saveError = "Erro ao salvar: ${e.localizedMessage ?: "tente novamente"}"
+            } finally {
+                isSaving = false
             }
-            isSaving = false
-            onDone()
         }
     }
 
