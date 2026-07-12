@@ -239,15 +239,15 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 11.1 | Layout redesenhado do zero (grade 8dp, tipografia do app) | ⬜ | |
-| 11.2 | Foto: placeholder `avatar_pet_padrao.png` | ⬜ | |
-| 11.3 | Seletor de espécie: 7 ícones `icone_especie_*` (nunca emoji) | ⬜ | |
-| 11.4 | Campos — Informações Básicas: Nome*, Foto, Espécie, Sexo, Raça, Nascimento, Peso | ⬜ | |
-| 11.5 | Campos — Informações Médicas: Tipo Sanguíneo, Alergias, Condições Crônicas, Castrado | ⬜ | |
-| 11.6 | Campos — Contatos de Emergência: Nome e telefone do veterinário | ⬜ | |
-| 11.7 | Campos: Microchip (opcional), Observações | ⬜ | |
-| 11.8 | Validações: nome obrigatório, peso numérico positivo, data não futura | ⬜ | |
-| 11.9 | Animações sutis nas transições entre campos/seções | ⬜ | |
+| 11.1 | Layout redesenhado do zero (grade 8dp, tipografia do app) | ✅ | 3 blocos navegáveis: Informações Básicas, Informações Médicas, Contatos de Emergência (`NewPetScreen.kt`). |
+| 11.2 | Foto: seletor da galeria + corte/giro em tela cheia | ✅ | Parte 2: avatar clicável abre `PickVisualMedia` e depois `PetPhotoEditorScreen` (rota própria do NavGraph, reaproveita o `CropRotateStep` do editor do Diário). Foto salva em `pet_photos/` (JPEG, fundo branco — regra 17.3) e exibida de verdade no formulário e no card da lista (`PetsScreen`/`HomeScreen` via Coil). Placeholder `avatar_pet_padrao.png` some assim que uma foto é escolhida. |
+| 11.3 | Seletor de espécie: 7 ícones `icone_especie_*` (nunca emoji) | ✅ | |
+| 11.4 | Campos — Informações Básicas: Nome*, Foto, Espécie, Sexo, Raça, Nascimento, Peso | ✅ | |
+| 11.5 | Campos — Informações Médicas: Tipo Sanguíneo, Alergias, Condições Crônicas, Castrado | ✅ | |
+| 11.6 | Campos — Contatos de Emergência: Nome e telefone do veterinário | ✅ | |
+| 11.7 | Campos: Microchip (opcional), Observações | ✅ | |
+| 11.8 | Validações: nome obrigatório, peso numérico positivo, data não futura | ✅ | |
+| 11.9 | Animações sutis nas transições entre campos/seções | ✅ | `AnimatedContent` com slide+fade entre os 3 blocos. |
 
 ---
 
@@ -351,4 +351,4 @@
 
 ---
 
-_Última atualização: 2026-07-11 — Bug fix no editor de fotos do Diário: o botão "Avançar" da etapa "Cortar e girar" não aparecia porque a tela era um `Dialog`, cuja janela cortava a Row de botões atrás da barra de gestos do sistema (nem `systemBarsPadding()` nem `navigationBarsPadding()+imePadding()` resolviam de forma satisfatória). Corrigido convertendo `DiaryPhotoEditorScreen` de `Dialog` para uma rota normal de tela cheia dentro do `PetCareNavGraph` (mesmo padrão de Splash/Onboarding/Main), navegada a partir de `DiaryScreen` via `onNavigateToPhotoEditor`. Diagnosticado com marcadores visuais incrementais (builds intermediários via CI) antes da correção definitiva; marcadores removidos no commit final. **Testado pelo usuário no celular, fluxo completo aprovado de ponta a ponta**: cortar/girar (com "Avançar" funcionando), filtros, sliders de brilho/contraste/saturação, adesivos (adicionar e remover), texto sobre a imagem, legenda com limite de 140 caracteres, e o bloqueio correto de salvar sem pet cadastrado. Fora de escopo: botão de editar entrada já existente (9.6, ainda TODO) e banner AdMob (9.13). Limitação conhecida: a fonte do texto exportado usa `sans-serif-medium` como fallback (a Nunito é uma Google Font baixável, sem .ttf estático disponível fora do Compose). Sem emulador Android neste ambiente — validação de compilação depende do build do GitHub Actions; validação visual real depende do usuário no celular. **Seção 9 (Aba Diário, partes 1 e 2) aprovada e testada por completo.** Seções 0–8 e 9 concluídas._
+_Última atualização: 2026-07-12 — Seção 11 (formulário "Novo Pet") concluída em duas partes. Parte 1: layout em 3 blocos navegáveis (Informações Básicas, Informações Médicas, Contatos de Emergência) com transições animadas, todos os campos e validações (`NewPetScreen.kt` + `NewPetViewModel.kt`), gravação real no Room. Parte 2: seletor e corte de foto de perfil — toca no avatar para escolher da galeria (`PickVisualMedia`) e depois cortar/girar em `PetPhotoEditorScreen`, uma rota própria do NavGraph (mesmo padrão de tela cheia do `DiaryPhotoEditor`, não `Dialog`) que reaproveita o `CropRotateStep` e os utilitários de crop/rotate/fundo-branco do editor do Diário; o caminho da foto escolhida sobrevive à ida e volta entre as duas rotas porque mora no `NewPetViewModel` (mesma instância, escopada à entrada "new_pet" via `hiltViewModel(entry)`) em vez de estado local da tela. Foto final salva como JPEG em `pet_photos/` com fundo branco antes da compressão (regra 17.3). **Testado pelo usuário no celular, ambas as partes aprovadas**: fluxo completo do formulário, e a foto cortada aparecendo de verdade (não o placeholder) tanto no formulário quanto no card da lista (`PetsScreen`/`HomeScreen`, que já consumiam `Pet.photoPath` via Coil). **Seção 11 (Formulário "Novo Pet", partes 1 e 2) aprovada e testada por completo.** Seções 0–9 e 11 concluídas; seções 10 (Lembretes) e 12 (detalhe do pet) permanecem pendentes no roadmap.
