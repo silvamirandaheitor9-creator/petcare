@@ -15,6 +15,9 @@ interface PetDao {
     @Query("SELECT * FROM pets WHERE id = :id")
     fun getPetById(id: Long): Flow<Pet?>
 
+    @Query("SELECT * FROM pets WHERE id = :id")
+    suspend fun getPetByIdOnce(id: Long): Pet?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPet(pet: Pet): Long
 

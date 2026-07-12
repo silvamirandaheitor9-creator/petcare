@@ -220,13 +220,13 @@
 | 10.5 | Seletor de data e hora com fuso horário correto | ✅ | `DatePickerDialog` (Material3) + `TimePicker` em `Dialog`; preserva hora ao trocar data e vice-versa via `Calendar`. |
 | 10.6 | Estado vazio: `vazio_lembretes.png` | ✅ | `ReminderEmptyState` em `RemindersScreen.kt`: `vazio_lembretes.png` centralizada + texto motivacional. |
 | 10.7 | Botão "+" posicionado corretamente (não sobrepõe Mel) | ✅ | Reaproveita a pilha FAB de `MainScreen.kt` (`hasAddFab = true` para `REMINDERS`); clique chama `onNavigateToNewReminder(-1L)`. |
-| 10.8 | Notificações locais reais (título/corpo contextual) | ⬜ | Parte 2 — não iniciado |
-| 10.9 | Notificação: foto do pet como imagem grande | ⬜ | Parte 2 |
-| 10.10 | Notificação: ícone de categoria com cor certa | ⬜ | Parte 2 |
-| 10.11 | Notificação: botões "Concluir" e "Adiar 1h" | ⬜ | Parte 2 |
-| 10.12 | Notificação: vibração com padrão próprio | ⬜ | Parte 2 |
-| 10.13 | Notificação: agrupamento nativo com várias simultâneas | ⬜ | Parte 2 |
-| 10.14 | BroadcastReceiver para BOOT_COMPLETED (reagendar após reiniciar) | ⬜ | Parte 2 |
+| 10.8 | Notificações locais reais (título/corpo contextual) | 🔄 | `ReminderBroadcastReceiver.kt`: `contextualBody()` gera texto por categoria + nome do pet. `ReminderScheduler` agora passa petId, petName, petPhotoPath, category, title no Intent. Schedule chamado no `NewReminderViewModel.saveReminder()` após insert/update. |
+| 10.9 | Notificação: foto do pet como imagem grande | 🔄 | `loadLargeIcon()`: decodifica `pet_photos/<path>` como Bitmap → `setLargeIcon()`; fallback = PNG da categoria correspondente. |
+| 10.10 | Notificação: ícone de categoria | 🔄 | Fallback do `loadLargeIcon()` usa `categoryIconRes()` mapeando as 7 categorias para `icone_*.png`. `setSmallIcon` usa `ic_notification` (monochrome vector, obrigatório API 23+). |
+| 10.11 | Notificação: botões "Concluir" e "Adiar 1h" | 🔄 | `CompleteReminderReceiver`: marca `isCompleted=true` no DB + cancela notif. `SnoozeReminderReceiver`: atualiza `dateTimeMillis += 1h` no DB + reagenda alarme. Ambos usam `goAsync()`. |
+| 10.12 | Notificação: vibração com padrão próprio | 🔄 | `NotificationChannels.VIBRATION_PATTERN = [0, 300, 120, 300, 120, 600]` — três pulsos com encerramento longo; aplicado no canal E na notificação. |
+| 10.13 | Notificação: agrupamento nativo com várias simultâneas | 🔄 | `setGroup(GROUP_KEY)` em cada notif + summary notification `setGroupSummary(true)` com `InboxStyle`. |
+| 10.14 | BroadcastReceiver para BOOT_COMPLETED (reagendar após reiniciar) | 🔄 | `BootReceiver` atualizado: query pets + reminders, passa `petName`/`petPhotoPath` ao scheduler. `LOCKED_BOOT_COMPLETED` também coberto. |
 | 10.15 | Editar e excluir lembrete | ✅ | Editar: `IconButton` → `onNavigateToNewReminder(reminder.id)` → `NewReminderScreen` com `loadReminder(id)`. Excluir: `AlertDialog` de confirmação → `ReminderViewModel.deleteReminder()`. |
 | 10.16 | Tela "Novo Lembrete" redesenhada (visual profissional) | ✅ | `NewReminderScreen.kt` (`ui/screen/main/reminders/`): cabeçalho gradiente laranja, grade de categorias, `PetDropdown`, seletores de data/hora, `RecurrenceSelector`, campo de observações, botão salvar com estado de loading. `NewReminderViewModel.kt`. Rota `new_reminder/{reminderId}` no `PetCareNavGraph.kt`. |
 | 10.17 | Animação: check com traço desenhado | ⬜ | Parte 2 |

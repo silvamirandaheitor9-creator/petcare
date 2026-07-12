@@ -47,12 +47,22 @@
             </intent-filter>
         </activity>
 
-        <!-- Notification BroadcastReceiver for scheduled reminders -->
+        <!-- Notificações de lembretes agendados -->
         <receiver
             android:name=".data.notifications.ReminderBroadcastReceiver"
             android:exported="false" />
 
-        <!-- Boot receiver to reschedule reminders after reboot -->
+        <!-- Ação "Concluir" da notificação -->
+        <receiver
+            android:name=".data.notifications.CompleteReminderReceiver"
+            android:exported="false" />
+
+        <!-- Ação "Adiar 1h" da notificação -->
+        <receiver
+            android:name=".data.notifications.SnoozeReminderReceiver"
+            android:exported="false" />
+
+        <!-- Reagenda lembretes após reinicialização do dispositivo -->
         <receiver
             android:name=".data.notifications.BootReceiver"
             android:exported="true"

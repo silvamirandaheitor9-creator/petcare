@@ -10,6 +10,7 @@ import com.petcare.app.data.db.dao.PetDao
 import com.petcare.app.data.db.dao.ReminderDao
 import com.petcare.app.data.db.entity.Pet
 import com.petcare.app.data.db.entity.Reminder
+import com.petcare.app.data.notifications.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,7 @@ import javax.inject.Inject
 class NewReminderViewModel @Inject constructor(
     private val reminderDao: ReminderDao,
     private val petDao: PetDao,
+    private val scheduler: ReminderScheduler,
 ) : ViewModel() {
 
     val pets: StateFlow<List<Pet>> = petDao.getAllPets()
@@ -44,8 +46,9 @@ class NewReminderViewModel @Inject constructor(
     var saveError by mutableStateOf<String?>(null)
         private set
 
-    // Auto-seleciona o primeiro pet assim que a lista carregar do DB,
-    // sem depender de LaunchedEffect no composable (que é assíncrono).
+    // Auto-seleciona o primeiro pet assim que a lista carregar do banco,
+    // sem depender de LaunchedEffect no composable (que é assíncrono e pode
+    // deixar selectedPetId = -1 antes de o usuário tocar em Salvar).
     init {
         viewModelScope.launch {
             val petList = pets.first { it.isNotEmpty() }
@@ -78,34 +81,64 @@ class NewReminderViewModel @Inject constructor(
         if (!isValid || isSaving) return
         isSaving = true
         saveError = null
+
         viewModelScope.launch {
             try {
+                val pet: Pet? = petDao.getPetByIdOnce(selectedPetId)
+                val now = System.currentTimeMillis()
+
                 if (editingReminderId > 0) {
-                    val existing = reminderDao.getReminderById(editingReminderId)
-                    if (existing != null) {
-                        reminderDao.updateReminder(
-                            existing.copy(
-                                title = title.trim(),
-                                petId = selectedPetId,
-                                category = category,
-                                dateTimeMillis = dateTimeMillis,
-                                recurrence = recurrence,
-                                notes = notes.trim(),
-                            )
+                    // ── Edição ───────────────────────────────────────────────
+                    val existing = reminderDao.getReminderById(editingReminderId) ?: return@launch
+                    // Cancela alarme anterior antes de reagendar
+                    scheduler.cancel(existing)
+
+                    val updated = existing.copy(
+                        title         = title.trim(),
+                        petId         = selectedPetId,
+                        category      = category,
+                        dateTimeMillis = dateTimeMillis,
+                        recurrence    = recurrence,
+                        notes         = notes.trim(),
+                    )
+                    reminderDao.updateReminder(updated)
+
+                    if (updated.dateTimeMillis > now && !updated.isCompleted) {
+                        scheduler.schedule(
+                            reminder      = updated,
+                            petName       = pet?.name ?: "",
+                            petPhotoPath  = pet?.photoPath ?: "",
                         )
                     }
                 } else {
-                    reminderDao.insertReminder(
+                    // ── Criação ──────────────────────────────────────────────
+                    val newId = reminderDao.insertReminder(
                         Reminder(
-                            title = title.trim(),
-                            petId = selectedPetId,
-                            category = category,
+                            title          = title.trim(),
+                            petId          = selectedPetId,
+                            category       = category,
                             dateTimeMillis = dateTimeMillis,
-                            recurrence = recurrence,
-                            notes = notes.trim(),
+                            recurrence     = recurrence,
+                            notes          = notes.trim(),
+                            notificationId = 0,
                         )
                     )
+                    // Atualiza o notificationId para corresponder ao ID gerado
+                    val saved = reminderDao.getReminderById(newId)
+                    if (saved != null) {
+                        val withNotifId = saved.copy(notificationId = newId.toInt())
+                        reminderDao.updateReminder(withNotifId)
+
+                        if (withNotifId.dateTimeMillis > now) {
+                            scheduler.schedule(
+                                reminder     = withNotifId,
+                                petName      = pet?.name ?: "",
+                                petPhotoPath = pet?.photoPath ?: "",
+                            )
+                        }
+                    }
                 }
+
                 onDone()
             } catch (e: Exception) {
                 saveError = "Erro ao salvar: ${e.localizedMessage ?: "tente novamente"}"

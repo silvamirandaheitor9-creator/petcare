@@ -6,6 +6,7 @@ import com.petcare.app.data.db.dao.PetDao
 import com.petcare.app.data.db.dao.ReminderDao
 import com.petcare.app.data.db.entity.Pet
 import com.petcare.app.data.db.entity.Reminder
+import com.petcare.app.data.notifications.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,6 +24,7 @@ enum class ReminderGroup { HOJE, AMANHA, ESTA_SEMANA, HISTORICO }
 class ReminderViewModel @Inject constructor(
     private val reminderDao: ReminderDao,
     private val petDao: PetDao,
+    private val scheduler: ReminderScheduler,
 ) : ViewModel() {
 
     private val allReminders: StateFlow<List<Reminder>> = reminderDao.getAllReminders()
@@ -48,42 +50,57 @@ class ReminderViewModel @Inject constructor(
     fun toggleHistorico() { _historicoExpanded.value = !_historicoExpanded.value }
 
     fun deleteReminder(reminder: Reminder) {
-        viewModelScope.launch { reminderDao.deleteReminder(reminder) }
+        viewModelScope.launch {
+            // Cancela o alarme antes de excluir do banco
+            scheduler.cancel(reminder)
+            reminderDao.deleteReminder(reminder)
+        }
     }
 
     fun toggleCompleted(reminder: Reminder) {
+        val nowCompleted = !reminder.isCompleted
         viewModelScope.launch {
-            reminderDao.updateReminder(reminder.copy(isCompleted = !reminder.isCompleted))
+            reminderDao.updateReminder(reminder.copy(isCompleted = nowCompleted))
+
+            if (nowCompleted) {
+                // Marcando como concluído → cancela o alarme futuro
+                scheduler.cancel(reminder)
+            } else {
+                // Desmarcando → reagenda se ainda está no futuro
+                val now = System.currentTimeMillis()
+                if (reminder.dateTimeMillis > now) {
+                    val pet: Pet? = petDao.getPetByIdOnce(reminder.petId)
+                    scheduler.schedule(
+                        reminder     = reminder.copy(isCompleted = false),
+                        petName      = pet?.name ?: "",
+                        petPhotoPath = pet?.photoPath ?: "",
+                    )
+                }
+            }
         }
     }
 
     private fun groupByDate(reminders: List<Reminder>): Map<ReminderGroup, List<Reminder>> {
-        val now = Calendar.getInstance()
-
         val startOfToday = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         }.timeInMillis
 
-        val startOfTomorrow = startOfToday + 86_400_000L
+        val startOfTomorrow        = startOfToday + 86_400_000L
         val startOfDayAfterTomorrow = startOfTomorrow + 86_400_000L
 
         val result = LinkedHashMap<ReminderGroup, MutableList<Reminder>>()
-        result[ReminderGroup.HOJE] = mutableListOf()
-        result[ReminderGroup.AMANHA] = mutableListOf()
+        result[ReminderGroup.HOJE]       = mutableListOf()
+        result[ReminderGroup.AMANHA]     = mutableListOf()
         result[ReminderGroup.ESTA_SEMANA] = mutableListOf()
-        result[ReminderGroup.HISTORICO] = mutableListOf()
+        result[ReminderGroup.HISTORICO]  = mutableListOf()
 
         for (r in reminders) {
             when {
-                r.dateTimeMillis < startOfToday ->
-                    result[ReminderGroup.HISTORICO]!!.add(r)
-                r.dateTimeMillis < startOfTomorrow ->
-                    result[ReminderGroup.HOJE]!!.add(r)
-                r.dateTimeMillis < startOfDayAfterTomorrow ->
-                    result[ReminderGroup.AMANHA]!!.add(r)
-                else ->
-                    result[ReminderGroup.ESTA_SEMANA]!!.add(r)
+                r.dateTimeMillis < startOfToday          -> result[ReminderGroup.HISTORICO]!!.add(r)
+                r.dateTimeMillis < startOfTomorrow        -> result[ReminderGroup.HOJE]!!.add(r)
+                r.dateTimeMillis < startOfDayAfterTomorrow -> result[ReminderGroup.AMANHA]!!.add(r)
+                else                                      -> result[ReminderGroup.ESTA_SEMANA]!!.add(r)
             }
         }
 
