@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -14,6 +15,7 @@ import com.petcare.app.ui.screen.SplashScreen
 import com.petcare.app.ui.screen.main.MainScreen
 import com.petcare.app.ui.screen.main.diary.DiaryPhotoEditorScreen
 import com.petcare.app.ui.screen.main.pets.NewPetScreen
+import com.petcare.app.ui.screen.main.pets.PetPhotoEditorScreen
 import com.petcare.app.ui.screen.onboarding.OnboardingScreen
 import com.petcare.app.ui.viewmodel.AppViewModel
 import com.petcare.app.ui.viewmodel.DiaryViewModel
@@ -35,6 +37,13 @@ sealed class Screen(val route: String) {
 
     // Tela cheia normal do NavGraph — formulário "Novo Pet" (SPEC §11 — parte 1).
     object NewPet : Screen("new_pet")
+
+    // Tela cheia normal do NavGraph — cortar a foto de perfil do pet
+    // (SPEC §11 — parte 2), empilhada por cima do formulário "Novo Pet".
+    object PetPhotoEditor : Screen("pet_photo_editor/{imageUri}") {
+        fun createRoute(imageUri: Uri): String =
+            "pet_photo_editor/${URLEncoder.encode(imageUri.toString(), "UTF-8")}"
+    }
 }
 
 @Composable
@@ -83,12 +92,39 @@ fun PetCareNavGraph() {
 
         // Formulário "Novo Pet" — tela cheia normal (mesmo padrão do
         // DiaryPhotoEditor: rota própria do NavGraph, não Dialog).
-        composable(Screen.NewPet.route) {
-            val newPetViewModel: NewPetViewModel = hiltViewModel()
+        composable(Screen.NewPet.route) { entry ->
+            val newPetViewModel: NewPetViewModel = hiltViewModel(entry)
             NewPetScreen(
                 viewModel = newPetViewModel,
                 onDismiss = { navController.popBackStack() },
                 onSaved = { navController.popBackStack() },
+                onNavigateToPhotoEditor = { imageUri ->
+                    navController.navigate(Screen.PetPhotoEditor.createRoute(imageUri))
+                },
+            )
+        }
+
+        // Cortar a foto de perfil do pet (SPEC §11 — parte 2) — tela cheia
+        // normal empilhada por cima de "Novo Pet". Reaproveita a MESMA
+        // instância do NewPetViewModel (escopada à entrada "new_pet", que
+        // continua viva embaixo desta na pilha) para guardar o resultado,
+        // em vez de propagar o caminho da foto por argumento de rota.
+        composable(
+            route = Screen.PetPhotoEditor.route,
+            arguments = listOf(navArgument("imageUri") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val encodedUri = backStackEntry.arguments?.getString("imageUri").orEmpty()
+            val imageUri = Uri.parse(URLDecoder.decode(encodedUri, "UTF-8"))
+            val newPetEntry = remember(backStackEntry) { navController.getBackStackEntry(Screen.NewPet.route) }
+            val newPetViewModel: NewPetViewModel = hiltViewModel(newPetEntry)
+
+            PetPhotoEditorScreen(
+                imageUri = imageUri,
+                onDismiss = { navController.popBackStack() },
+                onSave = { photoPath ->
+                    newPetViewModel.setPhotoPath(photoPath)
+                    navController.popBackStack()
+                },
             )
         }
 

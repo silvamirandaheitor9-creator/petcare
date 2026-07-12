@@ -296,8 +296,10 @@ private fun ErrorBox(onDismiss: () -> Unit) {
 
 // ─── Etapa 1: cortar e girar (SPEC 9.8) ──────────────────────────────────────
 
+// Não é `private`: o mesmo passo de cortar/girar é reaproveitado pelo editor
+// de foto de perfil do pet (SPEC §11 parte 2, `PetPhotoEditorScreen`).
 @Composable
-private fun CropRotateStep(
+internal fun CropRotateStep(
     workingBitmap: Bitmap,
     onRotate: () -> Unit,
     onCropApplied: (Bitmap) -> Unit,

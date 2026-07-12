@@ -1,6 +1,10 @@
 package com.petcare.app.ui.screen.main.pets
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -37,6 +41,7 @@ import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Female
 import androidx.compose.material.icons.rounded.Male
+import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -56,6 +61,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,17 +71,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.petcare.app.R
 import com.petcare.app.data.db.entity.Pet
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.theme.spacing
 import com.petcare.app.ui.viewmodel.NewPetViewModel
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -109,11 +120,16 @@ private val isoDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 private val displayDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
 
 /**
- * Formulário "Novo Pet" (SPEC §11 — parte 1), aberto pelo "+" da aba Meus Pets.
- * Layout em 3 blocos navegáveis (Informações Básicas, Informações Médicas,
+ * Formulário "Novo Pet" (SPEC §11), aberto pelo "+" da aba Meus Pets. Layout
+ * em 3 blocos navegáveis (Informações Básicas, Informações Médicas,
  * Contatos de Emergência) com transições suaves entre eles. Ao salvar, grava
- * um [Pet] real no Room — a foto fica com o avatar padrão por enquanto
- * (seletor/corte de foto de perfil é uma tarefa futura, SPEC §11 parte 2).
+ * um [Pet] real no Room.
+ *
+ * A foto de perfil (SPEC §11 — parte 2) é escolhida na galeria e depois
+ * cortada em [PetPhotoEditorScreen] — uma rota separada do NavGraph, por
+ * isso o caminho escolhido mora em [NewPetViewModel.photoPath] (mesma
+ * instância, escopada à entrada "new_pet") em vez de `rememberSaveable`
+ * local; ver `onNavigateToPhotoEditor` e `PetCareNavGraph`.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -121,9 +137,22 @@ fun NewPetScreen(
     viewModel: NewPetViewModel = hiltViewModel(),
     onDismiss: () -> Unit,
     onSaved: () -> Unit,
+    onNavigateToPhotoEditor: (Uri) -> Unit = {},
 ) {
     var step by rememberSaveable { mutableStateOf(NewPetStep.BASIC.ordinal) }
     val currentStep = NewPetStep.entries[step]
+    val photoPath by viewModel.photoPath.collectAsState()
+
+    val pickPhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) onNavigateToPhotoEditor(uri)
+    }
+    fun launchPhotoPicker() {
+        pickPhotoLauncher.launch(
+            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+        )
+    }
 
     // ── Informações Básicas ──────────────────────────────────────────────────
     var name by rememberSaveable { mutableStateOf("") }
@@ -207,6 +236,8 @@ fun NewPetScreen(
                 ) { stepValue ->
                     when (stepValue) {
                         NewPetStep.BASIC -> BasicInfoBlock(
+                            photoPath = photoPath,
+                            onPickPhoto = { launchPhotoPicker() },
                             name = name,
                             onNameChange = { name = it },
                             nameError = nameError,
@@ -270,6 +301,7 @@ fun NewPetScreen(
                         notes = notes.trim(),
                         vetName = vetName.trim(),
                         vetPhone = vetPhone.trim(),
+                        photoPath = photoPath ?: "",
                     )
                     viewModel.savePet(pet) {
                         isSaving = false
@@ -350,6 +382,8 @@ private fun StepIndicator(currentStep: NewPetStep) {
 
 @Composable
 private fun BasicInfoBlock(
+    photoPath: String?,
+    onPickPhoto: () -> Unit,
     name: String,
     onNameChange: (String) -> Unit,
     nameError: Boolean,
@@ -373,19 +407,53 @@ private fun BasicInfoBlock(
             .padding(MaterialTheme.spacing.sm),
         verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.sm),
     ) {
-        // Foto — placeholder fixo por enquanto (seletor/corte é tarefa futura).
+        // Foto de perfil (SPEC §11 — parte 2): toca para escolher da galeria
+        // e cortar; até lá, mostra o avatar padrão do pacote.
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Image(
-                painter = painterResource(R.drawable.avatar_pet_padrao),
-                contentDescription = "Foto do pet",
+            Box(
                 modifier = Modifier
                     .size(96.dp)
                     .clip(CircleShape)
-                    .border(2.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f), CircleShape),
-            )
+                    .border(2.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f), CircleShape)
+                    .clickable(onClick = onPickPhoto),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (photoPath.isNullOrBlank()) {
+                    Image(
+                        painter = painterResource(R.drawable.avatar_pet_padrao),
+                        contentDescription = "Foto do pet",
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(File(photoPath))
+                            .build(),
+                        contentDescription = "Foto do pet",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(OrangePrimary)
+                        .border(2.dp, MaterialTheme.colorScheme.background, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.PhotoCamera,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
         }
         Text(
-            text = "Você poderá escolher uma foto em breve",
+            text = if (photoPath.isNullOrBlank()) "Toque para adicionar uma foto" else "Toque para trocar a foto",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
             modifier = Modifier.fillMaxWidth(),
