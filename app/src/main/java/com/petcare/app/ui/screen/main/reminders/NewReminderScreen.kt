@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -298,6 +299,12 @@ fun NewReminderScreen(
                         val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             alarmManager.canScheduleExactAlarms()
                         } else true
+                        // TODO DEBUG — remover antes do release
+                        Toast.makeText(
+                            context,
+                            "canScheduleExactAlarms = $canExact  |  SDK = ${Build.VERSION.SDK_INT}",
+                            Toast.LENGTH_LONG,
+                        ).show()
                         if (!canExact) {
                             showAlarmPermissionDialog = true
                         } else {
