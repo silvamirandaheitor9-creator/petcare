@@ -18,8 +18,16 @@ class BootReceiver : BroadcastReceiver() {
 
     companion object {
         // TODO DEBUG — remover antes do release
-        const val DEBUG_PREFS    = "petcare_debug"
-        const val KEY_LAST_BOOT_MS = "last_boot_ms"
+        const val DEBUG_PREFS       = "petcare_debug"
+        const val KEY_LAST_BOOT_MS  = "last_boot_ms"
+        const val KEY_BOOT_FOUND    = "boot_found"
+        const val KEY_BOOT_SCHEDULED = "boot_scheduled"
+        const val KEY_BOOT_SKIPPED  = "boot_skipped"
+
+        /** Lembretes perdidos até 2h antes do boot ainda disparam (quase imediatamente). */
+        private const val GRACE_MS      = 2L * 60 * 60 * 1_000   // 2 horas em ms
+        /** Atraso do disparo imediato após o boot — dá tempo ao sistema de estabilizar. */
+        private const val FIRE_DELAY_MS = 5_000L                  // 5 segundos
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -42,21 +50,51 @@ class BootReceiver : BroadcastReceiver() {
                     .fallbackToDestructiveMigration()
                     .build()
 
-                val now      = System.currentTimeMillis()
-                val pending  = db.reminderDao().getAllPendingRemindersOnce()
+                val now       = System.currentTimeMillis()
+                val pending   = db.reminderDao().getAllPendingRemindersOnce()
                 val scheduler = ReminderScheduler(context)
 
-                for (reminder in pending) {
-                    if (reminder.dateTimeMillis <= now) continue
+                // TODO DEBUG — remover antes do release
+                Log.d("BootReceiver", "Lembretes não-concluídos no banco: ${pending.size}")
 
-                    // Busca dados do pet para notificação rica
+                var scheduled = 0
+                var skipped   = 0
+
+                for (reminder in pending) {
+                    // Lembrete futuro → reagenda normalmente.
+                    // Lembrete perdido durante o boot (até 2h atrás) → dispara em 5s.
+                    // Lembrete mais antigo que 2h → descarta (já não faz sentido).
+                    val targetMs = when {
+                        reminder.dateTimeMillis > now ->
+                            reminder.dateTimeMillis
+                        now - reminder.dateTimeMillis <= GRACE_MS ->
+                            now + FIRE_DELAY_MS          // disparar quase imediatamente
+                        else -> {
+                            skipped++
+                            Log.d("BootReceiver", "  SKIP id=${reminder.id} — perdido há ${(now - reminder.dateTimeMillis) / 60_000}min")
+                            continue
+                        }
+                    }
+
                     val pet = db.petDao().getPetByIdOnce(reminder.petId)
                     scheduler.schedule(
-                        reminder    = reminder,
-                        petName     = pet?.name ?: "",
+                        reminder     = reminder.copy(dateTimeMillis = targetMs),
+                        petName      = pet?.name ?: "",
                         petPhotoPath = pet?.photoPath ?: "",
                     )
+                    scheduled++
+                    Log.d("BootReceiver", "  SCHEDULED id=${reminder.id} targetMs=$targetMs (em ${(targetMs - now) / 1_000}s)")
                 }
+
+                // TODO DEBUG — grava contagens para exibição na aba Perfil
+                context.getSharedPreferences(DEBUG_PREFS, Context.MODE_PRIVATE).edit()
+                    .putInt(KEY_BOOT_FOUND,     pending.size)
+                    .putInt(KEY_BOOT_SCHEDULED, scheduled)
+                    .putInt(KEY_BOOT_SKIPPED,   skipped)
+                    .apply()
+
+                Log.d("BootReceiver", "Concluído: encontrados=${pending.size} reagendados=$scheduled ignorados=$skipped")
+
                 db.close()
             } finally {
                 pendingResult.finish()

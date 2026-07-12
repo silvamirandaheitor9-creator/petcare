@@ -435,17 +435,18 @@ private fun BootDebugCard() {
     val context = LocalContext.current
     val fmt = remember { SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()) }
 
-    val lastBootMs = remember {
-        context
-            .getSharedPreferences(BootReceiver.DEBUG_PREFS, Context.MODE_PRIVATE)
-            .getLong(BootReceiver.KEY_LAST_BOOT_MS, 0L)
+    val prefs = remember {
+        context.getSharedPreferences(BootReceiver.DEBUG_PREFS, Context.MODE_PRIVATE)
     }
-    val lastBootText = if (lastBootMs == 0L) {
-        "Nunca recebido"
-    } else {
-        fmt.format(Date(lastBootMs))
-    }
-    val nowText = remember { fmt.format(Date(System.currentTimeMillis())) }
+    val lastBootMs   = remember { prefs.getLong(BootReceiver.KEY_LAST_BOOT_MS,   0L) }
+    val found        = remember { prefs.getInt(BootReceiver.KEY_BOOT_FOUND,       -1) }
+    val scheduled    = remember { prefs.getInt(BootReceiver.KEY_BOOT_SCHEDULED,   -1) }
+    val skipped      = remember { prefs.getInt(BootReceiver.KEY_BOOT_SKIPPED,     -1) }
+
+    val lastBootText = if (lastBootMs == 0L) "Nunca recebido" else fmt.format(Date(lastBootMs))
+    val nowText      = remember { fmt.format(Date(System.currentTimeMillis())) }
+    val countsText   = if (found == -1) "—" else
+        "encontrados=$found  reagendados=$scheduled  ignorados=$skipped"
 
     Box(
         modifier = Modifier
@@ -462,7 +463,7 @@ private fun BootDebugCard() {
         ) {
             Column(
                 modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
                     text = "🛠 Debug — BootReceiver",
@@ -470,31 +471,33 @@ private fun BootDebugCard() {
                     fontWeight = FontWeight.Bold,
                     color = OrangePrimary,
                 )
+                DebugRow(label = "Último boot recebido", value = lastBootText)
+                DebugRow(label = "Hora atual",           value = nowText)
+                DebugRow(label = "Lembretes no boot",    value = countsText)
+                Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "Último boot recebido:",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = lastBootText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "Hora atual: $nowText",
+                    text = "Reinicie e abra o app para atualizar.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = "Reinicie o celular e abra o app.\n" +
-                           "Se o timestamp acima mudar → BootReceiver foi chamado.\n" +
-                           "Se continuar \"Nunca recebido\" → ainda bloqueado.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun DebugRow(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
