@@ -16,9 +16,20 @@ import kotlinx.coroutines.launch
  */
 class BootReceiver : BroadcastReceiver() {
 
+    companion object {
+        // TODO DEBUG — remover antes do release
+        const val DEBUG_PREFS    = "petcare_debug"
+        const val KEY_LAST_BOOT_MS = "last_boot_ms"
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
         // TODO DEBUG — remover antes do release
         Log.d("BootReceiver", "onReceive chamado | action=${intent.action}")
+        // Grava timestamp para exibição na aba Perfil (sem Logcat/adb)
+        context.getSharedPreferences(DEBUG_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putLong(KEY_LAST_BOOT_MS, System.currentTimeMillis())
+            .apply()
 
         if (intent.action != Intent.ACTION_BOOT_COMPLETED &&
             intent.action != "android.intent.action.LOCKED_BOOT_COMPLETED"

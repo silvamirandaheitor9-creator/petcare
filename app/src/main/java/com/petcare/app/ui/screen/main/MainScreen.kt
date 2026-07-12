@@ -1,5 +1,6 @@
 package com.petcare.app.ui.screen.main
 
+import android.content.Context
 import android.net.Uri
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -36,6 +37,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
@@ -53,6 +56,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -65,8 +69,12 @@ import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.HomeViewModel
 import com.petcare.app.ui.viewmodel.PET_LIMIT_FREE
 import com.petcare.app.ui.viewmodel.PetsViewModel
+import com.petcare.app.data.notifications.BootReceiver
 import com.petcare.app.ui.viewmodel.ReminderViewModel
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 // ─── Definição das 5 abas ────────────────────────────────────────────────────
 
@@ -180,6 +188,9 @@ fun MainScreen(
                         viewModel = reminderViewModel,
                         onNavigateToNewReminder = { id -> onNavigateToNewReminder(id) },
                     )
+                MainTab.PROFILE ->
+                    // TODO DEBUG — substituir pela tela real de Perfil (seção 14)
+                    BootDebugCard()
                 else ->
                     // Placeholder para as demais abas (seção 14)
                     TabPlaceholder(tab = currentTab)
@@ -414,6 +425,76 @@ private fun AddFab(
             contentDescription = contentDescription,
             modifier           = Modifier.size(22.dp),
         )
+    }
+}
+
+// ─── DEBUG: card de diagnóstico do BootReceiver — remover antes do release ────
+
+@Composable
+private fun BootDebugCard() {
+    val context = LocalContext.current
+    val fmt = remember { SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()) }
+
+    val lastBootMs = remember {
+        context
+            .getSharedPreferences(BootReceiver.DEBUG_PREFS, Context.MODE_PRIVATE)
+            .getLong(BootReceiver.KEY_LAST_BOOT_MS, 0L)
+    }
+    val lastBootText = if (lastBootMs == 0L) {
+        "Nunca recebido"
+    } else {
+        fmt.format(Date(lastBootMs))
+    }
+    val nowText = remember { fmt.format(Date(System.currentTimeMillis())) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = "🛠 Debug — BootReceiver",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = OrangePrimary,
+                )
+                Text(
+                    text = "Último boot recebido:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = lastBootText,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Hora atual: $nowText",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Reinicie o celular e abra o app.\n" +
+                           "Se o timestamp acima mudar → BootReceiver foi chamado.\n" +
+                           "Se continuar \"Nunca recebido\" → ainda bloqueado.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
+            }
+        }
     }
 }
 
