@@ -88,6 +88,7 @@ private enum class MainTab(
 @Composable
 fun MainScreen(
     onNavigateToDiaryPhotoEditor: (Uri) -> Unit = {},
+    onNavigateToNewPet: () -> Unit = {},
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val currentTab = MainTab.entries[selectedTabIndex]
@@ -193,10 +194,10 @@ fun MainScreen(
                         contentDescription = "Adicionar ${currentTab.label}",
                         onClick = {
                             when (currentTab) {
+                                MainTab.PETS -> onNavigateToNewPet()
                                 MainTab.DIARY -> showAddDiaryEntry = true
-                                // Pets: aguarda o formulário "Novo Pet" (seção futura).
                                 // Lembretes: aguarda a seção 10.
-                                else -> { /* TODO: seções futuras */ }
+                                else -> { /* TODO: seção futura */ }
                             }
                         },
                     )

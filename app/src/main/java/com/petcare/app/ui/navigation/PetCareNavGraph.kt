@@ -13,9 +13,11 @@ import androidx.navigation.navArgument
 import com.petcare.app.ui.screen.SplashScreen
 import com.petcare.app.ui.screen.main.MainScreen
 import com.petcare.app.ui.screen.main.diary.DiaryPhotoEditorScreen
+import com.petcare.app.ui.screen.main.pets.NewPetScreen
 import com.petcare.app.ui.screen.onboarding.OnboardingScreen
 import com.petcare.app.ui.viewmodel.AppViewModel
 import com.petcare.app.ui.viewmodel.DiaryViewModel
+import com.petcare.app.ui.viewmodel.NewPetViewModel
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -30,6 +32,9 @@ sealed class Screen(val route: String) {
         fun createRoute(imageUri: Uri): String =
             "diary_photo_editor/${URLEncoder.encode(imageUri.toString(), "UTF-8")}"
     }
+
+    // Tela cheia normal do NavGraph — formulário "Novo Pet" (SPEC §11 — parte 1).
+    object NewPet : Screen("new_pet")
 }
 
 @Composable
@@ -70,6 +75,20 @@ fun PetCareNavGraph() {
                 onNavigateToDiaryPhotoEditor = { imageUri ->
                     navController.navigate(Screen.DiaryPhotoEditor.createRoute(imageUri))
                 },
+                onNavigateToNewPet = {
+                    navController.navigate(Screen.NewPet.route)
+                },
+            )
+        }
+
+        // Formulário "Novo Pet" — tela cheia normal (mesmo padrão do
+        // DiaryPhotoEditor: rota própria do NavGraph, não Dialog).
+        composable(Screen.NewPet.route) {
+            val newPetViewModel: NewPetViewModel = hiltViewModel()
+            NewPetScreen(
+                viewModel = newPetViewModel,
+                onDismiss = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
             )
         }
 
