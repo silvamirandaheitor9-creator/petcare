@@ -2,6 +2,9 @@ package com.petcare.app.ui.screen.main
 
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
@@ -23,23 +26,32 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.Canvas
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxState
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,7 +59,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -55,7 +73,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
 import com.petcare.app.R
 import com.petcare.app.data.db.entity.Pet
 import com.petcare.app.data.db.entity.Reminder
@@ -113,13 +135,18 @@ fun RemindersScreen(
             }
 
             items(items = items, key = { "reminder_${it.id}" }) { reminder ->
-                ReminderCard(
-                    reminder = reminder,
-                    pets = pets,
-                    onEdit = { onNavigateToNewReminder(reminder.id) },
-                    onDelete = { viewModel.deleteReminder(reminder) },
+                ReminderSwipeContainer(
+                    onDeleteDirect    = { viewModel.deleteReminder(reminder) },
                     onToggleCompleted = { viewModel.toggleCompleted(reminder) },
-                )
+                ) {
+                    ReminderCard(
+                        reminder          = reminder,
+                        pets              = pets,
+                        onEdit            = { onNavigateToNewReminder(reminder.id) },
+                        onDelete          = { viewModel.deleteReminder(reminder) },
+                        onToggleCompleted = { viewModel.toggleCompleted(reminder) },
+                    )
+                }
             }
         }
 
@@ -142,18 +169,29 @@ fun RemindersScreen(
                 ) {
                     Column {
                         historico.forEach { reminder ->
-                            ReminderCard(
-                                reminder = reminder,
-                                pets = pets,
-                                onEdit = { onNavigateToNewReminder(reminder.id) },
-                                onDelete = { viewModel.deleteReminder(reminder) },
+                            ReminderSwipeContainer(
+                                onDeleteDirect    = { viewModel.deleteReminder(reminder) },
                                 onToggleCompleted = { viewModel.toggleCompleted(reminder) },
-                                isHistorico = true,
-                            )
+                            ) {
+                                ReminderCard(
+                                    reminder          = reminder,
+                                    pets              = pets,
+                                    onEdit            = { onNavigateToNewReminder(reminder.id) },
+                                    onDelete          = { viewModel.deleteReminder(reminder) },
+                                    onToggleCompleted = { viewModel.toggleCompleted(reminder) },
+                                    isHistorico       = true,
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
+
+        // ── Banner AdMob (10.19) ──────────────────────────────────────────────
+        item(key = "banner_reminders") {
+            Spacer(modifier = Modifier.height(28.dp))
+            BannerAdView(modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -300,6 +338,15 @@ private fun ReminderCard(
     val dateFormat = SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", Locale.getDefault())
     val dateStr = dateFormat.format(Date(reminder.dateTimeMillis))
 
+    // ── Animação: check desenhado (10.17) ─────────────────────────────────────
+    val checkProgress = remember { Animatable(if (reminder.isCompleted) 1f else 0f) }
+    LaunchedEffect(reminder.isCompleted) {
+        checkProgress.animateTo(
+            targetValue    = if (reminder.isCompleted) 1f else 0f,
+            animationSpec  = tween(durationMillis = 350, easing = FastOutSlowInEasing),
+        )
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -316,7 +363,7 @@ private fun ReminderCard(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Ícone da categoria
+            // Ícone da categoria + check animado (10.17)
             Box(
                 modifier = Modifier
                     .size(44.dp)
@@ -332,9 +379,36 @@ private fun ReminderCard(
                 Image(
                     painter = painterResource(reminder.category.toCategoryDrawable()),
                     contentDescription = reminder.category,
-                    modifier = Modifier.size(26.dp),
+                    modifier = Modifier
+                        .size(26.dp)
+                        .alpha(1f - checkProgress.value),
                     contentScale = ContentScale.Fit,
                 )
+                // Traço do checkmark sendo desenhado conforme progress 0 → 1
+                Canvas(modifier = Modifier.size(26.dp)) {
+                    if (checkProgress.value > 0f) {
+                        val path = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(size.width * 0.18f, size.height * 0.52f)
+                            lineTo(size.width * 0.42f, size.height * 0.74f)
+                            lineTo(size.width * 0.82f, size.height * 0.26f)
+                        }
+                        val pm  = android.graphics.PathMeasure(path.asAndroidPath(), false)
+                        val len = pm.length
+                        drawPath(
+                            path  = path,
+                            color = Color(0xFF4CAF50),
+                            style = Stroke(
+                                width      = 3.dp.toPx(),
+                                cap        = StrokeCap.Round,
+                                join       = StrokeJoin.Round,
+                                pathEffect = PathEffect.dashPathEffect(
+                                    intervals = floatArrayOf(len, len),
+                                    phase     = len * (1f - checkProgress.value),
+                                ),
+                            ),
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -447,4 +521,94 @@ fun String.toRecurrenceLabel(): String = when (this) {
     "weekly"  -> "Repete semanalmente"
     "monthly" -> "Repete mensalmente"
     else      -> ""
+}
+
+// ─── Swipe container com rastro de pegada (10.18) ─────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderSwipeContainer(
+    onDeleteDirect: () -> Unit,
+    onToggleCompleted: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    onToggleCompleted()
+                    false  // snaps back; card atualiza estado via recomposição
+                }
+                SwipeToDismissBoxValue.EndToStart -> {
+                    onDeleteDirect()
+                    true   // confirma dismiss — item some via DB flow
+                }
+                else -> false
+            }
+        },
+        positionalThreshold = { total -> total * 0.40f },
+    )
+    SwipeToDismissBox(
+        state             = dismissState,
+        backgroundContent = { PawTrailBackground(dismissState) },
+    ) {
+        content()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PawTrailBackground(state: SwipeToDismissBoxState) {
+    val isStartToEnd = state.currentValue == SwipeToDismissBoxValue.StartToEnd ||
+        state.targetValue  == SwipeToDismissBoxValue.StartToEnd
+    val fraction = state.progress
+    val bgColor  = if (isStartToEnd) OrangePrimary else Color(0xFFE53935)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor.copy(alpha = (fraction * 2.5f).coerceAtMost(0.9f))),
+    ) {
+        Row(
+            modifier = Modifier
+                .align(if (isStartToEnd) Alignment.CenterStart else Alignment.CenterEnd)
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+        ) {
+            val iconAlpha = (fraction * 3f).coerceAtMost(1f)
+            Icon(
+                imageVector        = if (isStartToEnd) Icons.Rounded.Check else Icons.Rounded.Delete,
+                contentDescription = null,
+                tint               = Color.White.copy(alpha = iconAlpha),
+                modifier           = Modifier.size(26.dp),
+            )
+            // 3 patas aparecem em cascata conforme o fraction cresce
+            repeat(3) { i ->
+                val pawAlpha = ((fraction - 0.06f * (i + 1)) * 5f).coerceIn(0f, 0.75f)
+                Icon(
+                    imageVector        = Icons.Rounded.Pets,
+                    contentDescription = null,
+                    tint               = Color.White.copy(alpha = pawAlpha),
+                    modifier           = Modifier.size(if (i == 0) 20.dp else if (i == 1) 16.dp else 12.dp),
+                )
+            }
+        }
+    }
+}
+
+// ─── Banner AdMob (10.19) ──────────────────────────────────────────────────────
+
+@Composable
+private fun BannerAdView(modifier: Modifier = Modifier) {
+    AndroidView(
+        factory = { context ->
+            AdView(context).apply {
+                setAdSize(AdSize.BANNER)
+                adUnitId = "ca-app-pub-3940256099942544/6300978111" // Test banner ID
+                loadAd(AdRequest.Builder().build())
+            }
+        },
+        modifier = modifier,
+    )
 }

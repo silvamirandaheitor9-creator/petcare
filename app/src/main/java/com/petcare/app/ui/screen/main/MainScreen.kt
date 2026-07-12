@@ -1,6 +1,5 @@
 package com.petcare.app.ui.screen.main
 
-import android.content.Context
 import android.net.Uri
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -37,8 +36,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
@@ -56,7 +53,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -69,12 +65,8 @@ import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.HomeViewModel
 import com.petcare.app.ui.viewmodel.PET_LIMIT_FREE
 import com.petcare.app.ui.viewmodel.PetsViewModel
-import com.petcare.app.data.notifications.BootReceiver
 import com.petcare.app.ui.viewmodel.ReminderViewModel
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 
 // ─── Definição das 5 abas ────────────────────────────────────────────────────
 
@@ -188,9 +180,6 @@ fun MainScreen(
                         viewModel = reminderViewModel,
                         onNavigateToNewReminder = { id -> onNavigateToNewReminder(id) },
                     )
-                MainTab.PROFILE ->
-                    // TODO DEBUG — substituir pela tela real de Perfil (seção 14)
-                    BootDebugCard()
                 else ->
                     // Placeholder para as demais abas (seção 14)
                     TabPlaceholder(tab = currentTab)
@@ -424,79 +413,6 @@ private fun AddFab(
             imageVector        = Icons.Rounded.Add,
             contentDescription = contentDescription,
             modifier           = Modifier.size(22.dp),
-        )
-    }
-}
-
-// ─── DEBUG: card de diagnóstico do BootReceiver — remover antes do release ────
-
-@Composable
-private fun BootDebugCard() {
-    val context = LocalContext.current
-    val fmt = remember { SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()) }
-
-    val prefs = remember {
-        context.getSharedPreferences(BootReceiver.DEBUG_PREFS, Context.MODE_PRIVATE)
-    }
-    val lastBootMs   = remember { prefs.getLong(BootReceiver.KEY_LAST_BOOT_MS,   0L) }
-    val found        = remember { prefs.getInt(BootReceiver.KEY_BOOT_FOUND,       -1) }
-    val scheduled    = remember { prefs.getInt(BootReceiver.KEY_BOOT_SCHEDULED,   -1) }
-    val skipped      = remember { prefs.getInt(BootReceiver.KEY_BOOT_SKIPPED,     -1) }
-
-    val lastBootText = if (lastBootMs == 0L) "Nunca recebido" else fmt.format(Date(lastBootMs))
-    val nowText      = remember { fmt.format(Date(System.currentTimeMillis())) }
-    val countsText   = if (found == -1) "—" else
-        "encontrados=$found  reagendados=$scheduled  ignorados=$skipped"
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text(
-                    text = "🛠 Debug — BootReceiver",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = OrangePrimary,
-                )
-                DebugRow(label = "Último boot recebido", value = lastBootText)
-                DebugRow(label = "Hora atual",           value = nowText)
-                DebugRow(label = "Lembretes no boot",    value = countsText)
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = "Reinicie e abra o app para atualizar.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DebugRow(label: String, value: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
         )
     }
 }
