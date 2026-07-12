@@ -16,10 +16,12 @@ import com.petcare.app.ui.screen.main.MainScreen
 import com.petcare.app.ui.screen.main.diary.DiaryPhotoEditorScreen
 import com.petcare.app.ui.screen.main.pets.NewPetScreen
 import com.petcare.app.ui.screen.main.pets.PetPhotoEditorScreen
+import com.petcare.app.ui.screen.main.reminders.NewReminderScreen
 import com.petcare.app.ui.screen.onboarding.OnboardingScreen
 import com.petcare.app.ui.viewmodel.AppViewModel
 import com.petcare.app.ui.viewmodel.DiaryViewModel
 import com.petcare.app.ui.viewmodel.NewPetViewModel
+import com.petcare.app.ui.viewmodel.NewReminderViewModel
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -43,6 +45,12 @@ sealed class Screen(val route: String) {
     object PetPhotoEditor : Screen("pet_photo_editor/{imageUri}") {
         fun createRoute(imageUri: Uri): String =
             "pet_photo_editor/${URLEncoder.encode(imageUri.toString(), "UTF-8")}"
+    }
+
+    // Tela cheia — Novo Lembrete / Editar Lembrete (SPEC §10 — Parte 1).
+    // reminderId = -1 → criar novo; > 0 → editar existente.
+    object NewReminder : Screen("new_reminder/{reminderId}") {
+        fun createRoute(reminderId: Long = -1L): String = "new_reminder/$reminderId"
     }
 }
 
@@ -78,7 +86,6 @@ fun PetCareNavGraph() {
         }
 
         // Seção 6 — casca de navegação global (5 abas + FAB do Mel)
-        // O conteúdo real de cada aba virá nas seções 7-14.
         composable(Screen.Main.route) {
             MainScreen(
                 onNavigateToDiaryPhotoEditor = { imageUri ->
@@ -86,6 +93,9 @@ fun PetCareNavGraph() {
                 },
                 onNavigateToNewPet = {
                     navController.navigate(Screen.NewPet.route)
+                },
+                onNavigateToNewReminder = { reminderId ->
+                    navController.navigate(Screen.NewReminder.createRoute(reminderId))
                 },
             )
         }
@@ -148,6 +158,23 @@ fun PetCareNavGraph() {
                     diaryViewModel.addEntry(petId = petId, photoPath = photoPath, caption = caption)
                     navController.popBackStack()
                 },
+            )
+        }
+
+        // Novo Lembrete / Editar Lembrete (SPEC §10 — Parte 1).
+        // reminderId == -1 → criar; > 0 → editar lembrete existente.
+        composable(
+            route = Screen.NewReminder.route,
+            arguments = listOf(navArgument("reminderId") { type = NavType.LongType; defaultValue = -1L }),
+        ) { backStackEntry ->
+            val reminderId = backStackEntry.arguments?.getLong("reminderId") ?: -1L
+            val newReminderViewModel: NewReminderViewModel = hiltViewModel(backStackEntry)
+
+            NewReminderScreen(
+                reminderId = reminderId,
+                viewModel = newReminderViewModel,
+                onDismiss = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
             )
         }
     }

@@ -213,24 +213,24 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 10.1 | Lista por data: Hoje / Amanhã / Esta semana / Histórico recolhível | ⬜ | |
-| 10.2 | Filtro por pet | ⬜ | |
-| 10.3 | Categorias fixas + personalizado | ⬜ | |
-| 10.4 | Recorrência: não repete / diária / semanal / mensal | ⬜ | |
-| 10.5 | Seletor de data e hora com fuso horário correto | ⬜ | |
-| 10.6 | Estado vazio: `vazio_lembretes.png` | ⬜ | |
-| 10.7 | Botão "+" posicionado corretamente (não sobrepõe Mel) | ⬜ | |
-| 10.8 | Notificações locais reais (título/corpo contextual) | ⬜ | |
-| 10.9 | Notificação: foto do pet como imagem grande | ⬜ | |
-| 10.10 | Notificação: ícone de categoria com cor certa | ⬜ | |
-| 10.11 | Notificação: botões "Concluir" e "Adiar 1h" | ⬜ | |
-| 10.12 | Notificação: vibração com padrão próprio | ⬜ | |
-| 10.13 | Notificação: agrupamento nativo com várias simultâneas | ⬜ | |
-| 10.14 | BroadcastReceiver para BOOT_COMPLETED (reagendar após reiniciar) | ⬜ | |
-| 10.15 | Editar e excluir lembrete | ⬜ | |
-| 10.16 | Tela "Novo Lembrete" redesenhada (visual profissional) | ⬜ | |
-| 10.17 | Animação: check com traço desenhado | ⬜ | |
-| 10.18 | Animação: swipe com rastro de pegada | ⬜ | |
+| 10.1 | Lista por data: Hoje / Amanhã / Esta semana / Histórico recolhível | ✅ | `RemindersScreen.kt` + `ReminderViewModel.kt`: agrupamento com `groupByDate()` usando Calendar timezone-aware; Histórico recolhível via `AnimatedVisibility` + `toggleHistorico()`. |
+| 10.2 | Filtro por pet | ✅ | `PetFilterChips` em `RemindersScreen.kt`: chips "Todos" + um por pet; só exibido quando há mais de um pet; `ReminderViewModel.selectPet()`. |
+| 10.3 | Categorias fixas + personalizado | ✅ | 7 categorias (`vacina/consulta/banho/medicacao/alimentacao/vermifugo/personalizado`); grade 4 colunas em `NewReminderScreen.kt`; `String.toCategoryDrawable()` mapeia para os 7 `icone_*.png`. |
+| 10.4 | Recorrência: não repete / diária / semanal / mensal | ✅ | `RecurrenceSelector` em `NewReminderScreen.kt` (4 pills horizontais); `String.toRecurrenceLabel()` exibe no card com ícone `Repeat`. |
+| 10.5 | Seletor de data e hora com fuso horário correto | ✅ | `DatePickerDialog` (Material3) + `TimePicker` em `Dialog`; preserva hora ao trocar data e vice-versa via `Calendar`. |
+| 10.6 | Estado vazio: `vazio_lembretes.png` | ✅ | `ReminderEmptyState` em `RemindersScreen.kt`: `vazio_lembretes.png` centralizada + texto motivacional. |
+| 10.7 | Botão "+" posicionado corretamente (não sobrepõe Mel) | ✅ | Reaproveita a pilha FAB de `MainScreen.kt` (`hasAddFab = true` para `REMINDERS`); clique chama `onNavigateToNewReminder(-1L)`. |
+| 10.8 | Notificações locais reais (título/corpo contextual) | ⬜ | Parte 2 — não iniciado |
+| 10.9 | Notificação: foto do pet como imagem grande | ⬜ | Parte 2 |
+| 10.10 | Notificação: ícone de categoria com cor certa | ⬜ | Parte 2 |
+| 10.11 | Notificação: botões "Concluir" e "Adiar 1h" | ⬜ | Parte 2 |
+| 10.12 | Notificação: vibração com padrão próprio | ⬜ | Parte 2 |
+| 10.13 | Notificação: agrupamento nativo com várias simultâneas | ⬜ | Parte 2 |
+| 10.14 | BroadcastReceiver para BOOT_COMPLETED (reagendar após reiniciar) | ⬜ | Parte 2 |
+| 10.15 | Editar e excluir lembrete | ✅ | Editar: `IconButton` → `onNavigateToNewReminder(reminder.id)` → `NewReminderScreen` com `loadReminder(id)`. Excluir: `AlertDialog` de confirmação → `ReminderViewModel.deleteReminder()`. |
+| 10.16 | Tela "Novo Lembrete" redesenhada (visual profissional) | ✅ | `NewReminderScreen.kt` (`ui/screen/main/reminders/`): cabeçalho gradiente laranja, grade de categorias, `PetDropdown`, seletores de data/hora, `RecurrenceSelector`, campo de observações, botão salvar com estado de loading. `NewReminderViewModel.kt`. Rota `new_reminder/{reminderId}` no `PetCareNavGraph.kt`. |
+| 10.17 | Animação: check com traço desenhado | ⬜ | Parte 2 |
+| 10.18 | Animação: swipe com rastro de pegada | ⬜ | Parte 2 |
 | 10.19 | Banner AdMob | ⬜ | |
 
 ---

@@ -65,6 +65,7 @@ import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.HomeViewModel
 import com.petcare.app.ui.viewmodel.PET_LIMIT_FREE
 import com.petcare.app.ui.viewmodel.PetsViewModel
+import com.petcare.app.ui.viewmodel.ReminderViewModel
 import java.util.Calendar
 
 // ─── Definição das 5 abas ────────────────────────────────────────────────────
@@ -89,6 +90,7 @@ private enum class MainTab(
 fun MainScreen(
     onNavigateToDiaryPhotoEditor: (Uri) -> Unit = {},
     onNavigateToNewPet: () -> Unit = {},
+    onNavigateToNewReminder: (reminderId: Long) -> Unit = {},
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val currentTab = MainTab.entries[selectedTabIndex]
@@ -100,10 +102,11 @@ fun MainScreen(
     val userName by homeViewModel.userName.collectAsState()
 
     // ── Badge "X/10" da aba Meus Pets (SPEC 8.2) ─────────────────────────────
-    // PetsViewModel é injetado aqui (e repassado ao PetsScreen) para que o
-    // contador fique disponível ao PetCareTopBar sem duplicar a instância.
     val petsViewModel: PetsViewModel = hiltViewModel()
     val petCount by petsViewModel.petCount.collectAsState()
+
+    // ── ViewModel de Lembretes (instância compartilhada com RemindersScreen) ──
+    val reminderViewModel: ReminderViewModel = hiltViewModel()
 
     val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
     val greeting = remember(userName, hour) {
@@ -171,8 +174,14 @@ fun MainScreen(
                         onDismissAddEntryPlaceholder = { showAddDiaryEntry = false },
                         onNavigateToPhotoEditor = onNavigateToDiaryPhotoEditor,
                     )
+                MainTab.REMINDERS ->
+                    // (SPEC §10 — Parte 1) Conteúdo real da aba Lembretes
+                    RemindersScreen(
+                        viewModel = reminderViewModel,
+                        onNavigateToNewReminder = { id -> onNavigateToNewReminder(id) },
+                    )
                 else ->
-                    // Placeholder para as demais abas (seções 10, 14)
+                    // Placeholder para as demais abas (seção 14)
                     TabPlaceholder(tab = currentTab)
             }
 
@@ -196,8 +205,8 @@ fun MainScreen(
                             when (currentTab) {
                                 MainTab.PETS -> onNavigateToNewPet()
                                 MainTab.DIARY -> showAddDiaryEntry = true
-                                // Lembretes: aguarda a seção 10.
-                                else -> { /* TODO: seção futura */ }
+                                MainTab.REMINDERS -> onNavigateToNewReminder(-1L)
+                                else -> {}
                             }
                         },
                     )
