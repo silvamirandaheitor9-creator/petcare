@@ -74,6 +74,7 @@ import java.io.File
 @Composable
 fun PetsScreen(
     viewModel: PetsViewModel = hiltViewModel(),
+    onPetClick: (Long) -> Unit = {},
 ) {
     val pets by viewModel.pets.collectAsState()
 
@@ -90,7 +91,7 @@ fun PetsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             itemsIndexed(pets, key = { _, pet -> pet.id }) { index, pet ->
-                StaggeredPetCard(pet = pet, index = index)
+                StaggeredPetCard(pet = pet, index = index, onPetClick = onPetClick)
             }
 
             // Banner AdMob — item de largura total ao final da grade
@@ -112,7 +113,7 @@ fun PetsScreen(
 // ─── Card com animação de entrada escalonada (SPEC 8.7) ──────────────────────
 
 @Composable
-private fun StaggeredPetCard(pet: Pet, index: Int) {
+private fun StaggeredPetCard(pet: Pet, index: Int, onPetClick: (Long) -> Unit = {}) {
     var visible by remember(pet.id) { mutableStateOf(false) }
 
     LaunchedEffect(pet.id) {
@@ -129,20 +130,19 @@ private fun StaggeredPetCard(pet: Pet, index: Int) {
                 initialOffsetY = { it / 4 },
             ),
     ) {
-        PetGridCard(pet = pet)
+        PetGridCard(pet = pet, onPetClick = onPetClick)
     }
 }
 
 // ─── Card individual de pet na grade 2 colunas (SPEC 8.3–8.4, 8.8) ───────────
 
 @Composable
-private fun PetGridCard(pet: Pet) {
+private fun PetGridCard(pet: Pet, onPetClick: (Long) -> Unit = {}) {
     val context = LocalContext.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // Compressão sutil ao toque (SPEC 8.8). Detalhe do pet ainda não existe
-    // (seção 12) — onClick permanece um no-op por enquanto.
+    // Compressão sutil ao toque (SPEC 8.8) — clique navega para o detalhe do pet (seção 12).
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.96f else 1f,
         label = "pet_card_press_${pet.id}",
@@ -155,7 +155,7 @@ private fun PetGridCard(pet: Pet) {
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = { /* TODO seção 12: navegar para detalhe do pet */ },
+                onClick = { onPetClick(pet.id) },
             ),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),

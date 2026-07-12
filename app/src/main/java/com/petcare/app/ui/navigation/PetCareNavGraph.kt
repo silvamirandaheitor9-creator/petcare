@@ -15,6 +15,7 @@ import com.petcare.app.ui.screen.SplashScreen
 import com.petcare.app.ui.screen.main.MainScreen
 import com.petcare.app.ui.screen.main.diary.DiaryPhotoEditorScreen
 import com.petcare.app.ui.screen.main.pets.NewPetScreen
+import com.petcare.app.ui.screen.main.pets.PetDetailScreen
 import com.petcare.app.ui.screen.main.pets.PetPhotoEditorScreen
 import com.petcare.app.ui.screen.main.reminders.NewReminderScreen
 import com.petcare.app.ui.screen.onboarding.OnboardingScreen
@@ -22,6 +23,7 @@ import com.petcare.app.ui.viewmodel.AppViewModel
 import com.petcare.app.ui.viewmodel.DiaryViewModel
 import com.petcare.app.ui.viewmodel.NewPetViewModel
 import com.petcare.app.ui.viewmodel.NewReminderViewModel
+import com.petcare.app.ui.viewmodel.PetDetailViewModel
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -51,6 +53,11 @@ sealed class Screen(val route: String) {
     // reminderId = -1 → criar novo; > 0 → editar existente.
     object NewReminder : Screen("new_reminder/{reminderId}") {
         fun createRoute(reminderId: Long = -1L): String = "new_reminder/$reminderId"
+    }
+
+    // Tela cheia — Detalhe do pet com sub-abas de saúde (SPEC §12 — Parte 1).
+    object PetDetail : Screen("pet_detail/{petId}") {
+        fun createRoute(petId: Long): String = "pet_detail/$petId"
     }
 }
 
@@ -96,6 +103,9 @@ fun PetCareNavGraph() {
                 },
                 onNavigateToNewReminder = { reminderId ->
                     navController.navigate(Screen.NewReminder.createRoute(reminderId))
+                },
+                onNavigateToPetDetail = { petId ->
+                    navController.navigate(Screen.PetDetail.createRoute(petId))
                 },
             )
         }
@@ -175,6 +185,18 @@ fun PetCareNavGraph() {
                 viewModel = newReminderViewModel,
                 onDismiss = { navController.popBackStack() },
                 onSaved = { navController.popBackStack() },
+            )
+        }
+
+        // Detalhe do pet — sub-abas de saúde (SPEC §12 — Parte 1).
+        composable(
+            route = Screen.PetDetail.route,
+            arguments = listOf(navArgument("petId") { type = NavType.LongType }),
+        ) { backStackEntry ->
+            val petDetailViewModel: PetDetailViewModel = hiltViewModel(backStackEntry)
+            PetDetailScreen(
+                viewModel = petDetailViewModel,
+                onBack = { navController.popBackStack() },
             )
         }
     }

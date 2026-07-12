@@ -255,13 +255,13 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 12.1 | Sub-aba Vacinas: nome, data, lote (opt), lembrete próxima dose | ⬜ | Estado vazio: `vazio_vacinas.png` |
-| 12.2 | Sub-aba Medicamentos: nome, dosagem, frequência, duração | ⬜ | Estado vazio: `vazio_medicamentos.png` |
-| 12.3 | Sub-aba Consultas: data, motivo, diagnóstico, orientações | ⬜ | Estado vazio: `vazio_consultas.png` |
+| 12.1 | Sub-aba Vacinas: nome, data, lote (opt), lembrete próxima dose | 🔄 | Estado vazio: `vazio_vacinas.png` — implementado, aguarda teste no celular |
+| 12.2 | Sub-aba Medicamentos: nome, dosagem, frequência, duração | 🔄 | Estado vazio: `vazio_medicamentos.png` — implementado, aguarda teste no celular |
+| 12.3 | Sub-aba Consultas: data, motivo, diagnóstico, orientações | 🔄 | Estado vazio: `vazio_consultas.png` — implementado, aguarda teste no celular |
 | 12.4 | Sub-aba Peso: histórico com data + gráfico de linha | ⬜ | Estado vazio: `vazio_peso.png`; trata caso <2 registros |
 | 12.5 | Sub-aba Alimentação: tipo, quantidade por porção, horários | ⬜ | Estado vazio: `vazio_alimentacao.png` |
-| 12.6 | Visual redesenhado (não genérico) | ⬜ | |
-| 12.7 | Animações de entrada nos itens de cada lista | ⬜ | |
+| 12.6 | Visual redesenhado (não genérico) | 🔄 | Cards com ícone da categoria, campo de dados específico por tipo, animação de entrada escalonada — implementado nas 3 sub-abas da Parte 1 |
+| 12.7 | Animações de entrada nos itens de cada lista | 🔄 | `StaggeredHealthItem`: delay proporcional ao índice (55ms/item, teto 380ms) + fadeIn + slideInVertically — implementado |
 
 ---
 
@@ -351,4 +351,4 @@
 
 ---
 
-_Última atualização: 2026-07-12 — Seção 11 (formulário "Novo Pet") concluída em duas partes. Parte 1: layout em 3 blocos navegáveis (Informações Básicas, Informações Médicas, Contatos de Emergência) com transições animadas, todos os campos e validações (`NewPetScreen.kt` + `NewPetViewModel.kt`), gravação real no Room. Parte 2: seletor e corte de foto de perfil — toca no avatar para escolher da galeria (`PickVisualMedia`) e depois cortar/girar em `PetPhotoEditorScreen`, uma rota própria do NavGraph (mesmo padrão de tela cheia do `DiaryPhotoEditor`, não `Dialog`) que reaproveita o `CropRotateStep` e os utilitários de crop/rotate/fundo-branco do editor do Diário; o caminho da foto escolhida sobrevive à ida e volta entre as duas rotas porque mora no `NewPetViewModel` (mesma instância, escopada à entrada "new_pet" via `hiltViewModel(entry)`) em vez de estado local da tela. Foto final salva como JPEG em `pet_photos/` com fundo branco antes da compressão (regra 17.3). **Testado pelo usuário no celular, ambas as partes aprovadas**: fluxo completo do formulário, e a foto cortada aparecendo de verdade (não o placeholder) tanto no formulário quanto no card da lista (`PetsScreen`/`HomeScreen`, que já consumiam `Pet.photoPath` via Coil). **Seção 11 (Formulário "Novo Pet", partes 1 e 2) aprovada e testada por completo.** Seções 0–9 e 11 concluídas; seções 10 (Lembretes) e 12 (detalhe do pet) permanecem pendentes no roadmap.
+_Última atualização: 2026-07-12 — **Seção 12, Parte 1 implementada**: tela de detalhe do pet com sub-abas de saúde. Novos arquivos: `PetDetailViewModel.kt` (carrega Pet por ID via SavedStateHandle + StateFlows de vacinas/medicamentos/consultas via `HealthRecordDao`) e `PetDetailScreen.kt` (em `ui/screen/main/pets/`). A tela tem: cabeçalho gradiente laranja com botão voltar + foto circular do pet + nome; TabRow com 3 sub-abas (Vacinas, Medicamentos, Consultas); conteúdo por aba com estado vazio usando `vazio_vacinas.png` / `vazio_medicamentos.png` / `vazio_consultas.png` centralizadas; listas com animação de entrada escalonada `StaggeredHealthItem` (55ms/item, teto 380ms, fadeIn + slideInVertically); cards por tipo com ícone da categoria (`icone_vacina.png`/`icone_medicacao.png`/`icone_consulta.png`), dados específicos e botão de exclusão com AlertDialog de confirmação; FAB laranja "+" abre ModalBottomSheet com formulário específico por aba (Vacinas: nome*, data, lote opt, próxima dose opt; Medicamentos: nome*, dosagem*, frequência*, duração opt, data início; Consultas: data, motivo*, diagnóstico opt, orientações opt); DatePickerDialog Material3 nos campos de data; `HealthDateField` usa `readOnly=true` + `MutableInteractionSource` para detectar press e abrir o picker (pattern correto, não `enabled=false` que bloqueia eventos). Navegação: rota `pet_detail/{petId}` adicionada ao NavGraph; card de pet na aba Meus Pets agora navega para o detalhe ao ser tocado (TODO removido). **Aguarda build e teste no celular.**

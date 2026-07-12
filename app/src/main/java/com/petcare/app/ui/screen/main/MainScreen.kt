@@ -91,6 +91,7 @@ fun MainScreen(
     onNavigateToDiaryPhotoEditor: (Uri) -> Unit = {},
     onNavigateToNewPet: () -> Unit = {},
     onNavigateToNewReminder: (reminderId: Long) -> Unit = {},
+    onNavigateToPetDetail: (petId: Long) -> Unit = {},
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val currentTab = MainTab.entries[selectedTabIndex]
@@ -166,7 +167,10 @@ fun MainScreen(
                     )
                 MainTab.PETS ->
                     // (SPEC §8) Conteúdo real da aba Meus Pets
-                    PetsScreen(viewModel = petsViewModel)
+                    PetsScreen(
+                        viewModel = petsViewModel,
+                        onPetClick = onNavigateToPetDetail,
+                    )
                 MainTab.DIARY ->
                     // (SPEC §9 — parte 1) Conteúdo real da aba Diário
                     DiaryScreen(
