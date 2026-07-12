@@ -96,11 +96,9 @@ import com.petcare.app.ui.theme.OrangeGradEnd
 import com.petcare.app.ui.theme.OrangeGradStart
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.PetDetailViewModel
+import com.petcare.app.util.DateUtils
 import kotlinx.coroutines.delay
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
 
 // ─── Sub-abas de saúde do pet — Seção 12, Parte 1 (Vacinas, Medicamentos, Consultas) ──────────
 
@@ -109,12 +107,6 @@ private enum class HealthTab(val label: String) {
     MEDICATIONS("Medicamentos"),
     CONSULTATIONS("Consultas"),
 }
-
-// ─── Formatação de data ───────────────────────────────────────────────────────
-
-private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
-private fun Long.toDisplayDate(): String = dateFormat.format(this)
-private fun Long?.toDisplayDateOrBlank(): String = if (this != null && this > 0L) dateFormat.format(this) else ""
 
 // ─── Ponto de entrada da tela de detalhe do pet ──────────────────────────────
 
@@ -361,7 +353,7 @@ private fun VaccineCard(record: HealthRecord, onDelete: (HealthRecord) -> Unit) 
             overflow = TextOverflow.Ellipsis,
         )
         val dateAndLot = buildString {
-            append(record.dateMillis.toDisplayDate())
+            append(DateUtils.utcMillisToDisplayDate(record.dateMillis))
             if (record.vaccineLot.isNotBlank()) append(" · Lote: ${record.vaccineLot}")
         }
         Text(
@@ -456,7 +448,7 @@ private fun MedicationCard(record: HealthRecord, onDelete: (HealthRecord) -> Uni
         val durationAndDate = buildString {
             if (record.medicationDurationDays > 0) append("Duração: ${record.medicationDurationDays} dia(s)")
             append(if (isNotEmpty()) " · " else "")
-            append(record.dateMillis.toDisplayDate())
+            append(DateUtils.utcMillisToDisplayDate(record.dateMillis))
         }
         Text(
             text = durationAndDate,
@@ -526,7 +518,7 @@ private fun ConsultationCard(record: HealthRecord, onDelete: (HealthRecord) -> U
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = record.dateMillis.toDisplayDate(),
+            text = DateUtils.utcMillisToDisplayDate(record.dateMillis),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f),
         )
@@ -552,7 +544,7 @@ private fun ConsultationCard(record: HealthRecord, onDelete: (HealthRecord) -> U
 
     if (showDeleteDialog) {
         DeleteConfirmDialog(
-            message = "Remover esta consulta de \"${record.dateMillis.toDisplayDate()}\"? Essa ação não pode ser desfeita.",
+            message = "Remover esta consulta de \"${DateUtils.utcMillisToDisplayDate(record.dateMillis)}\"? Essa ação não pode ser desfeita.",
             onConfirm = {
                 onDelete(record)
                 showDeleteDialog = false
@@ -734,7 +726,8 @@ private fun AddVaccineForm(
 ) {
     var name by remember { mutableStateOf("") }
     var lot by remember { mutableStateOf("") }
-    var dateMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    // Inicializado como meia-noite UTC do dia atual (DatePicker sempre retorna UTC midnight).
+    var dateMillis by remember { mutableLongStateOf(DateUtils.localMillisToUtcMidnight(System.currentTimeMillis())) }
     var nextDoseText by remember { mutableStateOf("") }
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -745,7 +738,8 @@ private fun AddVaccineForm(
     )
     val nextDatePickerState = rememberDatePickerState()
 
-    val dateStr = dateMillis.toDisplayDate()
+    // Lê Y/M/D no fuso UTC para evitar off-by-one em fusos negativos (ex: UTC-3).
+    val dateStr = DateUtils.utcMillisToDisplayDate(dateMillis)
     val isValid = name.isNotBlank()
 
     Column(
@@ -856,7 +850,7 @@ private fun AddVaccineForm(
             confirmButton = {
                 TextButton(onClick = {
                     nextDatePickerState.selectedDateMillis?.let {
-                        nextDoseText = it.toDisplayDate()
+                        nextDoseText = DateUtils.utcMillisToDisplayDate(it)
                     }
                     showNextDatePicker = false
                 }) { Text("OK") }
@@ -883,11 +877,11 @@ private fun AddMedicationForm(
     var dosage by remember { mutableStateOf("") }
     var frequency by remember { mutableStateOf("") }
     var durationText by remember { mutableStateOf("") }
-    var dateMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var dateMillis by remember { mutableLongStateOf(DateUtils.localMillisToUtcMidnight(System.currentTimeMillis())) }
     var showDatePicker by remember { mutableStateOf(false) }
 
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dateMillis)
-    val dateStr = dateMillis.toDisplayDate()
+    val dateStr = DateUtils.utcMillisToDisplayDate(dateMillis)
     val isValid = name.isNotBlank() && dosage.isNotBlank() && frequency.isNotBlank()
 
     Column(
@@ -1006,11 +1000,11 @@ private fun AddConsultationForm(
     var reason by remember { mutableStateOf("") }
     var diagnosis by remember { mutableStateOf("") }
     var instructions by remember { mutableStateOf("") }
-    var dateMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var dateMillis by remember { mutableLongStateOf(DateUtils.localMillisToUtcMidnight(System.currentTimeMillis())) }
     var showDatePicker by remember { mutableStateOf(false) }
 
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dateMillis)
-    val dateStr = dateMillis.toDisplayDate()
+    val dateStr = DateUtils.utcMillisToDisplayDate(dateMillis)
     val isValid = reason.isNotBlank()
 
     Column(

@@ -79,6 +79,7 @@ import com.petcare.app.ui.theme.OrangeGradEnd
 import com.petcare.app.ui.theme.OrangeGradStart
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.NewReminderViewModel
+import com.petcare.app.util.DateUtils
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -397,20 +398,10 @@ fun NewReminderScreen(
     // ── DatePicker Dialog ─────────────────────────────────────────────────────
     if (showDatePicker) {
         // O DatePicker do Material3 sempre trabalha em UTC à meia-noite.
-        // Convertemos o instante local → Y/M/D → meia-noite UTC para inicialização.
-        val localCal = remember(viewModel.dateTimeMillis) {
-            Calendar.getInstance().apply { timeInMillis = viewModel.dateTimeMillis }
-        }
+        // DateUtils.localMillisToUtcMidnight converte o instante local para
+        // a meia-noite UTC do mesmo dia, que é o que o picker espera.
         val utcMidnightInitial = remember(viewModel.dateTimeMillis) {
-            Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-                set(Calendar.YEAR,         localCal.get(Calendar.YEAR))
-                set(Calendar.MONTH,        localCal.get(Calendar.MONTH))
-                set(Calendar.DAY_OF_MONTH, localCal.get(Calendar.DAY_OF_MONTH))
-                set(Calendar.HOUR_OF_DAY,  0)
-                set(Calendar.MINUTE,       0)
-                set(Calendar.SECOND,       0)
-                set(Calendar.MILLISECOND,  0)
-            }.timeInMillis
+            DateUtils.localMillisToUtcMidnight(viewModel.dateTimeMillis)
         }
 
         val datePickerState = rememberDatePickerState(
@@ -422,21 +413,12 @@ fun NewReminderScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { selectedUtcMillis ->
-                        // DatePicker retorna UTC à meia-noite.
-                        // Extraímos Y/M/D no fuso UTC e aplicamos ao Calendar local,
-                        // preservando a hora/minuto que o usuário já configurou.
-                        val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-                            timeInMillis = selectedUtcMillis
-                        }
-                        val newCal = Calendar.getInstance().apply {
-                            timeInMillis = viewModel.dateTimeMillis
-                            set(Calendar.YEAR,         utcCal.get(Calendar.YEAR))
-                            set(Calendar.MONTH,        utcCal.get(Calendar.MONTH))
-                            set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH))
-                            set(Calendar.SECOND,       0)
-                            set(Calendar.MILLISECOND,  0)
-                        }
-                        viewModel.dateTimeMillis = newCal.timeInMillis
+                        // DateUtils.utcMillisToLocalPreservingTime extrai Y/M/D
+                        // no fuso UTC e os aplica ao millis local, preservando
+                        // a hora/minuto que o usuário já configurou.
+                        viewModel.dateTimeMillis = DateUtils.utcMillisToLocalPreservingTime(
+                            selectedUtcMillis, viewModel.dateTimeMillis
+                        )
                     }
                     showDatePicker = false
                 }) { Text("OK") }
