@@ -3,6 +3,7 @@ package com.petcare.app.data.notifications
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.room.Room
 import com.petcare.app.data.db.PetCareDatabase
 import kotlinx.coroutines.CoroutineScope
@@ -16,6 +17,9 @@ import kotlinx.coroutines.launch
 class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
+        // TODO DEBUG — remover antes do release
+        Log.d("BootReceiver", "onReceive chamado | action=${intent.action}")
+
         if (intent.action != Intent.ACTION_BOOT_COMPLETED &&
             intent.action != "android.intent.action.LOCKED_BOOT_COMPLETED"
         ) return
