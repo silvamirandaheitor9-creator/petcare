@@ -52,6 +52,11 @@ class PetDetailViewModel @Inject constructor(
         healthRecordDao.getRecordsByPetAndType(petId, "weight")
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Registros de alimentação do pet — sub-aba Alimentação (tipo, porção, horários). */
+    val feedings: StateFlow<List<HealthRecord>> =
+        healthRecordDao.getRecordsByPetAndType(petId, "feeding")
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     /** Insere um novo registro de saúde no banco. */
     fun insertRecord(record: HealthRecord) {
         viewModelScope.launch { healthRecordDao.insertRecord(record) }

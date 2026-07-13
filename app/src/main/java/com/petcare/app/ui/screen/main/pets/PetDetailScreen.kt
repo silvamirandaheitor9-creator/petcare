@@ -107,13 +107,14 @@ import com.petcare.app.util.DateUtils
 import kotlinx.coroutines.delay
 import java.io.File
 
-// ─── Sub-abas de saúde do pet — Seção 12, Partes 1 e 2 ───────────────────────
+// ─── Sub-abas de saúde do pet — Seção 12, Partes 1, 2 e 3 ───────────────────
 
 private enum class HealthTab(val label: String) {
     VACCINES("Vacinas"),
     MEDICATIONS("Medicamentos"),
     CONSULTATIONS("Consultas"),
     WEIGHT("Peso"),
+    FEEDING("Alimentação"),
 }
 
 // ─── Ponto de entrada da tela de detalhe do pet ──────────────────────────────
@@ -128,7 +129,8 @@ fun PetDetailScreen(
     val vaccines by viewModel.vaccines.collectAsState()
     val medications by viewModel.medications.collectAsState()
     val consultations by viewModel.consultations.collectAsState()
-    val weights by viewModel.weights.collectAsState()
+    val weights  by viewModel.weights.collectAsState()
+    val feedings by viewModel.feedings.collectAsState()
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val currentTab = HealthTab.entries[selectedTabIndex]
@@ -217,6 +219,11 @@ fun PetDetailScreen(
                             records = weights,
                             onDelete = { viewModel.deleteRecord(it) },
                         )
+                    HealthTab.FEEDING ->
+                        FeedingContent(
+                            records = feedings,
+                            onDelete = { viewModel.deleteRecord(it) },
+                        )
                 }
             }
         }
@@ -259,6 +266,15 @@ fun PetDetailScreen(
                     )
                 HealthTab.WEIGHT ->
                     AddWeightForm(
+                        petId = viewModel.petId,
+                        onSave = { record ->
+                            viewModel.insertRecord(record)
+                            showAddSheet = false
+                        },
+                        onDismiss = { showAddSheet = false },
+                    )
+                HealthTab.FEEDING ->
+                    AddFeedingForm(
                         petId = viewModel.petId,
                         onSave = { record ->
                             viewModel.insertRecord(record)
@@ -1685,4 +1701,329 @@ private fun buildWeightXLabels(sorted: List<HealthRecord>): List<String> {
         listOf(sorted.first(), sorted[n / 3], sorted[2 * n / 3], sorted.last())
             .map { DateUtils.utcMillisToDisplayDate(it.dateMillis).take(5) }
     }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SUB-ABA: ALIMENTAÇÃO — Seção 12, Parte 3
+// ════════════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun FeedingContent(
+    records: List<HealthRecord>,
+    onDelete: (HealthRecord) -> Unit,
+) {
+    if (records.isEmpty()) {
+        HealthEmptyState(
+            imageRes = R.drawable.vazio_alimentacao,
+            title = "Nenhuma dieta registrada",
+            message = "Adicione as informações de alimentação do seu pet para acompanhar o tipo de ração, as porções e os horários das refeições.",
+        )
+        return
+    }
+
+    val sorted = remember(records) { records.sortedByDescending { it.dateMillis } }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        itemsIndexed(sorted, key = { _, r -> r.id }) { index, record ->
+            StaggeredHealthItem(index = index) {
+                FeedingCard(record = record, onDelete = onDelete)
+            }
+        }
+    }
+}
+
+// ─── Card de alimentação ──────────────────────────────────────────────────────
+
+@Composable
+private fun FeedingCard(record: HealthRecord, onDelete: (HealthRecord) -> Unit) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // Divide horários por vírgula e descarta entradas em branco
+    val scheduleChips = remember(record.feedingSchedule) {
+        record.feedingSchedule
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 14.dp, end = 6.dp, top = 14.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            // ── Linha superior: ícone + informações + botão deletar ────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                // Badge com ícone da alimentação
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(OrangePrimary.copy(alpha = 0.08f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.icone_alimentacao),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                }
+
+                // Tipo, quantidade, data e observações
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Text(
+                        text = record.feedingType,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (record.feedingAmountGrams > 0.0) {
+                        Text(
+                            text = formatFeedingAmount(record.feedingAmountGrams),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OrangePrimary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    Text(
+                        text = "A partir de ${DateUtils.utcMillisToDisplayDate(record.dateMillis)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                    )
+                    if (record.notes.isNotBlank()) {
+                        Text(
+                            text = record.notes,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = { showDeleteDialog = true },
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Delete,
+                        contentDescription = "Remover",
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+
+            // ── Chips de horário (alinhados abaixo do ícone) ──────────────────
+            if (scheduleChips.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.padding(start = 60.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    scheduleChips.forEach { time ->
+                        FeedingTimeChip(time = time)
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDeleteDialog) {
+        DeleteConfirmDialog(
+            message = "Remover o registro de alimentação \"${record.feedingType}\"? Essa ação não pode ser desfeita.",
+            onConfirm = {
+                onDelete(record)
+                showDeleteDialog = false
+            },
+            onDismiss = { showDeleteDialog = false },
+        )
+    }
+}
+
+// ─── Chip de horário ──────────────────────────────────────────────────────────
+
+@Composable
+private fun FeedingTimeChip(time: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(OrangePrimary.copy(alpha = 0.10f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = time,
+            style = MaterialTheme.typography.labelSmall,
+            color = OrangePrimary,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+// ─── Formulário: Nova Alimentação ─────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddFeedingForm(
+    petId: Long,
+    onSave: (HealthRecord) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var feedingType by remember { mutableStateOf("") }
+    var amountText  by remember { mutableStateOf("") }
+    var schedule    by remember { mutableStateOf("") }
+    var notes       by remember { mutableStateOf("") }
+    var dateMillis  by remember {
+        mutableLongStateOf(DateUtils.localMillisToUtcMidnight(System.currentTimeMillis()))
+    }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dateMillis)
+    val dateStr = DateUtils.utcMillisToDisplayDate(dateMillis)
+    // Tipo obrigatório + quantidade numérica positiva (aceita vírgula pt-BR)
+    val isValid = feedingType.isNotBlank() &&
+        amountText.replace(',', '.').toDoubleOrNull()?.let { it > 0.0 } == true
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.88f)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            text = "Registrar Alimentação",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(4.dp))
+
+        // Tipo de alimento — obrigatório
+        HealthTextField(
+            value = feedingType,
+            onValueChange = { feedingType = it },
+            label = "Tipo de alimento *",
+            placeholder = "Ex: Ração seca, Ração úmida, Natural",
+        )
+
+        // Quantidade por porção em gramas — obrigatório
+        HealthTextField(
+            value = amountText,
+            onValueChange = { amountText = it },
+            label = "Quantidade por porção (g) *",
+            placeholder = "Ex: 150",
+            keyboardType = KeyboardType.Decimal,
+        )
+
+        // Horários das refeições — opcional, separados por vírgula
+        HealthTextField(
+            value = schedule,
+            onValueChange = { schedule = it },
+            label = "Horários das refeições",
+            placeholder = "Ex: 07:00, 12:00, 19:00",
+        )
+
+        // Data de início da dieta
+        HealthDateField(
+            label = "Data de início",
+            dateStr = dateStr,
+            onClick = { showDatePicker = true },
+        )
+
+        // Observações opcionais
+        HealthTextField(
+            value = notes,
+            onValueChange = { notes = it },
+            label = "Observações (opcional)",
+            placeholder = "Ex: Trocar para ração sênior no próximo mês",
+            singleLine = false,
+            minLines = 2,
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                onSave(
+                    HealthRecord(
+                        petId              = petId,
+                        type               = "feeding",
+                        feedingType        = feedingType.trim(),
+                        feedingAmountGrams = amountText.replace(',', '.').toDouble(),
+                        feedingSchedule    = schedule.trim(),
+                        dateMillis         = dateMillis,
+                        notes              = notes.trim(),
+                    )
+                )
+            },
+            enabled = isValid,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+        ) {
+            Text("Salvar alimentação", fontWeight = FontWeight.Bold, color = Color.White)
+        }
+
+        TextButton(
+            onClick = onDismiss,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Cancelar", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+        }
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { dateMillis = it }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
+// ─── Utilitário de formatação de gramagem ─────────────────────────────────────
+
+/**
+ * Remove zeros e ponto desnecessários e anexa sufixo de unidade.
+ * Ex: 150.0 → "150g por porção", 75.5 → "75.5g por porção"
+ */
+private fun formatFeedingAmount(grams: Double): String {
+    val formatted = "%.1f".format(grams).trimEnd('0').trimEnd('.')
+    return "${formatted}g por porção"
 }
