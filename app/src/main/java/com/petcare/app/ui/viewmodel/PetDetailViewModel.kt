@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// ─── ViewModel do detalhe do pet (SPEC §12 — Parte 1) ────────────────────────
+// ─── ViewModel do detalhe do pet (SPEC §12 — Partes 1 e 2) ──────────────────
 // Carrega o pet por ID e expõe as listas de registros de saúde por tipo.
 // Cada Flow é convertido em StateFlow para consumo eficiente no Compose.
 
@@ -45,6 +45,11 @@ class PetDetailViewModel @Inject constructor(
     /** Consultas do pet ordenadas por data (mais recente primeiro). */
     val consultations: StateFlow<List<HealthRecord>> =
         healthRecordDao.getRecordsByPetAndType(petId, "consultation")
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Pesagens do pet — usadas para o gráfico e a lista da sub-aba Peso. */
+    val weights: StateFlow<List<HealthRecord>> =
+        healthRecordDao.getRecordsByPetAndType(petId, "weight")
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Insere um novo registro de saúde no banco. */

@@ -255,10 +255,10 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 12.1 | Sub-aba Vacinas: nome, data, lote (opt), lembrete próxima dose | 🔄 | Estado vazio: `vazio_vacinas.png` — implementado, aguarda teste no celular |
-| 12.2 | Sub-aba Medicamentos: nome, dosagem, frequência, duração | 🔄 | Estado vazio: `vazio_medicamentos.png` — implementado, aguarda teste no celular |
-| 12.3 | Sub-aba Consultas: data, motivo, diagnóstico, orientações | 🔄 | Estado vazio: `vazio_consultas.png` — implementado, aguarda teste no celular |
-| 12.4 | Sub-aba Peso: histórico com data + gráfico de linha | ⬜ | Estado vazio: `vazio_peso.png`; trata caso <2 registros |
+| 12.1 | Sub-aba Vacinas: nome, data, lote (opt), lembrete próxima dose | ✅ | Testado no celular — data correta com DateUtils |
+| 12.2 | Sub-aba Medicamentos: nome, dosagem, frequência, duração | ✅ | Testado no celular — data correta com DateUtils |
+| 12.3 | Sub-aba Consultas: data, motivo, diagnóstico, orientações | ✅ | Testado no celular — data correta com DateUtils |
+| 12.4 | Sub-aba Peso: histórico com data + gráfico de linha | 🔄 | Estado vazio: `vazio_peso.png`; gráfico Canvas nativo (bezier cúbico + gradiente + anéis); <2 registros → lista + dica "adicione mais uma pesagem"; datas com DateUtils |
 | 12.5 | Sub-aba Alimentação: tipo, quantidade por porção, horários | ⬜ | Estado vazio: `vazio_alimentacao.png` |
 | 12.6 | Visual redesenhado (não genérico) | 🔄 | Cards com ícone da categoria, campo de dados específico por tipo, animação de entrada escalonada — implementado nas 3 sub-abas da Parte 1 |
 | 12.7 | Animações de entrada nos itens de cada lista | 🔄 | `StaggeredHealthItem`: delay proporcional ao índice (55ms/item, teto 380ms) + fadeIn + slideInVertically — implementado |

@@ -7,6 +7,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,6 +39,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -76,8 +78,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -100,12 +107,13 @@ import com.petcare.app.util.DateUtils
 import kotlinx.coroutines.delay
 import java.io.File
 
-// ─── Sub-abas de saúde do pet — Seção 12, Parte 1 (Vacinas, Medicamentos, Consultas) ──────────
+// ─── Sub-abas de saúde do pet — Seção 12, Partes 1 e 2 ───────────────────────
 
 private enum class HealthTab(val label: String) {
     VACCINES("Vacinas"),
     MEDICATIONS("Medicamentos"),
     CONSULTATIONS("Consultas"),
+    WEIGHT("Peso"),
 }
 
 // ─── Ponto de entrada da tela de detalhe do pet ──────────────────────────────
@@ -120,6 +128,7 @@ fun PetDetailScreen(
     val vaccines by viewModel.vaccines.collectAsState()
     val medications by viewModel.medications.collectAsState()
     val consultations by viewModel.consultations.collectAsState()
+    val weights by viewModel.weights.collectAsState()
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val currentTab = HealthTab.entries[selectedTabIndex]
@@ -203,6 +212,11 @@ fun PetDetailScreen(
                             records = consultations,
                             onDelete = { viewModel.deleteRecord(it) },
                         )
+                    HealthTab.WEIGHT ->
+                        WeightContent(
+                            records = weights,
+                            onDelete = { viewModel.deleteRecord(it) },
+                        )
                 }
             }
         }
@@ -236,6 +250,15 @@ fun PetDetailScreen(
                     )
                 HealthTab.CONSULTATIONS ->
                     AddConsultationForm(
+                        petId = viewModel.petId,
+                        onSave = { record ->
+                            viewModel.insertRecord(record)
+                            showAddSheet = false
+                        },
+                        onDismiss = { showAddSheet = false },
+                    )
+                HealthTab.WEIGHT ->
+                    AddWeightForm(
                         petId = viewModel.petId,
                         onSave = { record ->
                             viewModel.insertRecord(record)
@@ -1177,4 +1200,489 @@ private fun HealthDateField(
             cursorColor = OrangePrimary,
         ),
     )
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SUB-ABA: PESO — Seção 12, Parte 2
+// ════════════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun WeightContent(
+    records: List<HealthRecord>,
+    onDelete: (HealthRecord) -> Unit,
+) {
+    if (records.isEmpty()) {
+        HealthEmptyState(
+            imageRes = R.drawable.vazio_peso,
+            title = "Nenhuma pesagem registrada",
+            message = "Registre as pesagens do seu pet para acompanhar a evolução do peso ao longo do tempo.",
+        )
+        return
+    }
+
+    // Ordenação separada para gráfico (ASC = mais antigo à esquerda) e lista (DESC = mais recente primeiro).
+    val sortedAsc  = remember(records) { records.sortedBy { it.dateMillis } }
+    val sortedDesc = remember(records) { records.sortedByDescending { it.dateMillis } }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        // ── Gráfico (≥2 pontos) ou dica de "adicione mais uma pesagem" ──────
+        item {
+            if (records.size >= 2) {
+                WeightLineChart(sortedAsc = sortedAsc)
+            } else {
+                WeightChartHint()
+            }
+        }
+
+        // ── Cabeçalho da lista ────────────────────────────────────────────────
+        item {
+            Text(
+                text = "Histórico de pesagens",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            )
+        }
+
+        // ── Registros — mais recente primeiro ─────────────────────────────────
+        itemsIndexed(sortedDesc, key = { _, r -> r.id }) { index, record ->
+            StaggeredHealthItem(index = index) {
+                WeightCard(record = record, onDelete = onDelete)
+            }
+        }
+    }
+}
+
+// ─── Dica para quando há apenas 1 pesagem ────────────────────────────────────
+
+@Composable
+private fun WeightChartHint() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = OrangePrimary.copy(alpha = 0.08f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Info,
+                contentDescription = null,
+                tint = OrangePrimary,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = "Adicione mais uma pesagem para visualizar o gráfico de evolução.",
+                style = MaterialTheme.typography.bodySmall,
+                color = OrangePrimary,
+            )
+        }
+    }
+}
+
+// ─── Card de pesagem ─────────────────────────────────────────────────────────
+
+@Composable
+private fun WeightCard(record: HealthRecord, onDelete: (HealthRecord) -> Unit) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 14.dp, end = 6.dp, top = 14.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // Badge laranja com o valor do peso
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(OrangePrimary.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = formatWeightKg(record.weightKg),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = OrangePrimary,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = "kg",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = OrangePrimary,
+                    )
+                }
+            }
+
+            // Data + observações
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Text(
+                    text = DateUtils.utcMillisToDisplayDate(record.dateMillis),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (record.notes.isNotBlank()) {
+                    Text(
+                        text = record.notes,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = { showDeleteDialog = true },
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Delete,
+                    contentDescription = "Remover",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+    }
+
+    if (showDeleteDialog) {
+        DeleteConfirmDialog(
+            message = "Remover a pesagem de ${DateUtils.utcMillisToDisplayDate(record.dateMillis)} " +
+                "(${formatWeightKg(record.weightKg)} kg)? Essa ação não pode ser desfeita.",
+            onConfirm = {
+                onDelete(record)
+                showDeleteDialog = false
+            },
+            onDismiss = { showDeleteDialog = false },
+        )
+    }
+}
+
+// ─── Gráfico de linha — Canvas Compose nativo ────────────────────────────────
+// Sem biblioteca externa. Usa bezier cúbico com pontos de controle horizontais
+// para suavizar a curva, gradiente de preenchimento abaixo da linha e anéis
+// nas anotações de dados. Y-axis: 5 ticks; X-axis: até 4 rótulos de data.
+
+@Composable
+private fun WeightLineChart(sortedAsc: List<HealthRecord>) {
+    val minW = sortedAsc.minOf { it.weightKg }
+    val maxW = sortedAsc.maxOf { it.weightKg }
+    // Breathing room de 15% acima e abaixo; range mínimo de 0,5 kg
+    val spread = (maxW - minW).coerceAtLeast(0.5)
+    val visMin = (minW - spread * 0.15).coerceAtLeast(0.0)
+    val visMax = maxW + spread * 0.15
+    val range  = (visMax - visMin).coerceAtLeast(0.5)
+
+    val orangeColor = OrangePrimary
+    val gridColor   = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f)
+    val labelStyle  = MaterialTheme.typography.labelSmall
+    val labelColor  = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+            Text(
+                text = "Evolução do peso",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp),
+            ) {
+                // ── Labels do eixo Y (5 ticks, topo → base = visMax → visMin) ──
+                Column(
+                    modifier = Modifier
+                        .width(44.dp)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    for (i in 4 downTo 0) {
+                        val v = visMin + range * i / 4.0
+                        Text(
+                            text = formatWeightKg(v),
+                            style = labelStyle,
+                            color = labelColor,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.fillMaxWidth(),
+                            maxLines = 1,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.width(6.dp))
+
+                // ── Área do gráfico ────────────────────────────────────────────
+                Canvas(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                ) {
+                    val w = size.width
+                    val h = size.height
+                    val n = sortedAsc.size
+                    val xStep = if (n > 1) w / (n - 1).toFloat() else w / 2f
+
+                    // Coordenadas em pixels de cada ponto
+                    val pts = sortedAsc.mapIndexed { i, r ->
+                        val x  = if (n > 1) i * xStep else w / 2f
+                        val ny = ((r.weightKg - visMin) / range).toFloat().coerceIn(0f, 1f)
+                        Offset(x, h - ny * h)
+                    }
+
+                    // Linhas de grade horizontais
+                    repeat(5) { i ->
+                        val y = h * i / 4f
+                        drawLine(
+                            color = gridColor,
+                            start = Offset(0f, y),
+                            end   = Offset(w, y),
+                            strokeWidth = 1.dp.toPx(),
+                        )
+                    }
+
+                    if (pts.size >= 2) {
+                        // Bezier cúbico suavizado (pontos de controle horizontais)
+                        val linePath = Path()
+                        linePath.moveTo(pts[0].x, pts[0].y)
+                        for (i in 1 until pts.size) {
+                            val prev = pts[i - 1]
+                            val curr = pts[i]
+                            val dx   = (curr.x - prev.x) / 3f
+                            linePath.cubicTo(
+                                prev.x + dx, prev.y,
+                                curr.x - dx, curr.y,
+                                curr.x,      curr.y,
+                            )
+                        }
+
+                        // Área preenchida com gradiente abaixo da linha
+                        val fillPath = Path().apply {
+                            addPath(linePath)
+                            lineTo(pts.last().x,  h)
+                            lineTo(pts.first().x, h)
+                            close()
+                        }
+                        drawPath(
+                            path  = fillPath,
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    orangeColor.copy(alpha = 0.20f),
+                                    Color.Transparent,
+                                ),
+                                startY = 0f,
+                                endY   = h,
+                            ),
+                        )
+
+                        // Linha principal
+                        drawPath(
+                            path  = linePath,
+                            color = orangeColor,
+                            style = Stroke(
+                                width = 2.5.dp.toPx(),
+                                cap   = StrokeCap.Round,
+                                join  = StrokeJoin.Round,
+                            ),
+                        )
+                    }
+
+                    // Anéis nos pontos de dados (branco + laranja)
+                    pts.forEach { pt ->
+                        drawCircle(Color.White,  radius = 5.dp.toPx(),   center = pt)
+                        drawCircle(orangeColor,  radius = 3.5.dp.toPx(), center = pt)
+                    }
+                }
+            }
+
+            // ── Labels do eixo X ──────────────────────────────────────────────
+            Spacer(Modifier.height(6.dp))
+            val xLabels = buildWeightXLabels(sortedAsc)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 50.dp),
+                horizontalArrangement = if (xLabels.size == 1)
+                    Arrangement.Center
+                else
+                    Arrangement.SpaceBetween,
+            ) {
+                xLabels.forEach { label ->
+                    Text(text = label, style = labelStyle, color = labelColor)
+                }
+            }
+        }
+    }
+}
+
+// ─── Formulário: Nova Pesagem ─────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddWeightForm(
+    petId: Long,
+    onSave: (HealthRecord) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var weightText by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var dateMillis by remember {
+        mutableLongStateOf(DateUtils.localMillisToUtcMidnight(System.currentTimeMillis()))
+    }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dateMillis)
+    val dateStr  = DateUtils.utcMillisToDisplayDate(dateMillis)
+    // Aceita vírgula como separador decimal (common on pt-BR keyboards)
+    val isValid  = weightText.replace(',', '.').toDoubleOrNull()?.let { it > 0.0 } == true
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.72f)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            text = "Registrar Pesagem",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(4.dp))
+
+        HealthTextField(
+            value = weightText,
+            onValueChange = { weightText = it },
+            label = "Peso (kg) *",
+            placeholder = "Ex: 5.3",
+            keyboardType = KeyboardType.Decimal,
+        )
+
+        HealthDateField(
+            label = "Data da pesagem",
+            dateStr = dateStr,
+            onClick = { showDatePicker = true },
+        )
+
+        HealthTextField(
+            value = notes,
+            onValueChange = { notes = it },
+            label = "Observações (opcional)",
+            placeholder = "Ex: Após vacinação, em jejum",
+            singleLine = false,
+            minLines = 2,
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                onSave(
+                    HealthRecord(
+                        petId     = petId,
+                        type      = "weight",
+                        weightKg  = weightText.replace(',', '.').toDouble(),
+                        dateMillis = dateMillis,
+                        notes     = notes.trim(),
+                    )
+                )
+            },
+            enabled = isValid,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+        ) {
+            Text("Salvar pesagem", fontWeight = FontWeight.Bold, color = Color.White)
+        }
+
+        TextButton(
+            onClick = onDismiss,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Cancelar", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+        }
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { dateMillis = it }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
+// ─── Utilitários do gráfico de peso ──────────────────────────────────────────
+
+/**
+ * Formata kg para exibição: remove zeros e ponto desnecessários.
+ * Ex: 5.00 → "5", 5.30 → "5.3", 12.55 → "12.6" (1 casa decimal max).
+ */
+private fun formatWeightKg(kg: Double): String =
+    "%.1f".format(kg).trimEnd('0').trimEnd('.')
+
+/**
+ * Rótulos do eixo X: todos se ≤4 pontos; caso contrário, 4 distribuídos
+ * (primeiro, 1/3, 2/3 e último). Formato "dd/MM" (5 primeiros chars de dd/MM/yyyy).
+ */
+private fun buildWeightXLabels(sorted: List<HealthRecord>): List<String> {
+    val n = sorted.size
+    return if (n <= 4) {
+        sorted.map { DateUtils.utcMillisToDisplayDate(it.dateMillis).take(5) }
+    } else {
+        listOf(sorted.first(), sorted[n / 3], sorted[2 * n / 3], sorted.last())
+            .map { DateUtils.utcMillisToDisplayDate(it.dateMillis).take(5) }
+    }
 }
