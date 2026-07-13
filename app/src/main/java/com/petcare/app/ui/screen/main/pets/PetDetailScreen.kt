@@ -186,10 +186,12 @@ fun PetDetailScreen(
                         text = {
                             Text(
                                 text = tab.label,
-                                style = MaterialTheme.typography.labelLarge,
+                                style = MaterialTheme.typography.labelSmall,
                                 fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
                                 color = if (selectedTabIndex == index) OrangePrimary
                                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         },
                     )
@@ -1687,7 +1689,7 @@ private fun AddWeightForm(
  * Ex: 5.00 → "5", 5.30 → "5.3", 12.55 → "12.6" (1 casa decimal max).
  */
 private fun formatWeightKg(kg: Double): String =
-    "%.1f".format(kg).trimEnd('0').trimEnd('.')
+    String.format(java.util.Locale.US, "%.1f", kg).trimEnd('0').trimEnd('.')
 
 /**
  * Rótulos do eixo X: todos se ≤4 pontos; caso contrário, 4 distribuídos
@@ -2024,6 +2026,6 @@ private fun AddFeedingForm(
  * Ex: 150.0 → "150g por porção", 75.5 → "75.5g por porção"
  */
 private fun formatFeedingAmount(grams: Double): String {
-    val formatted = "%.1f".format(grams).trimEnd('0').trimEnd('.')
+    val formatted = String.format(java.util.Locale.US, "%.1f", grams).trimEnd('0').trimEnd('.')
     return "${formatted}g por porção"
 }
