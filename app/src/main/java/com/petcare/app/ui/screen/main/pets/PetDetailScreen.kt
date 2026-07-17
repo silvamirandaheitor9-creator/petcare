@@ -90,9 +90,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -801,9 +804,15 @@ private fun DeletePetModal(
 
                 Spacer(Modifier.height(12.dp))
 
-                // Mensagem personalizada com o nome do pet
+                // Mensagem personalizada com o nome do pet em negrito
                 Text(
-                    text = "Tem certeza que deseja remover $petName? Todos os registros de saúde também serão excluídos permanentemente.",
+                    text = buildAnnotatedString {
+                        append("Tem certeza que quer remover ")
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(petName)
+                        }
+                        append(" e todo o histórico dele? Essa ação não pode ser desfeita.")
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     textAlign = TextAlign.Center,
