@@ -197,6 +197,8 @@ fun PetCareNavGraph() {
             PetDetailScreen(
                 viewModel = petDetailViewModel,
                 onBack = { navController.popBackStack() },
+                // Após confirmar exclusão do pet, volta para a lista (Seção 13)
+                onDeletePet = { navController.popBackStack() },
             )
         }
     }
