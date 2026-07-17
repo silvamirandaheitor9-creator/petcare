@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   build:
     name: Build Debug APK
@@ -41,7 +45,10 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK
+      - name: Verify APK exists
+        run: ls -lh app/build/outputs/apk/debug/
+
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: petcare-debug
