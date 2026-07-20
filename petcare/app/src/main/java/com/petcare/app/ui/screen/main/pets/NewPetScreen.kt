@@ -90,6 +90,7 @@ import com.petcare.app.data.db.entity.Pet
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.theme.spacing
 import com.petcare.app.ui.viewmodel.NewPetViewModel
+import com.petcare.app.util.DateUtils
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -121,7 +122,6 @@ private enum class NewPetStep(val label: String) {
 }
 
 private val isoDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-private val displayDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
 
 /**
  * Formulário "Novo Pet" (SPEC §11), aberto pelo "+" da aba Meus Pets. Layout
@@ -320,7 +320,7 @@ fun NewPetScreen(
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = if (birthDateIso.isBlank()) null else runCatching { isoDateFormat.parse(birthDateIso)?.time }.getOrNull(),
+            initialSelectedDateMillis = DateUtils.isoDateToUtcMidnightMillis(birthDateIso),
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean {
                     return utcTimeMillis <= System.currentTimeMillis()
@@ -332,7 +332,7 @@ fun NewPetScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        birthDateIso = isoDateFormat.format(Date(millis))
+                        birthDateIso = DateUtils.utcMillisToIsoDate(millis)
                     }
                     showDatePicker = false
                 }) { Text("Confirmar") }
@@ -518,7 +518,9 @@ private fun BasicInfoBlock(
         LaunchedEffect(isDatePressed) { if (isDatePressed) onRequestDatePicker() }
 
         OutlinedTextField(
-            value = if (birthDateIso.isBlank()) "" else displayDateFormat.format(runCatching { isoDateFormat.parse(birthDateIso) }.getOrNull() ?: Date()),
+            value = if (birthDateIso.isBlank()) "" else
+                DateUtils.isoDateToUtcMidnightMillis(birthDateIso)
+                    ?.let { DateUtils.utcMillisToDisplayDate(it) } ?: "",
             onValueChange = {},
             readOnly = true,
             label = { Text("Data de nascimento (opcional)") },
