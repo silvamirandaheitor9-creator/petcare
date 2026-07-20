@@ -89,11 +89,6 @@ class PetDetailViewModel @Inject constructor(
         viewModelScope.launch { healthRecordDao.deleteRecord(record) }
     }
 
-    /** Atualiza dados básicos do pet (ex: data de nascimento). */
-    fun updatePet(pet: Pet) {
-        viewModelScope.launch { petDao.updatePet(pet) }
-    }
-
     /** Remove o pet e todos os seus dados do banco (Seção 13). */
     fun deletePet(pet: Pet) {
         viewModelScope.launch { petDao.deletePet(pet) }

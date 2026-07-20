@@ -39,7 +39,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -114,117 +113,6 @@ import com.petcare.app.util.DateUtils
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.delay
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-
-// ─── Sheet de edição de data de nascimento / idade aproximada ────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun EditBirthDateSheet(
-    pet: Pet?,
-    onSave: (Pet) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    if (pet == null) { onDismiss(); return }
-
-    val isoFmt     = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
-    val displayFmt = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
-
-    var birthDateIso by remember { mutableStateOf(pet.birthDate) }
-    var approxAge   by remember { mutableStateOf(pet.approximateAge) }
-    var showDatePicker by remember { mutableStateOf(false) }
-
-    val birthDateError = birthDateIso.isNotBlank() && runCatching {
-        isoFmt.parse(birthDateIso)?.after(Date()) == true
-    }.getOrDefault(false)
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp)
-            .padding(bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(
-            text = "Editar idade de ${pet.name}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-        )
-
-        // Campo data de nascimento — abre DatePicker ao tocar
-        OutlinedTextField(
-            value = if (birthDateIso.isBlank()) "" else
-                runCatching { displayFmt.format(isoFmt.parse(birthDateIso)!!) }.getOrDefault(birthDateIso),
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Data de nascimento (opcional)") },
-            trailingIcon = {
-                Icon(Icons.Rounded.CalendarMonth, contentDescription = null)
-            },
-            isError = birthDateError,
-            supportingText = {
-                if (birthDateError) Text("A data não pode ser no futuro")
-                else if (birthDateIso.isNotBlank()) Text("Toque para alterar")
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { showDatePicker = true },
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                disabledLabelColor  = MaterialTheme.colorScheme.onSurface,
-            ),
-        )
-
-        // Idade aproximada — só relevante quando não há data exata
-        if (birthDateIso.isBlank()) {
-            OutlinedTextField(
-                value = approxAge,
-                onValueChange = { approxAge = it },
-                label = { Text("Idade aproximada (ex: 2 anos)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
-        ) {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
-            Button(
-                onClick = {
-                    if (!birthDateError) {
-                        onSave(pet.copy(birthDate = birthDateIso, approximateAge = if (birthDateIso.isNotBlank()) "" else approxAge))
-                    }
-                },
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = OrangePrimary),
-            ) { Text("Salvar") }
-        }
-    }
-
-    if (showDatePicker) {
-        val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = runCatching { isoFmt.parse(birthDateIso)?.time }.getOrNull(),
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    pickerState.selectedDateMillis?.let { millis ->
-                        birthDateIso = isoFmt.format(Date(millis))
-                        approxAge    = ""
-                    }
-                    showDatePicker = false
-                }) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
-            },
-        ) { DatePicker(state = pickerState) }
-    }
-}
 
 // ─── Sub-abas de saúde do pet — Seção 12, Partes 1, 2 e 3 ───────────────────
 
@@ -262,9 +150,6 @@ fun PetDetailScreen(
     // Controle do modal de exclusão do pet (Seção 13)
     var showDeletePetModal by remember { mutableStateOf(false) }
 
-    // Controle do sheet de edição de data de nascimento
-    var showEditBirthDate by remember { mutableStateOf(false) }
-
     // Modal de exclusão do pet — exibido por cima do Scaffold
     if (showDeletePetModal) {
         DeletePetModal(
@@ -283,7 +168,6 @@ fun PetDetailScreen(
             PetDetailTopBar(
                 pet = pet,
                 onBack = onBack,
-                onEditClick = { showEditBirthDate = true },
                 onDeletePetClick = { showDeletePetModal = true },
             )
         },
@@ -375,25 +259,6 @@ fun PetDetailScreen(
         }
     }
 
-    // ── BottomSheet de edição de data de nascimento ──────────────────────────
-    if (showEditBirthDate) {
-        val editSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(
-            onDismissRequest = { showEditBirthDate = false },
-            sheetState = editSheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-        ) {
-            EditBirthDateSheet(
-                pet = pet,
-                onSave = { updated ->
-                    viewModel.updatePet(updated)
-                    showEditBirthDate = false
-                },
-                onDismiss = { showEditBirthDate = false },
-            )
-        }
-    }
-
     // ── BottomSheet de novo registro ─────────────────────────────────────────
     if (showAddSheet) {
         ModalBottomSheet(
@@ -458,7 +323,6 @@ fun PetDetailScreen(
 private fun PetDetailTopBar(
     pet: Pet?,
     onBack: () -> Unit,
-    onEditClick: () -> Unit,
     onDeletePetClick: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -513,22 +377,16 @@ private fun PetDetailTopBar(
             )
         }
 
-        // Botões direita: lápis (editar) + lixeira (excluir)
-        Row(modifier = Modifier.align(Alignment.CenterEnd)) {
-            IconButton(onClick = onEditClick) {
-                Icon(
-                    imageVector = Icons.Rounded.Edit,
-                    contentDescription = "Editar pet",
-                    tint = Color.White,
-                )
-            }
-            IconButton(onClick = onDeletePetClick) {
-                Icon(
-                    imageVector = Icons.Rounded.Delete,
-                    contentDescription = "Remover pet",
-                    tint = Color.White,
-                )
-            }
+        // Botão excluir pet (Seção 13) — direita da TopBar
+        IconButton(
+            onClick = onDeletePetClick,
+            modifier = Modifier.align(Alignment.CenterEnd),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Delete,
+                contentDescription = "Remover pet",
+                tint = Color.White,
+            )
         }
     }
 }
