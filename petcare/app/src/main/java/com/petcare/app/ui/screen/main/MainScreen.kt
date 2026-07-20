@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -44,6 +45,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -129,11 +135,19 @@ fun MainScreen(
             )
         },
         bottomBar = {
-            PetCareBottomBar(
-                tabs          = MainTab.entries,
-                selectedIndex = selectedTabIndex,
-                onTabSelected = { selectedTabIndex = it },
-            )
+            Column {
+                BannerAdView(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .padding(horizontal = 12.dp),
+                )
+                PetCareBottomBar(
+                    tabs          = MainTab.entries,
+                    selectedIndex = selectedTabIndex,
+                    onTabSelected = { selectedTabIndex = it },
+                )
+            }
         },
     ) { paddingValues ->
         Box(
@@ -337,4 +351,21 @@ private fun AddFab(
             modifier           = Modifier.size(24.dp),
         )
     }
+}
+
+// ─── Banner AdMob (centralizado aqui para todas as abas) ─────────────────────
+
+@Composable
+private fun BannerAdView(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    AndroidView(
+        factory = {
+            AdView(context).apply {
+                setAdSize(AdSize.BANNER)
+                adUnitId = "ca-app-pub-3940256099942544/6300978111" // Test banner ID
+                loadAd(AdRequest.Builder().build())
+            }
+        },
+        modifier = modifier,
+    )
 }

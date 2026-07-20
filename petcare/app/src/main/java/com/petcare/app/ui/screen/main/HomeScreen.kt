@@ -1,6 +1,5 @@
 package com.petcare.app.ui.screen.main
 
-import android.graphics.drawable.ColorDrawable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -52,15 +51,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Scale
 import androidx.compose.ui.platform.LocalContext
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.AdSize
-import com.google.android.gms.ads.AdView
 import com.petcare.app.R
 import com.petcare.app.data.db.entity.Pet
 import com.petcare.app.data.db.entity.Reminder
@@ -144,17 +139,6 @@ fun HomeScreen(
             }
         }
 
-        // (4) Espaçamento + banner AdMob
-        item(key = "banner_spacer") { Spacer(Modifier.height(28.dp)) }
-        item(key = "banner_home") {
-            BannerAdView(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .padding(horizontal = 8.dp),
-            )
-        }
-        item(key = "bottom_spacer") { Spacer(Modifier.height(8.dp)) }
     }
 }
 
@@ -369,14 +353,16 @@ private fun EmptyPetsSection(
 @Composable
 private fun TipCard(species: String?, modifier: Modifier = Modifier) {
     val tip = remember(species) { PetCareTips.getTodayTip(species) }
-    Card(
-        modifier  = modifier.fillMaxWidth(),
-        shape     = RoundedCornerShape(18.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors    = CardDefaults.cardColors(containerColor = OrangePrimary.copy(alpha = 0.09f)),
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                color = OrangePrimary.copy(alpha = 0.09f),
+                shape = RoundedCornerShape(18.dp),
+            )
+            .padding(14.dp),
     ) {
         Row(
-            modifier              = Modifier.fillMaxWidth().padding(14.dp),
             verticalAlignment     = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -401,22 +387,6 @@ private fun TipCard(species: String?, modifier: Modifier = Modifier) {
             }
         }
     }
-}
-
-// ─── Banner AdMob ─────────────────────────────────────────────────────────────
-
-@Composable
-private fun BannerAdView(modifier: Modifier = Modifier) {
-    AndroidView(
-        factory = { context ->
-            AdView(context).apply {
-                setAdSize(AdSize.BANNER)
-                adUnitId = "ca-app-pub-3940256099942544/6300978111" // Test banner ID
-                loadAd(AdRequest.Builder().build())
-            }
-        },
-        modifier = modifier,
-    )
 }
 
 // ─── Helpers privados ─────────────────────────────────────────────────────────

@@ -75,11 +75,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.AdSize
-import com.google.android.gms.ads.AdView
 import com.petcare.app.R
 import com.petcare.app.data.db.entity.Pet
 import com.petcare.app.data.db.entity.Reminder
@@ -190,11 +186,6 @@ fun RemindersScreen(
             }
         }
 
-        // ── Banner AdMob (10.19) ──────────────────────────────────────────────
-        item(key = "banner_reminders") {
-            Spacer(modifier = Modifier.height(28.dp))
-            BannerAdView(modifier = Modifier.fillMaxWidth().height(50.dp))
-        }
     }
 }
 
@@ -613,18 +604,3 @@ private fun PawTrailBackground(state: SwipeToDismissBoxState) {
     }
 }
 
-// ─── Banner AdMob (10.19) ──────────────────────────────────────────────────────
-
-@Composable
-private fun BannerAdView(modifier: Modifier = Modifier) {
-    AndroidView(
-        factory = { context ->
-            AdView(context).apply {
-                setAdSize(AdSize.BANNER)
-                adUnitId = "ca-app-pub-3940256099942544/6300978111" // Test banner ID
-                loadAd(AdRequest.Builder().build())
-            }
-        },
-        modifier = modifier,
-    )
-}

@@ -54,16 +54,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.clickable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Scale
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.AdSize
-import com.google.android.gms.ads.AdView
 import com.petcare.app.R
 import com.petcare.app.data.db.entity.Pet
 import com.petcare.app.ui.theme.OrangePrimary
@@ -100,18 +96,6 @@ fun PetsScreen(
                 StaggeredPetCard(pet = pet, index = index, onPetClick = onPetClick)
             }
 
-            // Banner AdMob — item de largura total ao final da grade
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Column {
-                    Spacer(Modifier.height(4.dp))
-                    BannerAdView(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .padding(horizontal = 4.dp),
-                    )
-                }
-            }
         }
     }
 }
@@ -154,8 +138,10 @@ private fun PetGridCard(pet: Pet, onPetClick: (Long) -> Unit = {}) {
         label = "pet_card_press_${pet.id}",
     )
 
-    val hasRealPhoto = pet.photoPath.isNotEmpty()
-    val ageLabel     = remember(pet.birthDate, pet.approximateAge, pet.species) { petAgeLabel(pet) }
+    val hasRealPhoto = remember(pet.photoPath) {
+        pet.photoPath.isNotEmpty() && File(pet.photoPath).exists()
+    }
+    val ageLabel     = remember(pet.birthDate, pet.approximateAge) { petAgeLabel(pet) }
     val speciesIcon  = speciesIconRes(pet.species)
 
     Card(
@@ -351,23 +337,34 @@ private fun EmptyPetsGridState() {
 
 // ─── Helpers privados ─────────────────────────────────────────────────────────
 
-/** Resolve o drawable de ícone de espécie pelo storageValue (lowercase). */
-private fun speciesIconRes(species: String): Int = when (species.trim().lowercase()) {
-    "cão", "cao"           -> R.drawable.icone_especie_cachorro
-    "gato"                 -> R.drawable.icone_especie_gato
-    "pássaro", "passaro"   -> R.drawable.icone_especie_passaro
-    "peixe"                -> R.drawable.icone_especie_peixe
-    "réptil", "reptil"     -> R.drawable.icone_especie_reptil
-    "roedor"               -> R.drawable.icone_especie_roedor
-    else                   -> R.drawable.icone_especie_outro
+/** Resolve o drawable de ícone de espécie.
+ *  Normaliza diacríticos antes do match para ser robusto a variações de encoding. */
+private fun speciesIconRes(species: String): Int {
+    val s = species.trim().lowercase()
+        .replace('ã', 'a').replace('á', 'a').replace('â', 'a').replace('à', 'a')
+        .replace('é', 'e').replace('ê', 'e')
+        .replace('í', 'i')
+        .replace('õ', 'o').replace('ó', 'o').replace('ô', 'o')
+        .replace('ú', 'u').replace('ü', 'u')
+        .replace('ç', 'c')
+    return when (s) {
+        "cao", "cachorro"  -> R.drawable.icone_especie_cachorro
+        "gato"             -> R.drawable.icone_especie_gato
+        "passaro"          -> R.drawable.icone_especie_passaro
+        "peixe"            -> R.drawable.icone_especie_peixe
+        "reptil"           -> R.drawable.icone_especie_reptil
+        "roedor"           -> R.drawable.icone_especie_roedor
+        else               -> R.drawable.icone_especie_outro
+    }
 }
 
-/** Calcula label de idade a partir da data de nascimento ou campo aproximado. */
+/** Calcula label de idade a partir da data de nascimento ou campo aproximado.
+ *  Retorna string vazia quando nenhuma informação de idade está disponível. */
 private fun petAgeLabel(pet: Pet): String {
     if (pet.birthDate.isNotBlank()) {
         return try {
             val sdf   = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val bd    = sdf.parse(pet.birthDate) ?: return pet.approximateAge.ifBlank { pet.species }
+            val bd    = sdf.parse(pet.birthDate) ?: return pet.approximateAge
             val now   = Calendar.getInstance()
             val birth = Calendar.getInstance().apply { time = bd }
             val totalMonths =
@@ -382,25 +379,9 @@ private fun petAgeLabel(pet: Pet): String {
                 }
             }
         } catch (e: Exception) {
-            pet.approximateAge.ifBlank { pet.species }
+            pet.approximateAge
         }
     }
-    return pet.approximateAge.ifBlank { pet.species }
+    return pet.approximateAge
 }
 
-// ─── Banner AdMob (SPEC 8.9) ──────────────────────────────────────────────────
-// Cópia privada por tela, seguindo o padrão já usado em HomeScreen.kt.
-
-@Composable
-private fun BannerAdView(modifier: Modifier = Modifier) {
-    AndroidView(
-        factory = { context ->
-            AdView(context).apply {
-                setAdSize(AdSize.BANNER)
-                adUnitId = "ca-app-pub-3940256099942544/6300978111" // Test banner ID
-                loadAd(AdRequest.Builder().build())
-            }
-        },
-        modifier = modifier,
-    )
-}
