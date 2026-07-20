@@ -1,10 +1,6 @@
 package com.petcare.app.ui.screen.main
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -135,12 +131,6 @@ fun HomeScreen(
                             style      = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color      = MaterialTheme.colorScheme.onBackground,
-                        )
-                        Text(
-                            text  = if (pets.size == 1) "1 pet cadastrado"
-                                    else "${pets.size} pets cadastrados",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f),
                         )
                     }
                 }
@@ -410,17 +400,6 @@ private fun EmptyPetsSection(
     onAddPet: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val pulseTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseScale by pulseTransition.animateFloat(
-        initialValue  = 1f,
-        targetValue   = 1.055f,
-        animationSpec = infiniteRepeatable(
-            animation  = tween(durationMillis = 880, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "pulse_scale",
-    )
-
     Column(
         modifier              = modifier.fillMaxWidth(),
         horizontalAlignment   = Alignment.CenterHorizontally,
@@ -448,7 +427,7 @@ private fun EmptyPetsSection(
         Spacer(Modifier.height(4.dp))
         Button(
             onClick  = onAddPet,
-            modifier = Modifier.scale(pulseScale).fillMaxWidth(0.80f).height(52.dp),
+            modifier = Modifier.fillMaxWidth(0.80f).height(52.dp),
             shape    = RoundedCornerShape(50.dp),
             colors   = ButtonDefaults.buttonColors(
                 containerColor = OrangePrimary,
