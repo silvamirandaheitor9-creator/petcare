@@ -110,6 +110,10 @@ fun SplashScreen(
         launch { subtitleAlpha.animateTo(1f, tween(380)) }
         dotsAlpha.animateTo(1f, tween(380))
 
+        // Tempo mínimo de exibição — garante que a splash não some rápido demais
+        // (~1.3s animação + 1.1s aqui = ~2.4s total, confortável sem ser longo)
+        kotlinx.coroutines.delay(1_100)
+
         animationDone = true
     }
 
