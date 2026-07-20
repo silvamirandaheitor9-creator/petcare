@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -68,6 +69,10 @@ import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.PetsViewModel
 import kotlinx.coroutines.delay
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 // ─── Ponto de entrada da aba Meus Pets (SPEC §8) ─────────────────────────────
 
@@ -148,64 +153,119 @@ private fun PetGridCard(pet: Pet, onPetClick: (Long) -> Unit = {}) {
         label = "pet_card_press_${pet.id}",
     )
 
+    val hasRealPhoto = pet.photoPath.isNotEmpty()
+    val ageLabel     = remember(pet.birthDate, pet.approximateAge, pet.species) { petAgeLabel(pet) }
+    val speciesIcon  = speciesIconRes(pet.species)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
             .clickable(
                 interactionSource = interactionSource,
-                indication = null,
-                onClick = { onPetClick(pet.id) },
+                indication        = null,
+                onClick           = { onPetClick(pet.id) },
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape     = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(if (pet.photoPath.isNotEmpty()) File(pet.photoPath) else null)
-                    .size(144)
-                    .scale(Scale.FILL)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = pet.name,
-                contentScale = ContentScale.Crop,
-                fallback = painterResource(R.drawable.avatar_pet_padrao),
-                error = painterResource(R.drawable.avatar_pet_padrao),
-                placeholder = painterResource(R.drawable.avatar_pet_padrao),
+        Column(modifier = Modifier.fillMaxWidth()) {
+
+            // ── Área de foto retangular (110dp) ──
+            Box(
                 modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape),
-            )
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .background(
+                        color = if (hasRealPhoto) Color.Transparent
+                                else MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(if (hasRealPhoto) File(pet.photoPath) else null)
+                        .size(400)
+                        .scale(Scale.FILL)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = pet.name,
+                    contentScale       = if (hasRealPhoto) ContentScale.Crop else ContentScale.Fit,
+                    fallback           = painterResource(R.drawable.avatar_pet_padrao),
+                    error              = painterResource(R.drawable.avatar_pet_padrao),
+                    placeholder        = painterResource(R.drawable.avatar_pet_padrao),
+                    modifier           = Modifier
+                        .fillMaxWidth()
+                        .height(110.dp),
+                )
 
-            Text(
-                text = pet.name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-            )
+                // Pílula de espécie no canto superior esquerdo
+                Box(
+                    modifier = Modifier
+                        .padding(6.dp)
+                        .align(Alignment.TopStart)
+                        .background(
+                            color = Color.Black.copy(alpha = 0.45f),
+                            shape = RoundedCornerShape(50.dp),
+                        )
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                ) {
+                    Image(
+                        painter           = painterResource(speciesIcon),
+                        contentDescription = pet.species,
+                        modifier          = Modifier.size(13.dp),
+                    )
+                }
+            }
 
-            val speciesBreed = if (pet.breed.isNotBlank()) "${pet.species} · ${pet.breed}" else pet.species
-            Text(
-                text = speciesBreed,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-            )
+            // ── Área de informações ──
+            Column(
+                modifier            = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 9.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                // Nome + badge de sexo/castração na mesma linha
+                Row(
+                    modifier          = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text       = pet.name,
+                        style      = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color      = MaterialTheme.colorScheme.onSurface,
+                        maxLines   = 1,
+                        overflow   = TextOverflow.Ellipsis,
+                        modifier   = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    SexCastrationBadge(pet = pet)
+                }
 
-            SexCastrationBadge(pet = pet)
+                // Idade em laranja (informação mais útil para o usuário)
+                if (ageLabel.isNotBlank()) {
+                    Text(
+                        text     = ageLabel,
+                        style    = MaterialTheme.typography.bodySmall,
+                        color    = OrangePrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
+                // Raça (quando preenchida)
+                if (pet.breed.isNotBlank()) {
+                    Text(
+                        text     = pet.breed,
+                        style    = MaterialTheme.typography.labelSmall,
+                        color    = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }
@@ -263,7 +323,7 @@ private fun EmptyPetsGridState() {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Image(
-                painter = painterResource(R.drawable.vazio_meuspets),
+                painter = painterResource(R.drawable.onboarding_2_meuspets),
                 contentDescription = null,
                 modifier = Modifier.fillMaxWidth(0.6f),
             )
@@ -286,6 +346,45 @@ private fun EmptyPetsGridState() {
             )
         }
     }
+}
+
+// ─── Helpers privados ─────────────────────────────────────────────────────────
+
+/** Resolve o drawable de ícone de espécie pelo storageValue (lowercase). */
+private fun speciesIconRes(species: String): Int = when (species.trim().lowercase()) {
+    "cão", "cao"           -> R.drawable.icone_especie_cachorro
+    "gato"                 -> R.drawable.icone_especie_gato
+    "pássaro", "passaro"   -> R.drawable.icone_especie_passaro
+    "peixe"                -> R.drawable.icone_especie_peixe
+    "réptil", "reptil"     -> R.drawable.icone_especie_reptil
+    "roedor"               -> R.drawable.icone_especie_roedor
+    else                   -> R.drawable.icone_especie_outro
+}
+
+/** Calcula label de idade a partir da data de nascimento ou campo aproximado. */
+private fun petAgeLabel(pet: Pet): String {
+    if (pet.birthDate.isNotBlank()) {
+        return try {
+            val sdf   = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val bd    = sdf.parse(pet.birthDate) ?: return pet.approximateAge.ifBlank { pet.species }
+            val now   = Calendar.getInstance()
+            val birth = Calendar.getInstance().apply { time = bd }
+            val totalMonths =
+                (now.get(Calendar.YEAR) - birth.get(Calendar.YEAR)) * 12 +
+                        now.get(Calendar.MONTH) - birth.get(Calendar.MONTH)
+            when {
+                totalMonths < 1  -> "< 1 mês"
+                totalMonths < 12 -> "$totalMonths ${if (totalMonths == 1) "mês" else "meses"}"
+                else -> {
+                    val years = totalMonths / 12
+                    "$years ${if (years == 1) "ano" else "anos"}"
+                }
+            }
+        } catch (e: Exception) {
+            pet.approximateAge.ifBlank { pet.species }
+        }
+    }
+    return pet.approximateAge.ifBlank { pet.species }
 }
 
 // ─── Banner AdMob (SPEC 8.9) ──────────────────────────────────────────────────

@@ -66,6 +66,7 @@ import com.petcare.app.data.db.entity.Pet
 import com.petcare.app.data.db.entity.Reminder
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.HomeViewModel
+import com.petcare.app.util.PetCareTips
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -83,6 +84,7 @@ fun HomeScreen(
     val petCount         by viewModel.petCount.collectAsState()
     val nextVaccine      by viewModel.nextVaccineReminder.collectAsState()
     val nextConsultation by viewModel.nextConsultationReminder.collectAsState()
+    val tipSpecies       = pets.firstOrNull()?.species
 
     LazyColumn(
         modifier        = Modifier.fillMaxSize(),
@@ -99,9 +101,19 @@ fun HomeScreen(
             )
         }
 
-        item(key = "stats_spacer") { Spacer(Modifier.height(20.dp)) }
+        item(key = "stats_spacer") { Spacer(Modifier.height(16.dp)) }
 
-        // (2) Lista de pets ou estado vazio
+        // (2) Card de dica do dia
+        item(key = "tip_card") {
+            TipCard(
+                species  = tipSpecies,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+
+        item(key = "tip_spacer") { Spacer(Modifier.height(20.dp)) }
+
+        // (3) Lista de pets ou estado vazio
         if (pets.isEmpty()) {
             item(key = "empty_pets") {
                 EmptyPetsSection(
@@ -132,7 +144,7 @@ fun HomeScreen(
             }
         }
 
-        // (3) Espaçamento + banner AdMob
+        // (4) Espaçamento + banner AdMob
         item(key = "banner_spacer") { Spacer(Modifier.height(28.dp)) }
         item(key = "banner_home") {
             BannerAdView(
@@ -309,7 +321,7 @@ private fun EmptyPetsSection(
         verticalArrangement   = Arrangement.spacedBy(12.dp),
     ) {
         Image(
-            painter            = painterResource(R.drawable.vazio_meuspets),
+            painter            = painterResource(R.drawable.onboarding_2_meuspets),
             contentDescription = null,
             modifier           = Modifier.fillMaxWidth(0.68f),
         )
@@ -348,6 +360,45 @@ private fun EmptyPetsSection(
                 style      = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
+        }
+    }
+}
+
+// ─── Card de dica do dia ──────────────────────────────────────────────────────
+
+@Composable
+private fun TipCard(species: String?, modifier: Modifier = Modifier) {
+    val tip = remember(species) { PetCareTips.getTodayTip(species) }
+    Card(
+        modifier  = modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors    = CardDefaults.cardColors(containerColor = OrangePrimary.copy(alpha = 0.09f)),
+    ) {
+        Row(
+            modifier              = Modifier.fillMaxWidth().padding(14.dp),
+            verticalAlignment     = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                imageVector        = Icons.Rounded.Pets,
+                contentDescription = null,
+                tint               = OrangePrimary,
+                modifier           = Modifier.size(20.dp).padding(top = 1.dp),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    text       = "Sabia que…",
+                    style      = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color      = OrangePrimary,
+                )
+                Text(
+                    text  = tip,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                )
+            }
         }
     }
 }
