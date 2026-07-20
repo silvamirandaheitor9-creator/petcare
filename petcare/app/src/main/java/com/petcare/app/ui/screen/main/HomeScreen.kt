@@ -369,21 +369,7 @@ private fun PetHorizontalCard(pet: Pet) {
                     }
                 }
 
-                // Badge de espécie (canto inferior direito)
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(8.dp)
-                        .size(26.dp)
-                        .background(MaterialTheme.colorScheme.surface, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Image(
-                        painter            = painterResource(speciesIcon),
-                        contentDescription = pet.species,
-                        modifier           = Modifier.size(18.dp),
-                    )
-                }
+
             }
 
             // Info do pet
