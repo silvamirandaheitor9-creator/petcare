@@ -39,17 +39,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.petcare.app.ui.theme.OrangePrimary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-// ─── Textos legais completos (SPEC seção 19 — usar exatamente) ───────────────
+// ─── Textos legais completos ──────────────────────────────────────────────────
 
 private val PRIVACY_TEXT = """
 Política de Privacidade do PetCare
@@ -79,7 +81,7 @@ Termos de Uso do PetCare
 4. Propriedade intelectual: nome, mascote e design são de nossa propriedade.
 """.trimIndent()
 
-// ─── Itens do resumo visual (SPEC seção 5) ───────────────────────────────────
+// ─── Itens do resumo visual ───────────────────────────────────────────────────
 
 private data class BulletItem(val icon: ImageVector, val text: String)
 
@@ -94,17 +96,6 @@ private val BULLET_ITEMS = listOf(
 
 // ─── Composable principal ─────────────────────────────────────────────────────
 
-/**
- * Tela 7 do onboarding — Termos e privacidade (SPEC seção 5).
- *
- * Regras auto-verificadas antes do commit:
- * (a) Área de tópicos com rolagem própria.
- * (b) Checkbox só habilita após rolar até o fim — derivedStateOf sobre canScrollForward.
- * (c) "Ler o texto completo" abre Dialog com abas Privacidade / Termos (separados).
- * (d) Animação de entrada escalonada via graphicsLayer + Animatable, sem layout shift.
- * (e) Botão "Aceitar e continuar" desabilitado até checkbox marcado — via [onCheckedChange]
- *     e [checked] conectados ao OnboardingViewModel no OnboardingScreen.
- */
 @Composable
 fun TermsPage(
     isActive: Boolean,
@@ -112,37 +103,27 @@ fun TermsPage(
     onCheckedChange: (Boolean) -> Unit,
 ) {
     val scrollState = rememberScrollState()
-
-    // (b) Checkbox só habilita quando não há mais conteúdo abaixo.
-    //     canScrollForward == false também quando o conteúdo não precisa de scroll → OK.
     val hasReachedEnd by remember { derivedStateOf { !scrollState.canScrollForward } }
 
-    // (d) Animação: items ficam sempre no layout (sem salto de tamanho).
-    //     Cada Animatable controla opacidade e deslocamento vertical individualmente.
-    val alphas    = remember { List(BULLET_ITEMS.size) { Animatable(0f) } }
-    val offsetsY  = remember { List(BULLET_ITEMS.size) { Animatable(26f) } }
+    val alphas   = remember { List(BULLET_ITEMS.size) { Animatable(0f) } }
+    val offsetsY = remember { List(BULLET_ITEMS.size) { Animatable(26f) } }
 
     LaunchedEffect(isActive) {
         if (isActive) {
-            delay(200) // aguarda a transição de slide concluir
+            delay(200)
             BULLET_ITEMS.indices.forEach { i ->
-                launch {
-                    alphas[i].animateTo(1f, animationSpec = tween(durationMillis = 300))
-                }
-                launch {
-                    offsetsY[i].animateTo(0f, animationSpec = tween(durationMillis = 300))
-                }
-                delay(120) // escalonamento: próximo item começa 120 ms depois
+                launch { alphas[i].animateTo(1f, animationSpec = tween(300)) }
+                launch { offsetsY[i].animateTo(0f, animationSpec = tween(300)) }
+                delay(120)
             }
         }
     }
 
     var showDialog by remember { mutableStateOf(false) }
 
-    // ── Layout principal ──────────────────────────────────────────────────────
     Column(modifier = Modifier.fillMaxSize()) {
 
-        // (a) Área com scroll próprio — peso 1f deixa o checkbox fixo abaixo
+        // Área com scroll
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -150,80 +131,76 @@ fun TermsPage(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
 
-            // Ícone escudo + título (SPEC: "Título com ícone e headline curta")
             Icon(
-                imageVector = Icons.Outlined.Shield,
+                imageVector        = Icons.Outlined.Shield,
                 contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = OrangePrimary,
+                modifier           = Modifier.size(48.dp),
+                tint               = Color.White,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
-                text = "Antes de começar",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
+                text       = "Antes de começar",
+                fontSize   = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color      = Color.White,
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "O PetCare funciona sem cadastro. Veja como cuidamos dos seus dados e como o app funciona.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                text      = "O PetCare funciona sem cadastro. Veja como cuidamos dos seus dados e como o app funciona.",
+                fontSize  = 14.sp,
+                color     = Color.White.copy(alpha = 0.88f),
             )
 
             Spacer(Modifier.height(24.dp))
 
-            // (d) Tópicos sempre no layout — apenas alpha e translação animam
             BULLET_ITEMS.forEachIndexed { i, item ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 10.dp)
                         .graphicsLayer {
-                            alpha       = alphas[i].value
+                            alpha        = alphas[i].value
                             translationY = offsetsY[i].value
                         },
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     Icon(
-                        imageVector = item.icon,
+                        imageVector        = item.icon,
                         contentDescription = null,
-                        modifier = Modifier.size(26.dp),
-                        tint = OrangePrimary,
+                        modifier           = Modifier.size(26.dp),
+                        tint               = Color.White,
                     )
                     Text(
-                        text = item.text,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        text     = item.text,
+                        fontSize = 14.sp,
+                        color    = Color.White.copy(alpha = 0.92f),
                     )
                 }
             }
 
             Spacer(Modifier.height(20.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.10f))
+            HorizontalDivider(color = Color.White.copy(alpha = 0.20f))
             Spacer(Modifier.height(4.dp))
 
-            // (c) Link "Ler o texto completo"
             TextButton(onClick = { showDialog = true }) {
                 Text(
-                    text = "Ler o texto completo",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        textDecoration = TextDecoration.Underline,
-                        fontWeight = FontWeight.Medium,
-                    ),
-                    color = OrangePrimary,
+                    text  = "Ler o texto completo",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = TextDecoration.Underline,
+                    color = Color.White,
                 )
             }
 
-            // Espaçamento extra garante que o scroll seja necessário em qualquer tela
             Spacer(Modifier.height(100.dp))
         }
 
-        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
+        HorizontalDivider(color = Color.White.copy(alpha = 0.15f))
 
-        // (b)(e) Checkbox — habilitado só após scroll; marcar habilita o botão
+        // Checkbox
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -231,81 +208,71 @@ fun TermsPage(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Checkbox(
-                checked = checked,
+                checked         = checked,
                 onCheckedChange = { if (hasReachedEnd) onCheckedChange(it) },
-                enabled = hasReachedEnd,
-                colors = CheckboxDefaults.colors(
-                    checkedColor = OrangePrimary,
-                    checkmarkColor = MaterialTheme.colorScheme.onPrimary,
-                    disabledUncheckedColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.25f),
+                enabled         = hasReachedEnd,
+                colors          = CheckboxDefaults.colors(
+                    checkedColor            = Color.White,
+                    checkmarkColor          = OrangePrimary,
+                    uncheckedColor          = Color.White.copy(alpha = 0.70f),
+                    disabledUncheckedColor  = Color.White.copy(alpha = 0.30f),
                 ),
             )
             Text(
-                text = "Li e aceito os Termos de Uso e a Política de Privacidade.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (hasReachedEnd)
-                    MaterialTheme.colorScheme.onBackground
-                else
-                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.38f),
+                text     = "Li e aceito os Termos de Uso e a Política de Privacidade.",
+                fontSize = 13.sp,
+                color    = if (hasReachedEnd) Color.White else Color.White.copy(alpha = 0.45f),
                 modifier = Modifier.padding(start = 4.dp),
             )
         }
     }
 
-    // (c) Diálogo com abas — textos NUNCA misturados (SPEC seção 19)
     if (showDialog) {
         FullTextDialog(onDismiss = { showDialog = false })
     }
 }
 
-// ─── Diálogo: texto completo ─────────────────────────────────────────────────
+// ─── Diálogo: texto completo ──────────────────────────────────────────────────
 
 @Composable
 private fun FullTextDialog(onDismiss: () -> Unit) {
     var selectedTab by remember { mutableIntStateOf(0) }
     val contentScrollState = rememberScrollState()
 
-    // Volta ao topo do conteúdo ao trocar de aba
     LaunchedEffect(selectedTab) { contentScrollState.scrollTo(0) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 560.dp),
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.surface,
+            modifier      = Modifier.fillMaxWidth().heightIn(max = 560.dp),
+            shape         = MaterialTheme.shapes.medium,
+            color         = MaterialTheme.colorScheme.surface,
             tonalElevation = 4.dp,
         ) {
             Column {
                 Text(
-                    text = "Documentos completos",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(
-                        start = 20.dp, top = 20.dp, end = 20.dp, bottom = 12.dp,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    text     = "Documentos completos",
+                    style    = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 12.dp),
+                    color    = MaterialTheme.colorScheme.onSurface,
                 )
 
-                // Abas separadas — Privacidade | Termos de Uso
                 TabRow(
                     selectedTabIndex = selectedTab,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = OrangePrimary,
+                    containerColor   = MaterialTheme.colorScheme.surface,
+                    contentColor     = OrangePrimary,
                 ) {
                     Tab(
                         selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = { Text("Privacidade", style = MaterialTheme.typography.labelMedium) },
+                        onClick  = { selectedTab = 0 },
+                        text     = { Text("Privacidade", style = MaterialTheme.typography.labelMedium) },
                     )
                     Tab(
                         selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = { Text("Termos de Uso", style = MaterialTheme.typography.labelMedium) },
+                        onClick  = { selectedTab = 1 },
+                        text     = { Text("Termos de Uso", style = MaterialTheme.typography.labelMedium) },
                     )
                 }
 
-                // Conteúdo rolável da aba selecionada
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -313,27 +280,19 @@ private fun FullTextDialog(onDismiss: () -> Unit) {
                         .padding(20.dp),
                 ) {
                     Text(
-                        text = if (selectedTab == 0) PRIVACY_TEXT else TERMS_TEXT,
+                        text  = if (selectedTab == 0) PRIVACY_TEXT else TERMS_TEXT,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
 
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
-                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(end = 12.dp, bottom = 8.dp, top = 4.dp),
+                    modifier              = Modifier.fillMaxWidth().padding(end = 12.dp, bottom = 8.dp, top = 4.dp),
                     horizontalArrangement = Arrangement.End,
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text(
-                            text = "Fechar",
-                            color = OrangePrimary,
-                            style = MaterialTheme.typography.labelLarge,
-                        )
+                        Text(text = "Fechar", color = OrangePrimary, style = MaterialTheme.typography.labelLarge)
                     }
                 }
             }
