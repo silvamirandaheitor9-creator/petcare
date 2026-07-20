@@ -56,6 +56,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.petcare.app.R
 import com.petcare.app.ui.screen.onboarding.components.FootprintIndicator
@@ -271,7 +272,7 @@ private fun StandardOnboardingPage(data: OnboardingPageData) {
                 style     = MaterialTheme.typography.bodyLarge,
                 color     = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 textAlign = TextAlign.Center,
-                lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.2f,
+                lineHeight = 24.sp,
             )
         }
     }
