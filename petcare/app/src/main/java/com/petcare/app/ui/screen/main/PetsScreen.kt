@@ -166,25 +166,37 @@ private fun PetGridCard(pet: Pet, onPetClick: (Long) -> Unit = {}) {
                     .height(110.dp)
                     .background(
                         color = if (hasRealPhoto) Color.Transparent
-                                else MaterialTheme.colorScheme.surfaceVariant,
+                                else OrangePrimary.copy(alpha = 0.08f),
                     ),
             ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(if (hasRealPhoto) File(pet.photoPath) else null)
-                        .size(400)
-                        .scale(Scale.FILL)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = pet.name,
-                    contentScale       = if (hasRealPhoto) ContentScale.Crop else ContentScale.Fit,
-                    fallback           = painterResource(R.drawable.avatar_pet_padrao),
-                    error              = painterResource(R.drawable.avatar_pet_padrao),
-                    placeholder        = painterResource(R.drawable.avatar_pet_padrao),
-                    modifier           = Modifier
-                        .fillMaxWidth()
-                        .height(110.dp),
-                )
+                if (hasRealPhoto) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(File(pet.photoPath))
+                            .size(400)
+                            .scale(Scale.FILL)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = pet.name,
+                        contentScale       = ContentScale.Crop,
+                        modifier           = Modifier
+                            .fillMaxWidth()
+                            .height(110.dp),
+                    )
+                } else {
+                    // Placeholder por espécie: ícone da espécie centralizado
+                    Box(
+                        modifier         = Modifier.fillMaxWidth().height(110.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Image(
+                            painter            = painterResource(speciesIconRes(pet.species)),
+                            contentDescription = pet.species,
+                            contentScale       = ContentScale.Fit,
+                            modifier           = Modifier.size(72.dp),
+                        )
+                    }
+                }
 
                 // Pílula de espécie no canto superior esquerdo
                 Box(

@@ -312,8 +312,11 @@ private fun TipCard(species: String?, modifier: Modifier = Modifier) {
 
 @Composable
 private fun PetHorizontalCard(pet: Pet) {
-    val context     = LocalContext.current
-    val speciesIcon = remember(pet.species) { speciesDrawable(pet.species) }
+    val context      = LocalContext.current
+    val speciesIcon  = remember(pet.species) { speciesDrawable(pet.species) }
+    val hasRealPhoto = remember(pet.photoPath) {
+        pet.photoPath.isNotEmpty() && File(pet.photoPath).exists()
+    }
 
     Card(
         modifier  = Modifier.width(148.dp),
@@ -333,23 +336,38 @@ private fun PetHorizontalCard(pet: Pet) {
                     .background(OrangePrimary.copy(alpha = 0.08f)),
                 contentAlignment = Alignment.Center,
             ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(if (pet.photoPath.isNotEmpty()) File(pet.photoPath) else null)
-                        .size(200)
-                        .scale(Scale.FILL)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = pet.name,
-                    contentScale       = ContentScale.Crop,
-                    fallback           = painterResource(R.drawable.avatar_pet_padrao),
-                    error              = painterResource(R.drawable.avatar_pet_padrao),
-                    placeholder        = painterResource(R.drawable.avatar_pet_padrao),
-                    modifier           = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .shadow(2.dp, CircleShape),
-                )
+                if (hasRealPhoto) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(File(pet.photoPath))
+                            .size(200)
+                            .scale(Scale.FILL)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = pet.name,
+                        contentScale       = ContentScale.Crop,
+                        modifier           = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .shadow(2.dp, CircleShape),
+                    )
+                } else {
+                    // Sem foto: círculo laranja suave com ícone da espécie centralizado
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .background(OrangePrimary.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Image(
+                            painter            = painterResource(speciesIcon),
+                            contentDescription = pet.species,
+                            contentScale       = ContentScale.Fit,
+                            modifier           = Modifier.size(52.dp),
+                        )
+                    }
+                }
 
                 // Badge de espécie (canto inferior direito)
                 Box(

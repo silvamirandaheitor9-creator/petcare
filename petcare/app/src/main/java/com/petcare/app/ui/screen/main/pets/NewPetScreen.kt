@@ -426,11 +426,31 @@ private fun BasicInfoBlock(
                 contentAlignment = Alignment.Center,
             ) {
                 if (photoPath.isNullOrBlank()) {
-                    Image(
-                        painter = painterResource(R.drawable.avatar_pet_padrao),
-                        contentDescription = "Foto do pet",
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    // Placeholder varia por espécie: quando espécie selecionada mostra
+                    // o ícone dela centralizado; caso contrário mostra o cachorro padrão.
+                    val speciesIconRes = SPECIES_OPTIONS.find { it.storageValue == species }?.iconRes
+                    if (speciesIconRes != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(OrangePrimary.copy(alpha = 0.10f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Image(
+                                painter = painterResource(speciesIconRes),
+                                contentDescription = "Espécie do pet",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.size(64.dp),
+                            )
+                        }
+                    } else {
+                        Image(
+                            painter = painterResource(R.drawable.avatar_pet_padrao),
+                            contentDescription = "Foto do pet",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 } else {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
