@@ -294,16 +294,6 @@ private fun ThemeSelectionPage(
             )
         }
 
-        Spacer(Modifier.height(20.dp))
-
-        // Confirmação do tema selecionado
-        val themeLabel = if (selectedDark) "Tema Escuro ativado" else "Tema Claro ativado"
-        Text(
-            text      = themeLabel,
-            fontSize  = 13.sp,
-            color     = Color.White.copy(alpha = 0.80f),
-            textAlign = TextAlign.Center,
-        )
     }
 }
 

@@ -26,7 +26,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.MedicalServices
 import androidx.compose.material.icons.rounded.Pets
+import androidx.compose.material.icons.rounded.Vaccines
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -171,26 +174,29 @@ private fun StatsCard(
             verticalAlignment     = Alignment.CenterVertically,
         ) {
             StatItem(
+                icon     = Icons.Rounded.Pets,
                 label    = "Total de pets",
                 value    = if (petCount == 0) "--" else "$petCount",
                 modifier = Modifier.weight(1f),
             )
             VerticalDivider(
-                modifier  = Modifier.height(40.dp),
-                color     = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                modifier  = Modifier.height(48.dp),
+                color     = MaterialTheme.colorScheme.outline.copy(alpha = 0.20f),
                 thickness = 1.dp,
             )
             StatItem(
+                icon     = Icons.Rounded.Vaccines,
                 label    = "Próxima vacina",
                 value    = vaccineDate,
                 modifier = Modifier.weight(1f),
             )
             VerticalDivider(
-                modifier  = Modifier.height(40.dp),
-                color     = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                modifier  = Modifier.height(48.dp),
+                color     = MaterialTheme.colorScheme.outline.copy(alpha = 0.20f),
                 thickness = 1.dp,
             )
             StatItem(
+                icon     = Icons.Rounded.MedicalServices,
                 label    = "Próxima consulta",
                 value    = consultDate,
                 modifier = Modifier.weight(1f),
@@ -201,6 +207,7 @@ private fun StatsCard(
 
 @Composable
 private fun StatItem(
+    icon: ImageVector,
     label: String,
     value: String,
     modifier: Modifier = Modifier,
@@ -210,9 +217,16 @@ private fun StatItem(
         horizontalAlignment   = Alignment.CenterHorizontally,
         verticalArrangement   = Arrangement.spacedBy(4.dp),
     ) {
+        Icon(
+            imageVector        = icon,
+            contentDescription = null,
+            tint               = OrangePrimary,
+            modifier           = Modifier.size(26.dp),
+        )
+        Spacer(Modifier.height(2.dp))
         Text(
             text       = value,
-            style      = MaterialTheme.typography.titleLarge,
+            style      = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color      = if (value == "--")
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
