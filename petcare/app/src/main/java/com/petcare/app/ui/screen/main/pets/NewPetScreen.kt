@@ -518,7 +518,7 @@ private fun BasicInfoBlock(
         LaunchedEffect(isDatePressed) { if (isDatePressed) onRequestDatePicker() }
 
         OutlinedTextField(
-            value = if (birthDateIso.isBlank()) "" else displayDateFormat.format(isoDateFormat.parse(birthDateIso) ?: Date()),
+            value = if (birthDateIso.isBlank()) "" else displayDateFormat.format(runCatching { isoDateFormat.parse(birthDateIso) }.getOrNull() ?: Date()),
             onValueChange = {},
             readOnly = true,
             label = { Text("Data de nascimento (opcional)") },
