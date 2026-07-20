@@ -355,6 +355,11 @@ _Última atualização: 2026-07-18 — **Seção 17 concluída via auditoria**. 
 
 _Última atualização: 2026-07-18 — **Bugfix §18.4 (extraSlots booleano → contador):** `UserPreferencesRepository` migrou de `booleanPreferencesKey("extra_pet_slots")` para `intPreferencesKey("extra_pet_slots_count")`; novo método `addExtraSlots(bonus)` incrementa atomicamente. `PetsViewModel` usa `extraSlotsCount` no cálculo de `petLimit` (10 + extras). `hasExtraSlots: StateFlow<Boolean>` removido. Limite agora sobe 10→15→20→25… a cada anúncio._
 
+_Última atualização: 2026-07-20 — **Melhorias no onboarding (duas juntas):**_
+_1. **Tela de tema redesenhada:** `ThemeSelectionPage` substituída por mini cards de preview visual — cada card mostra as cores reais do tema (fundo, header laranja, cards internos). Borda branca destaca o selecionado, label confirma "Tema Claro/Escuro ativado". O tema muda ao vivo ao tocar no card._
+_2. **Imagem da tela 2 trocada:** `onboarding_2_meuspets.png` (mascote deitado com guia/coleira — imagem triste) substituída por `onboarding_1_boasvindas.png` (mascote acenando alegremente), que não estava sendo usada no tutorial._
+_3. **GitHub Actions configurado:** `.github/workflows/build.yml` criado — build automático do APK (debug + release) a cada push no main._
+
 _Última atualização: 2026-07-18 — **Seção 18 (AdMob) aprovada e testada por completo no celular.** §18.5 validado: anúncio assistido 3 vezes seguidas, limite subiu 10→15→20→25 corretamente a cada vez. Toda a seção 18 ✅._
 
 _Última atualização: 2026-07-18 — **Três mudanças estruturais:**_
