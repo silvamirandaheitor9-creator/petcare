@@ -32,6 +32,8 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -65,6 +67,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -510,6 +513,10 @@ private fun BasicInfoBlock(
             modifier = Modifier.fillMaxWidth(),
         )
 
+        val dateInteractionSource = remember { MutableInteractionSource() }
+        val isDatePressed by dateInteractionSource.collectIsPressedAsState()
+        LaunchedEffect(isDatePressed) { if (isDatePressed) onRequestDatePicker() }
+
         OutlinedTextField(
             value = if (birthDateIso.isBlank()) "" else displayDateFormat.format(isoDateFormat.parse(birthDateIso) ?: Date()),
             onValueChange = {},
@@ -520,9 +527,8 @@ private fun BasicInfoBlock(
             trailingIcon = {
                 Icon(Icons.Rounded.CalendarMonth, contentDescription = "Selecionar data")
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onRequestDatePicker),
+            interactionSource = dateInteractionSource,
+            modifier = Modifier.fillMaxWidth(),
         )
 
         OutlinedTextField(
