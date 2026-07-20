@@ -46,14 +46,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -86,7 +87,7 @@ fun HomeScreen(
 
     LazyColumn(
         modifier        = Modifier.fillMaxSize(),
-        contentPadding  = PaddingValues(top = 12.dp, bottom = 96.dp),
+        contentPadding  = PaddingValues(top = 16.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         // (1) Card de estatísticas
@@ -109,7 +110,7 @@ fun HomeScreen(
             )
         }
 
-        item(key = "tip_spacer") { Spacer(Modifier.height(20.dp)) }
+        item(key = "tip_spacer") { Spacer(Modifier.height(24.dp)) }
 
         // (3) Lista de pets ou estado vazio
         if (pets.isEmpty()) {
@@ -120,16 +121,31 @@ fun HomeScreen(
                 )
             }
         } else {
-            item(key = "pets_title") {
-                Text(
-                    text       = "Meus Pets",
-                    style      = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color      = MaterialTheme.colorScheme.onBackground,
-                    modifier   = Modifier.padding(horizontal = 16.dp),
-                )
+            item(key = "pets_header") {
+                Row(
+                    modifier              = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column {
+                        Text(
+                            text       = "Seus pets",
+                            style      = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color      = MaterialTheme.colorScheme.onBackground,
+                        )
+                        Text(
+                            text  = if (pets.size == 1) "1 pet cadastrado"
+                                    else "${pets.size} pets cadastrados",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f),
+                        )
+                    }
+                }
             }
-            item(key = "pets_title_spacer") { Spacer(Modifier.height(10.dp)) }
+            item(key = "pets_header_spacer") { Spacer(Modifier.height(12.dp)) }
             item(key = "pets_row") {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -141,7 +157,6 @@ fun HomeScreen(
                 }
             }
         }
-
     }
 }
 
@@ -154,7 +169,6 @@ private fun StatsCard(
     nextConsultation: Reminder?,
     modifier: Modifier = Modifier,
 ) {
-    // Formata datas uma única vez por mudança — evita alocar SimpleDateFormat por recomposição.
     val vaccineDate = remember(nextVaccine?.dateTimeMillis) {
         nextVaccine?.dateTimeMillis?.toShortDate() ?: "--"
     }
@@ -164,12 +178,14 @@ private fun StatsCard(
 
     Card(
         modifier  = modifier.fillMaxWidth(),
-        shape     = RoundedCornerShape(18.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        shape     = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
-            modifier              = Modifier.fillMaxWidth().padding(vertical = 20.dp),
+            modifier              = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 20.dp, horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment     = Alignment.CenterVertically,
         ) {
@@ -180,8 +196,8 @@ private fun StatsCard(
                 modifier = Modifier.weight(1f),
             )
             VerticalDivider(
-                modifier  = Modifier.height(48.dp),
-                color     = MaterialTheme.colorScheme.outline.copy(alpha = 0.20f),
+                modifier  = Modifier.height(52.dp),
+                color     = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
                 thickness = 1.dp,
             )
             StatItem(
@@ -191,8 +207,8 @@ private fun StatsCard(
                 modifier = Modifier.weight(1f),
             )
             VerticalDivider(
-                modifier  = Modifier.height(48.dp),
-                color     = MaterialTheme.colorScheme.outline.copy(alpha = 0.20f),
+                modifier  = Modifier.height(52.dp),
+                color     = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
                 thickness = 1.dp,
             )
             StatItem(
@@ -229,17 +245,66 @@ private fun StatItem(
             style      = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color      = if (value == "--")
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.30f)
             else
                 OrangePrimary,
         )
         Text(
             text      = label,
             style     = MaterialTheme.typography.labelSmall,
-            color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+            color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f),
             textAlign = TextAlign.Center,
             maxLines  = 2,
         )
+    }
+}
+
+// ─── Card de dica do dia ──────────────────────────────────────────────────────
+
+@Composable
+private fun TipCard(species: String?, modifier: Modifier = Modifier) {
+    val tip = remember(species) { PetCareTips.getTodayTip(species) }
+    Card(
+        modifier  = modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors    = CardDefaults.cardColors(
+            containerColor = OrangePrimary.copy(alpha = 0.09f),
+        ),
+    ) {
+        Row(
+            modifier              = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            // Mascote circular
+            Image(
+                painter            = painterResource(R.drawable.mel_avatar_pequeno),
+                contentDescription = null,
+                contentScale       = ContentScale.Crop,
+                modifier           = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(OrangePrimary.copy(alpha = 0.12f), CircleShape),
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text       = "Dica do dia",
+                    style      = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color      = OrangePrimary,
+                )
+                Text(
+                    text       = tip,
+                    style      = MaterialTheme.typography.bodySmall,
+                    color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    lineHeight = 18.sp,
+                )
+            }
+        }
     }
 }
 
@@ -247,50 +312,89 @@ private fun StatItem(
 
 @Composable
 private fun PetHorizontalCard(pet: Pet) {
-    val context = LocalContext.current
+    val context     = LocalContext.current
+    val speciesIcon = remember(pet.species) { speciesDrawable(pet.species) }
 
     Card(
-        modifier  = Modifier.width(140.dp),
-        shape     = RoundedCornerShape(16.dp),
+        modifier  = Modifier.width(148.dp),
+        shape     = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
         colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
-            modifier              = Modifier.fillMaxWidth().padding(12.dp),
-            horizontalAlignment   = Alignment.CenterHorizontally,
-            verticalArrangement   = Arrangement.spacedBy(8.dp),
+            modifier            = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(if (pet.photoPath.isNotEmpty()) File(pet.photoPath) else null)
-                    .size(128)
-                    .scale(Scale.FILL)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = pet.name,
-                contentScale       = ContentScale.Crop,
-                fallback           = painterResource(R.drawable.avatar_pet_padrao),
-                error              = painterResource(R.drawable.avatar_pet_padrao),
-                placeholder        = painterResource(R.drawable.avatar_pet_padrao),
-                modifier           = Modifier.size(64.dp).clip(CircleShape),
-            )
-            Text(
-                text       = pet.name,
-                style      = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color      = MaterialTheme.colorScheme.onSurface,
-                maxLines   = 1,
-                overflow   = TextOverflow.Ellipsis,
-            )
-            // Calcula idade uma única vez por pet — sem realocar SimpleDateFormat + Calendar por recomposição.
-            val ageLabel = remember(pet.birthDate, pet.approximateAge, pet.species) { petAgeLabel(pet) }
-            Text(
-                text     = ageLabel,
-                style    = MaterialTheme.typography.bodySmall,
-                color    = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            // Área da foto com fundo laranja suave
+            Box(
+                modifier         = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .background(OrangePrimary.copy(alpha = 0.08f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(if (pet.photoPath.isNotEmpty()) File(pet.photoPath) else null)
+                        .size(200)
+                        .scale(Scale.FILL)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = pet.name,
+                    contentScale       = ContentScale.Crop,
+                    fallback           = painterResource(R.drawable.avatar_pet_padrao),
+                    error              = painterResource(R.drawable.avatar_pet_padrao),
+                    placeholder        = painterResource(R.drawable.avatar_pet_padrao),
+                    modifier           = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .shadow(2.dp, CircleShape),
+                )
+
+                // Badge de espécie (canto inferior direito)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .size(26.dp)
+                        .background(MaterialTheme.colorScheme.surface, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Image(
+                        painter            = painterResource(speciesIcon),
+                        contentDescription = pet.species,
+                        modifier           = Modifier.size(18.dp),
+                    )
+                }
+            }
+
+            // Info do pet
+            Column(
+                modifier            = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Text(
+                    text       = pet.name,
+                    style      = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color      = MaterialTheme.colorScheme.onSurface,
+                    maxLines   = 1,
+                    overflow   = TextOverflow.Ellipsis,
+                )
+                val ageLabel = remember(pet.birthDate, pet.approximateAge, pet.species) {
+                    petAgeLabel(pet)
+                }
+                Text(
+                    text     = ageLabel,
+                    style    = MaterialTheme.typography.bodySmall,
+                    color    = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -362,53 +466,23 @@ private fun EmptyPetsSection(
     }
 }
 
-// ─── Card de dica do dia ──────────────────────────────────────────────────────
-
-@Composable
-private fun TipCard(species: String?, modifier: Modifier = Modifier) {
-    val tip = remember(species) { PetCareTips.getTodayTip(species) }
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                color = OrangePrimary.copy(alpha = 0.09f),
-                shape = RoundedCornerShape(18.dp),
-            )
-            .padding(14.dp),
-    ) {
-        Row(
-            verticalAlignment     = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(
-                imageVector        = Icons.Rounded.Pets,
-                contentDescription = null,
-                tint               = OrangePrimary,
-                modifier           = Modifier.size(20.dp).padding(top = 1.dp),
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(
-                    text       = "Sabia que…",
-                    style      = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color      = OrangePrimary,
-                )
-                Text(
-                    text  = tip,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
-                )
-            }
-        }
-    }
-}
-
 // ─── Helpers privados ─────────────────────────────────────────────────────────
 
 private fun Long.toShortDate(): String {
     val sdf = SimpleDateFormat("dd/MM", Locale("pt", "BR"))
     return sdf.format(Date(this))
 }
+
+private fun speciesDrawable(species: String): Int =
+    when (species.lowercase(Locale.getDefault())) {
+        "gato"             -> R.drawable.icone_especie_gato
+        "pássaro",
+        "passaro"          -> R.drawable.icone_especie_passaro
+        "peixe"            -> R.drawable.icone_especie_peixe
+        "réptil", "reptil" -> R.drawable.icone_especie_reptil
+        "roedor"           -> R.drawable.icone_especie_roedor
+        else               -> R.drawable.icone_especie_cachorro
+    }
 
 private fun petAgeLabel(pet: Pet): String {
     if (pet.birthDate.isNotBlank()) {
@@ -423,7 +497,7 @@ private fun petAgeLabel(pet: Pet): String {
             when {
                 totalMonths < 1  -> "< 1 mês"
                 totalMonths < 12 -> "$totalMonths ${if (totalMonths == 1) "mês" else "meses"}"
-                else -> {
+                else             -> {
                     val years = totalMonths / 12
                     "$years ${if (years == 1) "ano" else "anos"}"
                 }
