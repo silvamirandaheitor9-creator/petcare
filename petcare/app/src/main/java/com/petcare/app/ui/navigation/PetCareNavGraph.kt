@@ -32,29 +32,38 @@ sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
     object Main       : Screen("main")
 
-    // Tela de nova entrada do Diário — galeria → prévia + legenda + pet → salvar.
+    // Diário — galeria → prévia + legenda + pet → salvar
     object DiaryAddEntry : Screen("diary_add_entry/{imageUri}") {
         fun createRoute(imageUri: Uri): String =
             "diary_add_entry/${URLEncoder.encode(imageUri.toString(), "UTF-8")}"
     }
 
-    // Tela cheia normal do NavGraph — formulário "Novo Pet" (SPEC §11 — parte 1).
+    // Formulário "Novo Pet" — tela única (SPEC §11)
     object NewPet : Screen("new_pet")
 
-    // Tela cheia normal do NavGraph — cortar a foto de perfil do pet
-    // (SPEC §11 — parte 2), empilhada por cima do formulário "Novo Pet".
+    // Formulário "Editar Pet" — mesmo layout, mas pré-preenchido
+    object EditPet : Screen("edit_pet/{petId}") {
+        fun createRoute(petId: Long): String = "edit_pet/$petId"
+    }
+
+    // Editor de foto para o fluxo de criação de pet
     object PetPhotoEditor : Screen("pet_photo_editor/{imageUri}") {
         fun createRoute(imageUri: Uri): String =
             "pet_photo_editor/${URLEncoder.encode(imageUri.toString(), "UTF-8")}"
     }
 
-    // Tela cheia — Novo Lembrete / Editar Lembrete (SPEC §10 — Parte 1).
-    // reminderId = -1 → criar novo; > 0 → editar existente.
+    // Editor de foto para o fluxo de edição de pet
+    object EditPetPhotoEditor : Screen("edit_pet_photo_editor/{imageUri}") {
+        fun createRoute(imageUri: Uri): String =
+            "edit_pet_photo_editor/${URLEncoder.encode(imageUri.toString(), "UTF-8")}"
+    }
+
+    // Novo Lembrete / Editar Lembrete — reminderId = -1 → criar; > 0 → editar
     object NewReminder : Screen("new_reminder/{reminderId}") {
         fun createRoute(reminderId: Long = -1L): String = "new_reminder/$reminderId"
     }
 
-    // Tela cheia — Detalhe do pet com sub-abas de saúde (SPEC §12 — Parte 1).
+    // Detalhe do pet com sub-abas de saúde (SPEC §12)
     object PetDetail : Screen("pet_detail/{petId}") {
         fun createRoute(petId: Long): String = "pet_detail/$petId"
     }
@@ -91,7 +100,7 @@ fun PetCareNavGraph() {
             )
         }
 
-        // Seção 6 — casca de navegação global (5 abas)
+        // ── Casca de navegação global (5 abas) ──────────────────────────────
         composable(Screen.Main.route) {
             MainScreen(
                 onNavigateToDiaryPhotoEditor = { imageUri ->
@@ -99,6 +108,9 @@ fun PetCareNavGraph() {
                 },
                 onNavigateToNewPet = {
                     navController.navigate(Screen.NewPet.route)
+                },
+                onNavigateToEditPet = { petId ->
+                    navController.navigate(Screen.EditPet.createRoute(petId))
                 },
                 onNavigateToNewReminder = { reminderId ->
                     navController.navigate(Screen.NewReminder.createRoute(reminderId))
@@ -109,20 +121,21 @@ fun PetCareNavGraph() {
             )
         }
 
-        // Formulário "Novo Pet" — tela cheia normal.
+        // ── Novo Pet (tela única) ────────────────────────────────────────────
         composable(Screen.NewPet.route) { entry ->
             val newPetViewModel: NewPetViewModel = hiltViewModel(entry)
             NewPetScreen(
-                viewModel = newPetViewModel,
-                onDismiss = { navController.popBackStack() },
-                onSaved   = { navController.popBackStack() },
+                viewModel  = newPetViewModel,
+                petId      = -1L,
+                onDismiss  = { navController.popBackStack() },
+                onSaved    = { navController.popBackStack() },
                 onNavigateToPhotoEditor = { imageUri ->
                     navController.navigate(Screen.PetPhotoEditor.createRoute(imageUri))
                 },
             )
         }
 
-        // Editor de foto do pet (crop/girar) — empilhado sobre "Novo Pet".
+        // ── Editor de foto (fluxo Novo Pet) ─────────────────────────────────
         composable(
             route     = Screen.PetPhotoEditor.route,
             arguments = listOf(navArgument("imageUri") { type = NavType.StringType }),
@@ -133,7 +146,6 @@ fun PetCareNavGraph() {
                 navController.getBackStackEntry(Screen.NewPet.route)
             }
             val newPetViewModel: NewPetViewModel = hiltViewModel(newPetEntry)
-
             PetPhotoEditorScreen(
                 imageUri  = imageUri,
                 onDismiss = { navController.popBackStack() },
@@ -144,7 +156,53 @@ fun PetCareNavGraph() {
             )
         }
 
-        // Nova entrada do Diário — galeria → prévia + legenda + seletor de pet → salvar.
+        // ── Editar Pet (tela única, pré-preenchida) ──────────────────────────
+        composable(
+            route     = Screen.EditPet.route,
+            arguments = listOf(navArgument("petId") { type = NavType.LongType }),
+        ) { entry ->
+            val petId          = entry.arguments?.getLong("petId") ?: return@composable
+            val editPetViewModel: NewPetViewModel = hiltViewModel(entry)
+            NewPetScreen(
+                viewModel  = editPetViewModel,
+                petId      = petId,
+                onDismiss  = { navController.popBackStack() },
+                onSaved    = { navController.popBackStack() },
+                onNavigateToPhotoEditor = { imageUri ->
+                    navController.navigate(Screen.EditPetPhotoEditor.createRoute(imageUri))
+                },
+            )
+        }
+
+        // ── Editor de foto (fluxo Editar Pet) ───────────────────────────────
+        composable(
+            route     = Screen.EditPetPhotoEditor.route,
+            arguments = listOf(navArgument("imageUri") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val encodedUri = backStackEntry.arguments?.getString("imageUri").orEmpty()
+            val imageUri   = Uri.parse(URLDecoder.decode(encodedUri, "UTF-8"))
+            // Partilha o ViewModel com a rota EditPet pai (não com NewPet)
+            val editPetRoute = Screen.EditPet.route.substringBefore("{")
+            val editPetEntry = remember(backStackEntry) {
+                navController.backQueue
+                    .lastOrNull { it.destination.route?.startsWith(editPetRoute) == true }
+            }
+            val editPetViewModel: NewPetViewModel = if (editPetEntry != null) {
+                hiltViewModel(editPetEntry)
+            } else {
+                hiltViewModel()
+            }
+            PetPhotoEditorScreen(
+                imageUri  = imageUri,
+                onDismiss = { navController.popBackStack() },
+                onSave    = { photoPath ->
+                    editPetViewModel.setPhotoPath(photoPath)
+                    navController.popBackStack()
+                },
+            )
+        }
+
+        // ── Nova entrada do Diário ───────────────────────────────────────────
         composable(
             route     = Screen.DiaryAddEntry.route,
             arguments = listOf(navArgument("imageUri") { type = NavType.StringType }),
@@ -153,7 +211,6 @@ fun PetCareNavGraph() {
             val imageUri     = Uri.parse(URLDecoder.decode(encodedUri, "UTF-8"))
             val diaryViewModel: DiaryViewModel = hiltViewModel()
             val pets by diaryViewModel.pets.collectAsState()
-
             DiaryAddEntryScreen(
                 imageUri  = imageUri,
                 pets      = pets,
@@ -165,16 +222,15 @@ fun PetCareNavGraph() {
             )
         }
 
-        // Novo Lembrete / Editar Lembrete (SPEC §10 — Parte 1).
+        // ── Novo Lembrete / Editar Lembrete ─────────────────────────────────
         composable(
             route     = Screen.NewReminder.route,
             arguments = listOf(
                 navArgument("reminderId") { type = NavType.LongType; defaultValue = -1L }
             ),
         ) { backStackEntry ->
-            val reminderId           = backStackEntry.arguments?.getLong("reminderId") ?: -1L
+            val reminderId              = backStackEntry.arguments?.getLong("reminderId") ?: -1L
             val newReminderViewModel: NewReminderViewModel = hiltViewModel(backStackEntry)
-
             NewReminderScreen(
                 reminderId = reminderId,
                 viewModel  = newReminderViewModel,
@@ -183,16 +239,15 @@ fun PetCareNavGraph() {
             )
         }
 
-        // Detalhe do pet — sub-abas de saúde (SPEC §12 — Parte 1).
+        // ── Detalhe do pet — sub-abas de saúde (SPEC §12) ───────────────────
         composable(
             route     = Screen.PetDetail.route,
             arguments = listOf(navArgument("petId") { type = NavType.LongType }),
         ) { backStackEntry ->
             val petDetailViewModel: PetDetailViewModel = hiltViewModel(backStackEntry)
             PetDetailScreen(
-                viewModel   = petDetailViewModel,
-                onBack      = { navController.popBackStack() },
-                onDeletePet = { navController.popBackStack() },
+                viewModel = petDetailViewModel,
+                onBack    = { navController.popBackStack() },
             )
         }
     }

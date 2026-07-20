@@ -11,52 +11,72 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Grava um novo pet no Room (SPEC §11 — formulário "Novo Pet").
- * A validação de campos acontece na própria tela (NewPetScreen); este
- * ViewModel só persiste o [Pet] já validado.
- *
- * [photoPath] guarda o caminho da foto de perfil já cortada (SPEC §11 —
- * parte 2). Fica no ViewModel — não em `rememberSaveable` da tela — porque é
- * essa mesma instância (escopada à entrada "new_pet" do NavGraph) que recebe
- * o resultado do `PetPhotoEditorScreen`, uma rota separada empilhada por
- * cima; ver `PetCareNavGraph`.
+ * ViewModel para criar OU editar um pet (SPEC §11).
+ * Quando petId > 0, carrega o pet existente; quando -1, cria um novo.
+ * [photoPath] é compartilhado com PetPhotoEditorScreen via a mesma instância
+ * escopada à rota do NavGraph.
  */
 @HiltViewModel
 class NewPetViewModel @Inject constructor(
     private val petDao: PetDao,
 ) : ViewModel() {
 
+    /** Caminho da foto de perfil (recebe o resultado do PetPhotoEditorScreen). */
     private val _photoPath = MutableStateFlow<String?>(null)
     val photoPath: StateFlow<String?> = _photoPath
+
+    /** Pet carregado para edição (null quando no modo criação). */
+    private val _editingPet = MutableStateFlow<Pet?>(null)
+    val editingPet: StateFlow<Pet?> = _editingPet
+
+    /** Trava de duplo-toque — nunca resetada: a tela é destruída após salvar. */
+    private val _isSaving = MutableStateFlow(false)
+    val isSaving: StateFlow<Boolean> = _isSaving
 
     fun setPhotoPath(path: String?) {
         _photoPath.value = path
     }
 
     /**
-     * Trava de duplo-toque: MutableStateFlow.value é lido/escrito de forma
-     * síncrona na main thread, portanto o segundo toque já encontra true
-     * antes de qualquer suspensão de coroutine.
-     *
-     * O valor intencionalmente NÃO é resetado para false após o insert:
-     * onSaved() navega para fora da tela imediatamente, e a tela destruída
-     * leva o ViewModel junto (escopo do NavGraph). Manter true elimina
-     * qualquer janela de corrida residual.
+     * Carrega um pet existente para pré-preencher o formulário de edição.
+     * Chamado com LaunchedEffect(petId) na tela quando petId > 0.
      */
-    private val _isSaving = MutableStateFlow(false)
-    val isSaving: StateFlow<Boolean> = _isSaving
+    fun loadPetForEditing(petId: Long) {
+        if (petId <= 0L) return
+        viewModelScope.launch {
+            val pet = petDao.getPetByIdOnce(petId) ?: return@launch
+            _editingPet.value = pet
+            // Pré-carrega a foto existente (editável pelo usuário)
+            if (_photoPath.value == null && pet.photoPath.isNotBlank()) {
+                _photoPath.value = pet.photoPath
+            }
+        }
+    }
 
+    /** Salva um pet novo. */
     fun savePet(pet: Pet, onSaved: () -> Unit) {
-        // Guard síncrono: qualquer toque subsequente retorna aqui
-        // antes de entrar na coroutine.
         if (_isSaving.value) return
         _isSaving.value = true
-
         viewModelScope.launch {
             petDao.insertPet(pet)
-            // Navega imediatamente — sem overlay intermediário que cria janela
-            // para toques duplicados. A tela (e este ViewModel) são destruídos
-            // pelo NavController antes que um segundo toque possa chegar.
+            onSaved()
+        }
+    }
+
+    /**
+     * Atualiza um pet existente preservando o id e createdAt.
+     * [existingPet] é o pet carregado do banco, garantindo que nenhum campo
+     * imutável seja sobrescrito acidentalmente.
+     */
+    fun updatePet(existing: Pet, updated: Pet, onSaved: () -> Unit) {
+        if (_isSaving.value) return
+        _isSaving.value = true
+        viewModelScope.launch {
+            val merged = updated.copy(
+                id        = existing.id,
+                createdAt = existing.createdAt,
+            )
+            petDao.updatePet(merged)
             onSaved()
         }
     }

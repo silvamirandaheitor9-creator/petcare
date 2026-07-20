@@ -27,31 +27,36 @@ class PetsViewModel @Inject constructor(
     private val prefs  : UserPreferencesRepository,
 ) : ViewModel() {
 
-    /** Lista completa de pets, ordenada por data de criação (mais recente primeiro).
-     *  ImmutableList → compilador do Compose reconhece como estável. */
+    /** Lista completa de pets, ordenada por data de criação (mais recente primeiro). */
     val pets: StateFlow<ImmutableList<Pet>> = petDao.getAllPets()
         .map { it.toPersistentList() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf())
 
-    /** Contagem total de pets cadastrados — usada no badge "X/N" do título. */
+    /** Contagem total de pets — usada no badge "X/N" do título. */
     val petCount: StateFlow<Int> = petDao.getPetCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     /**
-     * Limite dinâmico de pets: 10 (base) + extraSlotsCount acumulado via rewarded ads.
-     * Cada anúncio assistido soma +5: 10 → 15 → 20 → 25 ...
-     * Usado pelo badge "X/N" e pelo guarda do FAB "+" em MainScreen.
+     * Limite dinâmico: 10 (base) + extraSlotsCount acumulado via rewarded ads.
+     * Cada anúncio assistido soma +5: 10 → 15 → 20 → 25...
      */
     val petLimit: StateFlow<Int> = prefs.extraSlotsCount
         .map { extras -> PET_LIMIT_FREE + extras }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PET_LIMIT_FREE)
 
     /**
-     * Chamada quando o rewarded ad é concluído com sucesso (SPEC §18.4).
-     * Incrementa o contador de vagas extras em +5; petLimit sobe automaticamente via Flow.
-     * Segunda, terceira chamada etc. continuam somando: 15, 20, 25...
+     * Chamada quando o rewarded ad é concluído (SPEC §18.4).
+     * Incrementa o contador de vagas em +5; petLimit sobe automaticamente via Flow.
      */
     fun unlockExtraSlots() {
         viewModelScope.launch { prefs.addExtraSlots(PET_LIMIT_BONUS) }
+    }
+
+    /**
+     * Exclui um pet diretamente da lista (Meus Pets).
+     * Move o botão de exclusão da PetDetailScreen para os cards — SPEC §8.
+     */
+    fun deletePetFromList(pet: Pet) {
+        viewModelScope.launch { petDao.deletePet(pet) }
     }
 }

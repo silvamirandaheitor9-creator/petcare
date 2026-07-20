@@ -88,10 +88,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -131,7 +128,6 @@ private enum class HealthTab(val label: String) {
 fun PetDetailScreen(
     viewModel: PetDetailViewModel = hiltViewModel(),
     onBack: () -> Unit,
-    onDeletePet: () -> Unit = {},
 ) {
     val pet by viewModel.pet.collectAsState()
     val vaccines by viewModel.vaccines.collectAsState()
@@ -147,28 +143,11 @@ fun PetDetailScreen(
     var showAddSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
-    // Controle do modal de exclusão do pet (Seção 13)
-    var showDeletePetModal by remember { mutableStateOf(false) }
-
-    // Modal de exclusão do pet — exibido por cima do Scaffold
-    if (showDeletePetModal) {
-        DeletePetModal(
-            petName = pet?.name ?: "este pet",
-            onConfirm = {
-                pet?.let { viewModel.deletePet(it) }
-                showDeletePetModal = false
-                onDeletePet()
-            },
-            onDismiss = { showDeletePetModal = false },
-        )
-    }
-
     Scaffold(
         topBar = {
             PetDetailTopBar(
-                pet = pet,
+                pet    = pet,
                 onBack = onBack,
-                onDeletePetClick = { showDeletePetModal = true },
             )
         },
         floatingActionButton = {
@@ -323,7 +302,6 @@ fun PetDetailScreen(
 private fun PetDetailTopBar(
     pet: Pet?,
     onBack: () -> Unit,
-    onDeletePetClick: () -> Unit,
 ) {
     val context = LocalContext.current
     Box(
@@ -377,17 +355,6 @@ private fun PetDetailTopBar(
             )
         }
 
-        // Botão excluir pet (Seção 13) — direita da TopBar
-        IconButton(
-            onClick = onDeletePetClick,
-            modifier = Modifier.align(Alignment.CenterEnd),
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Delete,
-                contentDescription = "Remover pet",
-                tint = Color.White,
-            )
-        }
     }
 }
 
@@ -760,109 +727,6 @@ private fun HealthEmptyState(
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.58f),
                 textAlign = TextAlign.Center,
             )
-        }
-    }
-}
-
-// ─── Modal customizado de exclusão do pet (Seção 13) ─────────────────────────
-// Não usa AlertDialog nativo do Android — é um Dialog Compose com Card custom.
-
-@Composable
-private fun DeletePetModal(
-    petName: String,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 28.dp),
-            ) {
-                // Imagem feedback_erro
-                Image(
-                    painter = painterResource(R.drawable.feedback_erro),
-                    contentDescription = null,
-                    modifier = Modifier.size(108.dp),
-                    contentScale = ContentScale.Fit,
-                )
-
-                Spacer(Modifier.height(20.dp))
-
-                // Título
-                Text(
-                    text = "Remover pet?",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                )
-
-                Spacer(Modifier.height(12.dp))
-
-                // Mensagem personalizada com o nome do pet em negrito
-                Text(
-                    text = buildAnnotatedString {
-                        append("Tem certeza que quer remover ")
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                            append(petName)
-                        }
-                        append(" e todo o histórico dele? Essa ação não pode ser desfeita.")
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                    textAlign = TextAlign.Center,
-                )
-
-                Spacer(Modifier.height(28.dp))
-
-                // Botões: Cancelar (neutro) e Remover (vermelho arredondado)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(24.dp),
-                    ) {
-                        Text(
-                            text = "Cancelar",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-
-                    Button(
-                        onClick = onConfirm,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = Color.White,
-                        ),
-                    ) {
-                        Text(
-                            text = "Remover",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                        )
-                    }
-                }
-            }
         }
     }
 }

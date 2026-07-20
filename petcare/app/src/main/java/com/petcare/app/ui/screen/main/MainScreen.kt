@@ -85,6 +85,7 @@ private enum class MainTab(
 fun MainScreen(
     onNavigateToDiaryPhotoEditor: (Uri) -> Unit = {},
     onNavigateToNewPet: () -> Unit = {},
+    onNavigateToEditPet: (petId: Long) -> Unit = {},
     onNavigateToNewReminder: (reminderId: Long) -> Unit = {},
     onNavigateToPetDetail: (petId: Long) -> Unit = {},
 ) {
@@ -166,6 +167,7 @@ fun MainScreen(
                     PetsScreen(
                         viewModel  = petsViewModel,
                         onPetClick = onNavigateToPetDetail,
+                        onEditPet  = onNavigateToEditPet,
                     )
                 MainTab.DIARY ->
                     DiaryScreen(
