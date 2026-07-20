@@ -355,6 +355,11 @@ _Última atualização: 2026-07-18 — **Seção 17 concluída via auditoria**. 
 
 _Última atualização: 2026-07-18 — **Bugfix §18.4 (extraSlots booleano → contador):** `UserPreferencesRepository` migrou de `booleanPreferencesKey("extra_pet_slots")` para `intPreferencesKey("extra_pet_slots_count")`; novo método `addExtraSlots(bonus)` incrementa atomicamente. `PetsViewModel` usa `extraSlotsCount` no cálculo de `petLimit` (10 + extras). `hasExtraSlots: StateFlow<Boolean>` removido. Limite agora sobe 10→15→20→25… a cada anúncio._
 
+_Última atualização: 2026-07-20 — **Fix: placeholder de foto por espécie + preenchimento do círculo:**_
+_1. **NewPetScreen:** ao selecionar espécie mas ainda não ter foto, o avatar mostra o ícone da espécie centralizado em fundo laranja — muda dinamicamente conforme a espécie é selecionada. Sem espécie selecionada, mostra `avatar_pet_padrao.png` com `ContentScale.Crop` para preencher 100% do círculo._
+_2. **PetsScreen (grade 2 colunas):** quando pet não tem foto, mostra ícone da espécie centralizado em fundo laranja suave — remove o `avatar_pet_padrao` genérico._
+_3. **HomeScreen (cards horizontais):** círculo laranja com ícone da espécie quando pet sem foto; foto real com `ContentScale.Crop` para preenchimento total._
+
 _Última atualização: 2026-07-20 — **Melhorias no onboarding (duas juntas):**_
 _1. **Tela de tema redesenhada:** `ThemeSelectionPage` substituída por mini cards de preview visual — cada card mostra as cores reais do tema (fundo, header laranja, cards internos). Borda branca destaca o selecionado, label confirma "Tema Claro/Escuro ativado". O tema muda ao vivo ao tocar no card._
 _2. **Imagem da tela 2 trocada:** `onboarding_2_meuspets.png` (mascote deitado com guia/coleira — imagem triste) substituída por `onboarding_1_boasvindas.png` (mascote acenando alegremente), que não estava sendo usada no tutorial._
