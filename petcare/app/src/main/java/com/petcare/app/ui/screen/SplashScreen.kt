@@ -1,7 +1,6 @@
 package com.petcare.app.ui.screen
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.DampingRatioLowBouncy
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
