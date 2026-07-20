@@ -320,7 +320,7 @@ fun NewPetScreen(
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = isoDateFormat.parse(birthDateIso)?.time,
+            initialSelectedDateMillis = if (birthDateIso.isBlank()) null else runCatching { isoDateFormat.parse(birthDateIso)?.time }.getOrNull(),
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean {
                     return utcTimeMillis <= System.currentTimeMillis()
