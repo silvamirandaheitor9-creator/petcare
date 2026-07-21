@@ -388,3 +388,32 @@ _3. **Diagnóstico de performance** — investigado e reportado. Fixes pendentes
 
 > `NewReminderScreen`, `DiaryPhotoEditorScreen` e `PetPhotoEditorScreen` já tinham proteção correta — não alterados.
 > **Teste obrigatório pelo usuário:** (1) tocar várias vezes rápido em "Salvar" do Novo Pet — não duplicar; (2) repetir nos 5 formulários de saúde — nenhum deve criar registro duplicado.
+
+---
+
+## Histórico de melhorias visuais (sessão de redesign)
+
+| # | Tela / Componente | Status | Detalhes |
+|---|-------------------|--------|----------|
+| 1 | Splash screen | ✅ 2026-07-20 | Redesign completo |
+| 2 | Tutorial / Onboarding | ✅ 2026-07-20 | Redesign completo |
+| 3 | Aba Início (Home) | ✅ 2026-07-20 | Redesign completo |
+| 4 | Aba Meus Pets (grid de cards) | ✅ 2026-07-20 | Cards em grade, animação escalonada, foto por espécie |
+| 5 | PetDetailScreen (abas de saúde) + ajustes PetsScreen | ✅ 2026-07-21 | Ver detalhes abaixo |
+
+### Melhoria #5 — detalhes (2026-07-21)
+
+**Ajustes em `PetsScreen.kt`:**
+- Imagem do estado vazio de Meus Pets: `vazio_meuspets` → `mascote_splash`
+- Label de idade: `"< 1 mês"` → `"Filhote"` (sem símbolo `<`)
+- Card do pet: espécie centralizada abaixo do nome (ícone + texto), removido badge do canto superior esquerdo
+
+**Redesign de `PetDetailScreen.kt`:**
+- **TopBar / header:** `Column` com gradiente vertical, foto circular 80dp centralizada, nome em bold, chips de espécie / sexo / castrado / idade
+- **Tabs:** `ScrollableTabRow` com ícone + label em cada aba (cores: laranja quando ativa, cinza quando inativa)
+- **Cards de registros:** barra de acento colorida à esquerda + badge de ícone com fundo colorido translúcido, usando `IntrinsicSize.Min` para altura dinâmica
+  - Vacinas = verde `#4CAF50`; Medicamentos = roxo `#9C27B0`; Consultas = azul `#2196F3`
+  - Peso = laranja `OrangePrimary`; Alimentação = teal `#00897B`
+- **Formulários de novo registro:** `FormHeader` com gradiente laranja, ícone no badge branco translúcido + título branco bold
+
+**Próxima melhoria sugerida (#6):** Simplificar `NewPetScreen` de 3 etapas para 1 tela única (usuário confirmar antes de implementar).
