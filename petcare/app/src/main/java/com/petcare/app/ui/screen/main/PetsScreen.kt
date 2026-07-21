@@ -253,15 +253,16 @@ private fun PetGridCard(
                         ),
                 )
 
-                // Nome + sexo + idade centralizados sobre o gradiente
+                // Nome + sexo + espécie + idade centralizados sobre o gradiente
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .padding(horizontal = 10.dp, vertical = 10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
+                    // Nome + ícone de sexo
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -289,33 +290,27 @@ private fun PetGridCard(
                             )
                         }
                     }
+                    // Espécie centralizada
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                        Image(
+                            painter = painterResource(speciesIcon),
+                            contentDescription = null,
+                            modifier = Modifier.size(11.dp),
+                        )
+                        Text(
+                            text = pet.species.replaceFirstChar { it.uppercaseChar() },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            color = Color.White.copy(alpha = 0.80f),
+                        )
+                    }
                     // Idade como badge compacto centralizado
                     if (ageLabel.isNotBlank()) {
                         AgeBadge(ageLabel)
                     }
-                }
-
-                // Espécie — badge no canto superior esquerdo
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp)
-                        .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(50.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Image(
-                        painter = painterResource(speciesIcon),
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Text(
-                        text = pet.species.replaceFirstChar { it.uppercaseChar() },
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp,
-                        color = Color.White.copy(alpha = 0.90f),
-                    )
                 }
 
                 // Botão de ações (3 pontos) — canto superior direito
@@ -523,9 +518,9 @@ private fun EmptyPetsGridState() {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Image(
-                painter = painterResource(R.drawable.vazio_meuspets),
+                painter = painterResource(R.drawable.mascote_splash),
                 contentDescription = null,
-                modifier = Modifier.fillMaxWidth(0.62f),
+                modifier = Modifier.fillMaxWidth(0.58f),
             )
             Spacer(Modifier.height(4.dp))
             Text(
@@ -577,7 +572,7 @@ private fun petAgeLabel(pet: Pet): String {
                 (now.get(Calendar.YEAR) - birth.get(Calendar.YEAR)) * 12 +
                     now.get(Calendar.MONTH) - birth.get(Calendar.MONTH)
             when {
-                totalMonths < 1  -> "< 1 mês"
+                totalMonths < 1  -> "Filhote"
                 totalMonths < 12 -> "$totalMonths ${if (totalMonths == 1) "mês" else "meses"}"
                 else -> {
                     val years = totalMonths / 12

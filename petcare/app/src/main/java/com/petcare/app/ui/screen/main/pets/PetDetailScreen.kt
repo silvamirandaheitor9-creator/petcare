@@ -59,6 +59,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults.SecondaryIndicator
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -66,6 +68,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
+import com.petcare.app.ui.screen.main.speciesIconRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -77,6 +80,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
@@ -112,12 +116,12 @@ import java.io.File
 
 // ─── Sub-abas de saúde do pet — Seção 12, Partes 1, 2 e 3 ───────────────────
 
-private enum class HealthTab(val label: String) {
-    VACCINES("Vacinas"),
-    MEDICATIONS("Medicamentos"),
-    CONSULTATIONS("Consultas"),
-    WEIGHT("Peso"),
-    FEEDING("Alimentação"),
+private enum class HealthTab(val label: String, val iconRes: Int) {
+    VACCINES("Vacinas", R.drawable.icone_vacina),
+    MEDICATIONS("Medicamentos", R.drawable.icone_medicacao),
+    CONSULTATIONS("Consultas", R.drawable.icone_consulta),
+    WEIGHT("Peso", R.drawable.vazio_peso),
+    FEEDING("Alimentação", R.drawable.icone_alimentacao),
 }
 
 // ─── Ponto de entrada da tela de detalhe do pet ──────────────────────────────
@@ -173,34 +177,48 @@ fun PetDetailScreen(
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
-            // ── TabRow das sub-abas ──────────────────────────────────────────
-            TabRow(
+            // ── TabRow das sub-abas (scrollável + icons) ────────────────────
+            ScrollableTabRow(
                 selectedTabIndex = selectedTabIndex,
                 containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = OrangePrimary,
+                edgePadding = 12.dp,
                 indicator = { tabPositions ->
                     SecondaryIndicator(
                         modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                        height = 3.dp,
                         color = OrangePrimary,
                     )
                 },
             ) {
                 HealthTab.entries.forEachIndexed { index, tab ->
+                    val isSelected = selectedTabIndex == index
                     Tab(
-                        selected = selectedTabIndex == index,
+                        selected = isSelected,
                         onClick = { selectedTabIndex = index },
-                        text = {
+                        modifier = Modifier.padding(horizontal = 2.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Image(
+                                painter = painterResource(tab.iconRes),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(15.dp)
+                                    .alpha(if (isSelected) 1f else 0.45f),
+                            )
                             Text(
                                 text = tab.label,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
-                                color = if (selectedTabIndex == index) OrangePrimary
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) OrangePrimary
                                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                             )
-                        },
-                    )
+                        }
+                    }
                 }
             }
 
@@ -303,58 +321,147 @@ private fun PetDetailTopBar(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    Box(
+    val hasRealPhoto = remember(pet?.photoPath) {
+        pet?.photoPath?.isNotEmpty() == true && File(pet.photoPath).exists()
+    }
+    val speciesIcon = remember(pet?.species) { speciesIconRes(pet?.species ?: "") }
+    val ageLabel = remember(pet) {
+        if (pet == null) return@remember ""
+        petAgeLabel(pet)
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Brush.horizontalGradient(listOf(OrangeGradStart, OrangeGradEnd)))
-            .systemBarsPadding()
-            .padding(horizontal = 4.dp, vertical = 10.dp),
+            .background(Brush.verticalGradient(listOf(OrangeGradStart, OrangeGradEnd)))
+            .systemBarsPadding(),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Botão voltar
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.align(Alignment.CenterStart),
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.ArrowBack,
-                contentDescription = "Voltar",
-                tint = Color.White,
-            )
-        }
-
-        // Pet: foto + nome centralizado
+        // Linha do botão voltar
         Row(
-            modifier = Modifier.align(Alignment.Center),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(if (pet?.photoPath?.isNotEmpty() == true) File(pet.photoPath) else null)
-                    .size(80)
-                    .scale(Scale.FILL)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = pet?.name,
-                contentScale = ContentScale.Crop,
-                fallback = painterResource(R.drawable.avatar_pet_padrao),
-                error = painterResource(R.drawable.avatar_pet_padrao),
-                placeholder = painterResource(R.drawable.avatar_pet_padrao),
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape),
-            )
-            Text(
-                text = pet?.name ?: "",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.Rounded.ArrowBack,
+                    contentDescription = "Voltar",
+                    tint = Color.White,
+                )
+            }
         }
 
+        // Foto circular grande
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.22f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (hasRealPhoto) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(File(pet!!.photoPath))
+                        .size(160)
+                        .scale(Scale.FILL)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = pet.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
+                )
+            } else {
+                Image(
+                    painter = painterResource(speciesIcon),
+                    contentDescription = pet?.species,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(48.dp),
+                )
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        // Nome do pet
+        Text(
+            text = pet?.name ?: "",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 48.dp),
+        )
+
+        Spacer(Modifier.height(6.dp))
+
+        // Chips de informação: espécie, sexo, idade
+        Row(
+            modifier = Modifier.padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (pet != null) {
+                PetInfoChipDetail(pet.species.replaceFirstChar { it.uppercaseChar() })
+                if (pet.sex.isNotBlank()) {
+                    PetInfoChipDetail(pet.sex)
+                }
+                if (pet.isCastrated) {
+                    PetInfoChipDetail("Castrado/a")
+                }
+                if (ageLabel.isNotBlank()) {
+                    PetInfoChipDetail(ageLabel)
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun PetInfoChipDetail(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = Color.White.copy(alpha = 0.92f),
+        modifier = Modifier
+            .background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(50.dp))
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    )
+}
+
+private fun petAgeLabel(pet: Pet): String {
+    if (pet.birthDate.isNotBlank()) {
+        return try {
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            val bd = sdf.parse(pet.birthDate) ?: return pet.approximateAge
+            val now = java.util.Calendar.getInstance()
+            val birth = java.util.Calendar.getInstance().apply { time = bd }
+            val totalMonths =
+                (now.get(java.util.Calendar.YEAR) - birth.get(java.util.Calendar.YEAR)) * 12 +
+                    now.get(java.util.Calendar.MONTH) - birth.get(java.util.Calendar.MONTH)
+            when {
+                totalMonths < 1  -> "Filhote"
+                totalMonths < 12 -> "$totalMonths ${if (totalMonths == 1) "mês" else "meses"}"
+                else -> {
+                    val years = totalMonths / 12
+                    val months = totalMonths % 12
+                    buildString {
+                        append("$years ${if (years == 1) "ano" else "anos"}")
+                        if (months > 0) append(" e $months ${if (months == 1) "mês" else "meses"}")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            pet.approximateAge
+        }
+    }
+    return pet.approximateAge
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -395,6 +502,7 @@ private fun VaccineCard(record: HealthRecord, onDelete: (HealthRecord) -> Unit) 
 
     HealthRecordCard(
         iconRes = R.drawable.icone_vacina,
+        accentColor = Color(0xFF4CAF50),
         onDeleteClick = { showDeleteDialog = true },
     ) {
         Text(
@@ -474,6 +582,7 @@ private fun MedicationCard(record: HealthRecord, onDelete: (HealthRecord) -> Uni
 
     HealthRecordCard(
         iconRes = R.drawable.icone_medicacao,
+        accentColor = Color(0xFF9C27B0),
         onDeleteClick = { showDeleteDialog = true },
     ) {
         Text(
@@ -560,6 +669,7 @@ private fun ConsultationCard(record: HealthRecord, onDelete: (HealthRecord) -> U
 
     HealthRecordCard(
         iconRes = R.drawable.icone_consulta,
+        accentColor = Color(0xFF2196F3),
         onDeleteClick = { showDeleteDialog = true },
     ) {
         Text(
@@ -616,6 +726,7 @@ private fun ConsultationCard(record: HealthRecord, onDelete: (HealthRecord) -> U
 @Composable
 private fun HealthRecordCard(
     iconRes: Int,
+    accentColor: Color,
     onDeleteClick: () -> Unit,
     content: @Composable () -> Unit,
 ) {
@@ -628,23 +739,42 @@ private fun HealthRecordCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 14.dp, end = 6.dp, top = 14.dp, bottom = 14.dp),
+                .height(IntrinsicSize.Min),
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Ícone da categoria
-            Image(
-                painter = painterResource(iconRes),
-                contentDescription = null,
+            // Barra de acento colorida lateral esquerda
+            Box(
                 modifier = Modifier
-                    .size(32.dp)
-                    .padding(top = 2.dp),
+                    .width(5.dp)
+                    .fillMaxHeight()
+                    .background(
+                        accentColor,
+                        RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp),
+                    ),
             )
+
+            // Badge do ícone da categoria
+            Box(
+                modifier = Modifier
+                    .padding(start = 12.dp, top = 14.dp, bottom = 14.dp)
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(accentColor.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(26.dp),
+                )
+            }
 
             // Conteúdo textual
             Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp, top = 14.dp, bottom = 14.dp, end = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 content()
             }
@@ -652,12 +782,14 @@ private fun HealthRecordCard(
             // Botão deletar
             IconButton(
                 onClick = onDeleteClick,
-                modifier = Modifier.size(36.dp),
+                modifier = Modifier
+                    .padding(end = 2.dp, top = 2.dp)
+                    .size(36.dp),
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Delete,
                     contentDescription = "Remover",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f),
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -728,6 +860,42 @@ private fun HealthEmptyState(
             )
         }
     }
+}
+
+// ─── Header estilizado para os formulários de novo registro ──────────────────
+
+@Composable
+private fun FormHeader(iconRes: Int, title: String, accentColor: Color) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Brush.horizontalGradient(listOf(OrangeGradStart, OrangeGradEnd)))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color.White.copy(alpha = 0.20f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+        )
+    }
+    Spacer(Modifier.height(4.dp))
 }
 
 // ─── Diálogo de confirmação de exclusão ──────────────────────────────────────
@@ -808,16 +976,7 @@ private fun AddVaccineForm(
             .padding(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Título do form
-        Text(
-            text = "Nova Vacina",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(4.dp))
+        FormHeader(iconRes = R.drawable.icone_vacina, title = "Nova Vacina", accentColor = Color(0xFF4CAF50))
 
         // Nome da vacina
         HealthTextField(
@@ -957,15 +1116,7 @@ private fun AddMedicationForm(
             .padding(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = "Novo Medicamento",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(4.dp))
+        FormHeader(iconRes = R.drawable.icone_medicacao, title = "Novo Medicamento", accentColor = Color(0xFF9C27B0))
 
         HealthTextField(
             value = name,
@@ -1084,15 +1235,7 @@ private fun AddConsultationForm(
             .padding(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = "Nova Consulta",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(4.dp))
+        FormHeader(iconRes = R.drawable.icone_consulta, title = "Nova Consulta", accentColor = Color(0xFF2196F3))
 
         HealthDateField(
             label = "Data da consulta",
@@ -1634,15 +1777,7 @@ private fun AddWeightForm(
             .padding(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = "Registrar Pesagem",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(4.dp))
+        FormHeader(iconRes = R.drawable.vazio_peso, title = "Registrar Pesagem", accentColor = OrangePrimary)
 
         HealthTextField(
             value = weightText,
@@ -1954,15 +2089,7 @@ private fun AddFeedingForm(
             .padding(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = "Registrar Alimentação",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(4.dp))
+        FormHeader(iconRes = R.drawable.icone_alimentacao, title = "Registrar Alimentação", accentColor = Color(0xFF00897B))
 
         // Tipo de alimento — obrigatório
         HealthTextField(
