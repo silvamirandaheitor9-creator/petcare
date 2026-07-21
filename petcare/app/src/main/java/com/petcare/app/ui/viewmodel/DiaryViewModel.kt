@@ -35,12 +35,12 @@ class DiaryViewModel @Inject constructor(
         .map { it.toPersistentList() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf())
 
-    /** Exclui uma entrada do diário (SPEC 9.6). */
+    /** Exclui uma entrada do diário. */
     fun deleteEntry(entry: DiaryEntry) {
         viewModelScope.launch { diaryDao.deleteEntry(entry) }
     }
 
-    /** Cria uma nova entrada a partir da foto editada (SPEC 9.8-9.11). */
+    /** Cria uma nova entrada a partir da foto. */
     fun addEntry(petId: Long, photoPath: String, caption: String) {
         viewModelScope.launch {
             diaryDao.insertEntry(
@@ -48,4 +48,12 @@ class DiaryViewModel @Inject constructor(
             )
         }
     }
+
+    /** Atualiza legenda e/ou pet de uma entrada existente. */
+    fun updateEntry(entry: DiaryEntry) {
+        viewModelScope.launch { diaryDao.updateEntry(entry) }
+    }
+
+    /** Emite a entrada com o [id] especificado, ou null se não encontrada. */
+    fun getEntryById(id: Long) = diaryDao.getEntryById(id)
 }

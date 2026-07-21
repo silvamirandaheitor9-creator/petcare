@@ -240,76 +240,50 @@ private fun PetGridCard(
                     }
                 }
 
-                // Gradiente inferior para legibilidade
+                // Gradiente inferior para legibilidade — mais curto pois info foi para baixo da foto
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(90.dp)
+                        .height(56.dp)
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.72f)),
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f)),
                             ),
                         ),
                 )
 
-                // Nome + sexo + espécie + idade centralizados sobre o gradiente
-                Column(
+                // Apenas nome + ícone de sexo sobre o gradiente
+                Row(
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
+                        .align(Alignment.BottomStart)
                         .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    // Nome + ícone de sexo
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(
-                            text = pet.name,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                    Text(
+                        text = pet.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    when (pet.sex.trim().lowercase()) {
+                        "macho" -> Icon(
+                            imageVector = Icons.Rounded.Male,
+                            contentDescription = "Macho",
+                            tint = Color.White.copy(alpha = 0.85f),
+                            modifier = Modifier.size(14.dp),
                         )
-                        when (pet.sex.trim().lowercase()) {
-                            "macho" -> Icon(
-                                imageVector = Icons.Rounded.Male,
-                                contentDescription = "Macho",
-                                tint = Color.White.copy(alpha = 0.85f),
-                                modifier = Modifier.size(14.dp),
-                            )
-                            "fêmea", "femea" -> Icon(
-                                imageVector = Icons.Rounded.Female,
-                                contentDescription = "Fêmea",
-                                tint = Color(0xFFFFB3D9).copy(alpha = 0.90f),
-                                modifier = Modifier.size(14.dp),
-                            )
-                        }
-                    }
-                    // Espécie centralizada
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp),
-                    ) {
-                        Image(
-                            painter = painterResource(speciesIcon),
-                            contentDescription = null,
-                            modifier = Modifier.size(11.dp),
+                        "fêmea", "femea" -> Icon(
+                            imageVector = Icons.Rounded.Female,
+                            contentDescription = "Fêmea",
+                            tint = Color(0xFFFFB3D9).copy(alpha = 0.90f),
+                            modifier = Modifier.size(14.dp),
                         )
-                        Text(
-                            text = pet.species.replaceFirstChar { it.uppercaseChar() },
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
-                            color = Color.White.copy(alpha = 0.80f),
-                        )
-                    }
-                    // Idade como badge compacto centralizado
-                    if (ageLabel.isNotBlank()) {
-                        AgeBadge(ageLabel)
                     }
                 }
 
@@ -333,6 +307,39 @@ private fun PetGridCard(
                         contentDescription = "Opções",
                         tint = Color.White,
                         modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+
+            // ── Espécie + idade abaixo da foto (sem tampar a foto) ────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Image(
+                        painter = painterResource(speciesIcon),
+                        contentDescription = null,
+                        modifier = Modifier.size(13.dp),
+                    )
+                    Text(
+                        text = pet.species.replaceFirstChar { it.uppercaseChar() },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
+                    )
+                }
+                if (ageLabel.isNotBlank()) {
+                    Text(
+                        text = ageLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = OrangePrimary,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
             }

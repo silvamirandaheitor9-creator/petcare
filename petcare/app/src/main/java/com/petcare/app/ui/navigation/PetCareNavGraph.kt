@@ -14,6 +14,7 @@ import androidx.navigation.navArgument
 import com.petcare.app.ui.screen.SplashScreen
 import com.petcare.app.ui.screen.main.MainScreen
 import com.petcare.app.ui.screen.main.diary.DiaryAddEntryScreen
+import com.petcare.app.ui.screen.main.diary.DiaryEditEntryScreen
 import com.petcare.app.ui.screen.main.pets.NewPetScreen
 import com.petcare.app.ui.screen.main.pets.PetDetailScreen
 import com.petcare.app.ui.screen.main.pets.PetPhotoEditorScreen
@@ -67,6 +68,11 @@ sealed class Screen(val route: String) {
     object PetDetail : Screen("pet_detail/{petId}") {
         fun createRoute(petId: Long): String = "pet_detail/$petId"
     }
+
+    // Editar entrada do Diário (legenda + pet, foto inalterada)
+    object DiaryEditEntry : Screen("diary_edit_entry/{entryId}") {
+        fun createRoute(entryId: Long): String = "diary_edit_entry/$entryId"
+    }
 }
 
 @Composable
@@ -117,6 +123,9 @@ fun PetCareNavGraph() {
                 },
                 onNavigateToPetDetail = { petId ->
                     navController.navigate(Screen.PetDetail.createRoute(petId))
+                },
+                onNavigateToEditDiaryEntry = { entryId ->
+                    navController.navigate(Screen.DiaryEditEntry.createRoute(entryId))
                 },
             )
         }
@@ -243,6 +252,27 @@ fun PetCareNavGraph() {
             PetDetailScreen(
                 viewModel = petDetailViewModel,
                 onBack    = { navController.popBackStack() },
+            )
+        }
+
+        // ── Editar entrada do Diário ─────────────────────────────────────────
+        composable(
+            route     = Screen.DiaryEditEntry.route,
+            arguments = listOf(navArgument("entryId") { type = NavType.LongType }),
+        ) { backStackEntry ->
+            val entryId       = backStackEntry.arguments?.getLong("entryId") ?: return@composable
+            val diaryViewModel: DiaryViewModel = hiltViewModel()
+            val entry by diaryViewModel.getEntryById(entryId).collectAsState(initial = null)
+            val pets  by diaryViewModel.pets.collectAsState()
+            val e = entry ?: return@composable
+            DiaryEditEntryScreen(
+                entry     = e,
+                pets      = pets,
+                onDismiss = { navController.popBackStack() },
+                onSave    = { updatedEntry ->
+                    diaryViewModel.updateEntry(updatedEntry)
+                    navController.popBackStack()
+                },
             )
         }
     }

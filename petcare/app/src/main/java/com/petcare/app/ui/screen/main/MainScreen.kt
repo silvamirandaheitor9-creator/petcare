@@ -88,6 +88,7 @@ fun MainScreen(
     onNavigateToEditPet: (petId: Long) -> Unit = {},
     onNavigateToNewReminder: (reminderId: Long) -> Unit = {},
     onNavigateToPetDetail: (petId: Long) -> Unit = {},
+    onNavigateToEditDiaryEntry: (entryId: Long) -> Unit = {},
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val currentTab = MainTab.entries[selectedTabIndex]
@@ -174,6 +175,7 @@ fun MainScreen(
                         showAddEntryPlaceholder      = showAddDiaryEntry,
                         onDismissAddEntryPlaceholder = { showAddDiaryEntry = false },
                         onNavigateToPhotoEditor      = onNavigateToDiaryPhotoEditor,
+                        onEditEntry                  = onNavigateToEditDiaryEntry,
                     )
                 MainTab.REMINDERS ->
                     RemindersScreen(

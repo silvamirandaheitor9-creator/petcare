@@ -23,6 +23,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -34,6 +36,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -54,18 +58,30 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Scale
 import com.petcare.app.data.db.entity.Pet
-import kotlinx.collections.immutable.ImmutableList
+import com.petcare.app.ui.theme.OrangeGradStart
 import com.petcare.app.ui.theme.OrangePrimary
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+// ─── Tags de atividade / humor ────────────────────────────────────────────────
+
+private data class ActivityTag(val emoji: String, val label: String)
+
+private val ACTIVITY_TAGS = listOf(
+    ActivityTag("🐾", "Passeio"),
+    ActivityTag("🎾", "Brincadeira"),
+    ActivityTag("🛁", "Banho"),
+    ActivityTag("🏥", "Consulta"),
+    ActivityTag("💛", "Carinho"),
+    ActivityTag("📸", "Momento especial"),
+)
+
 /**
- * Tela simplificada de nova entrada no Diário (SPEC §9):
- * galeria → prévia da foto → legenda + seletor de pet → salvar.
- *
- * Sem edição de imagem. A regra SPEC 17.3 (fundo branco antes de JPEG)
- * é aplicada dentro de [saveDiaryPhotoJpeg], chamado no momento do salvamento.
+ * Tela de nova entrada no Diário.
+ * Fluxo: galeria → prévia da foto (estilo polaroid) → atividade (mood chips)
+ * → legenda → pet → salvar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,12 +94,26 @@ fun DiaryAddEntryScreen(
     val context = LocalContext.current
     val scope   = rememberCoroutineScope()
 
-    var caption       by rememberSaveable { mutableStateOf("") }
-    var selectedPetId by remember(pets) { mutableStateOf(pets.firstOrNull()?.id) }
-    var isSaving      by remember { mutableStateOf(false) }
+    var caption        by rememberSaveable { mutableStateOf("") }
+    var selectedPetId  by remember(pets) { mutableStateOf(pets.firstOrNull()?.id) }
+    var selectedTagIdx by remember { mutableStateOf<Int?>(null) }
+    var isSaving       by remember { mutableStateOf(false) }
 
     fun handleBack() { if (!isSaving) onDismiss() }
     BackHandler(onBack = ::handleBack)
+
+    // Ao selecionar uma tag, preenche a legenda com sugestão se estiver vazia
+    fun onTagSelected(index: Int) {
+        if (selectedTagIdx == index) {
+            selectedTagIdx = null
+        } else {
+            selectedTagIdx = index
+            if (caption.isBlank()) {
+                val tag = ACTIVITY_TAGS[index]
+                caption = "${tag.emoji} ${tag.label}"
+            }
+        }
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -91,69 +121,141 @@ fun DiaryAddEntryScreen(
                 .fillMaxSize()
                 .systemBarsPadding(),
         ) {
+            // ── TopAppBar com gradiente laranja (padrão do app) ───────────────
             TopAppBar(
-                title = { Text("Nova entrada") },
+                title = {
+                    Text(
+                        text       = "Nova entrada",
+                        fontWeight = FontWeight.Bold,
+                        color      = Color.White,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = ::handleBack, enabled = !isSaving) {
-                        Icon(Icons.Rounded.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.Rounded.ArrowBack, "Voltar", tint = Color.White)
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = OrangeGradStart),
             )
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                // ── Prévia da foto escolhida na galeria ───────────────────────
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(imageUri)
-                        .size(800)
-                        .scale(Scale.FILL)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = "Foto selecionada",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(16.dp)),
-                )
 
-                // ── Campo de legenda (até 140 caracteres) ─────────────────────
+                // ── Prévia da foto com efeito polaroid ────────────────────────
+                Box(
+                    modifier          = Modifier.fillMaxWidth(),
+                    contentAlignment  = Alignment.Center,
+                ) {
+                    Card(
+                        modifier  = Modifier
+                            .fillMaxWidth(0.78f)
+                            .shadow(10.dp, RoundedCornerShape(4.dp)),
+                        shape     = RoundedCornerShape(4.dp),
+                        colors    = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(0.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .padding(bottom = 24.dp),
+                        ) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(imageUri)
+                                    .size(800)
+                                    .scale(Scale.FILL)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Foto selecionada",
+                                contentScale       = ContentScale.Crop,
+                                modifier           = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(2.dp)),
+                            )
+                        }
+                    }
+                }
+
+                // ── Tags de atividade ─────────────────────────────────────────
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text       = "Qual foi o momento?",
+                        style      = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = MaterialTheme.colorScheme.onBackground,
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        ACTIVITY_TAGS.forEachIndexed { index, tag ->
+                            val isSelected = selectedTagIdx == index
+                            FilterChip(
+                                selected = isSelected,
+                                onClick  = { onTagSelected(index) },
+                                label    = {
+                                    Text(
+                                        text       = "${tag.emoji} ${tag.label}",
+                                        fontWeight = if (isSelected) FontWeight.SemiBold
+                                                     else FontWeight.Normal,
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = OrangePrimary.copy(alpha = 0.15f),
+                                    selectedLabelColor     = OrangePrimary,
+                                ),
+                            )
+                        }
+                    }
+                }
+
+                // ── Campo de legenda ──────────────────────────────────────────
                 OutlinedTextField(
-                    value = caption,
+                    value         = caption,
                     onValueChange = { if (it.length <= 140) caption = it },
-                    label = { Text("Legenda (opcional)") },
+                    label         = { Text("Legenda (opcional)") },
                     supportingText = { Text("${caption.length}/140") },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    modifier      = Modifier.fillMaxWidth(),
+                    shape         = RoundedCornerShape(12.dp),
+                    minLines      = 2,
                 )
 
                 // ── Seletor de pet ────────────────────────────────────────────
                 when {
                     pets.size > 1 -> {
-                        Text("Pet", style = MaterialTheme.typography.titleSmall)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            pets.forEach { pet ->
-                                FilterChip(
-                                    selected = pet.id == selectedPetId,
-                                    onClick  = { selectedPetId = pet.id },
-                                    label    = { Text(pet.name) },
-                                    colors   = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = OrangePrimary.copy(alpha = 0.16f),
-                                        selectedLabelColor     = OrangePrimary,
-                                    ),
-                                )
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text       = "Pet",
+                                style      = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color      = MaterialTheme.colorScheme.onBackground,
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                pets.forEach { pet ->
+                                    FilterChip(
+                                        selected = pet.id == selectedPetId,
+                                        onClick  = { selectedPetId = pet.id },
+                                        label    = { Text(pet.name) },
+                                        colors   = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = OrangePrimary.copy(alpha = 0.16f),
+                                            selectedLabelColor     = OrangePrimary,
+                                        ),
+                                    )
+                                }
                             }
                         }
                     }
@@ -164,7 +266,7 @@ fun DiaryAddEntryScreen(
                             color = MaterialTheme.colorScheme.error,
                         )
                     }
-                    // pets.size == 1: selecionado automaticamente; não exibe chips
+                    // pets.size == 1: selecionado automaticamente — não exibe chips
                 }
 
                 // ── Botão Salvar ──────────────────────────────────────────────
@@ -186,17 +288,17 @@ fun DiaryAddEntryScreen(
                             }
                         }
                     },
-                    enabled = !isSaving && pets.isNotEmpty(),
-                    colors  = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
-                    shape   = RoundedCornerShape(12.dp),
+                    enabled  = !isSaving && pets.isNotEmpty(),
+                    colors   = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                    shape    = RoundedCornerShape(24.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
                 ) {
                     if (isSaving) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color    = Color.White,
+                            modifier    = Modifier.size(20.dp),
+                            color       = Color.White,
                             strokeWidth = 2.dp,
                         )
                     } else {

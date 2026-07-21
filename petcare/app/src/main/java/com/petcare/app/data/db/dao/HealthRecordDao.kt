@@ -26,4 +26,8 @@ interface HealthRecordDao {
 
     @Query("DELETE FROM health_records WHERE petId = :petId")
     suspend fun deleteAllByPet(petId: Long)
+
+    /** Todos os registros de vacina que possuem nextDoseDate preenchido. */
+    @Query("SELECT * FROM health_records WHERE type = 'vaccine' AND nextDoseDate != '' ORDER BY dateMillis ASC")
+    fun getVaccinesWithNextDose(): Flow<List<HealthRecord>>
 }

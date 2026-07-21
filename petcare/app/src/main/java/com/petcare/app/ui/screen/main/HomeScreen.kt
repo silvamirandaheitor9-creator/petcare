@@ -58,14 +58,12 @@ import coil.size.Scale
 import androidx.compose.ui.platform.LocalContext
 import com.petcare.app.R
 import com.petcare.app.data.db.entity.Pet
-import com.petcare.app.data.db.entity.Reminder
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.HomeViewModel
 import com.petcare.app.util.PetCareTips
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
 
 // ─── Ponto de entrada da aba Início ─────────────────────────────────────────
@@ -75,11 +73,11 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onAddPet: () -> Unit = {},
 ) {
-    val pets             by viewModel.pets.collectAsState()
-    val petCount         by viewModel.petCount.collectAsState()
-    val nextVaccine      by viewModel.nextVaccineReminder.collectAsState()
-    val nextConsultation by viewModel.nextConsultationReminder.collectAsState()
-    val tipSpecies       = pets.firstOrNull()?.species
+    val pets            by viewModel.pets.collectAsState()
+    val petCount        by viewModel.petCount.collectAsState()
+    val nextVaccineDate by viewModel.nextVaccineDate.collectAsState()
+    val nextConsultDate by viewModel.nextConsultDate.collectAsState()
+    val tipSpecies      = pets.firstOrNull()?.species
 
     LazyColumn(
         modifier        = Modifier.fillMaxSize(),
@@ -89,10 +87,10 @@ fun HomeScreen(
         // (1) Card de estatísticas
         item(key = "stats_card") {
             StatsCard(
-                petCount         = petCount,
-                nextVaccine      = nextVaccine,
-                nextConsultation = nextConsultation,
-                modifier         = Modifier.padding(horizontal = 16.dp),
+                petCount        = petCount,
+                nextVaccineDate = nextVaccineDate,
+                nextConsultDate = nextConsultDate,
+                modifier        = Modifier.padding(horizontal = 16.dp),
             )
         }
 
@@ -155,16 +153,12 @@ fun HomeScreen(
 @Composable
 private fun StatsCard(
     petCount: Int,
-    nextVaccine: Reminder?,
-    nextConsultation: Reminder?,
+    nextVaccineDate: String?,
+    nextConsultDate: String?,
     modifier: Modifier = Modifier,
 ) {
-    val vaccineDate = remember(nextVaccine?.dateTimeMillis) {
-        nextVaccine?.dateTimeMillis?.toShortDate() ?: "--"
-    }
-    val consultDate = remember(nextConsultation?.dateTimeMillis) {
-        nextConsultation?.dateTimeMillis?.toShortDate() ?: "--"
-    }
+    val vaccineDisplay = nextVaccineDate ?: "--"
+    val consultDisplay = nextConsultDate ?: "--"
 
     Card(
         modifier  = modifier.fillMaxWidth(),
@@ -193,7 +187,7 @@ private fun StatsCard(
             StatItem(
                 icon     = Icons.Rounded.Vaccines,
                 label    = "Próxima vacina",
-                value    = vaccineDate,
+                value    = vaccineDisplay,
                 modifier = Modifier.weight(1f),
             )
             VerticalDivider(
@@ -204,7 +198,7 @@ private fun StatsCard(
             StatItem(
                 icon     = Icons.Rounded.MedicalServices,
                 label    = "Próxima consulta",
-                value    = consultDate,
+                value    = consultDisplay,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -298,7 +292,7 @@ private fun TipCard(species: String?, modifier: Modifier = Modifier) {
     }
 }
 
-// ─── Card horizontal de pet — redesenhado sem círculo ────────────────────────
+// ─── Card horizontal de pet ───────────────────────────────────────────────────
 
 @Composable
 private fun PetHorizontalCard(pet: Pet) {
@@ -337,7 +331,6 @@ private fun PetHorizontalCard(pet: Pet) {
                         modifier           = Modifier.fillMaxSize(),
                     )
                 } else {
-                    // Sem foto: fundo laranja suave + ícone da espécie centralizado
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -380,7 +373,7 @@ private fun PetHorizontalCard(pet: Pet) {
                 )
             }
 
-            // ── Idade e espécie centralizadas ──────────────────────────────────
+            // ── Idade e espécie ────────────────────────────────────────────────
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -408,7 +401,6 @@ private fun PetHorizontalCard(pet: Pet) {
                         )
                     }
                 }
-                // Espécie
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -442,7 +434,7 @@ private fun EmptyPetsSection(
         verticalArrangement   = Arrangement.spacedBy(12.dp),
     ) {
         Image(
-            painter            = painterResource(R.drawable.onboarding_2_meuspets),
+            painter            = painterResource(R.drawable.vazio_meuspets),
             contentDescription = null,
             modifier           = Modifier.fillMaxWidth(0.68f),
         )
@@ -487,11 +479,6 @@ private fun EmptyPetsSection(
 
 // ─── Helpers privados ─────────────────────────────────────────────────────────
 
-private fun Long.toShortDate(): String {
-    val sdf = SimpleDateFormat("dd/MM", Locale("pt", "BR"))
-    return sdf.format(Date(this))
-}
-
 private fun speciesDrawable(species: String): Int =
     when (species.lowercase(Locale.getDefault())) {
         "gato"             -> R.drawable.icone_especie_gato
@@ -514,7 +501,7 @@ private fun petAgeLabel(pet: Pet): String {
                 (now.get(Calendar.YEAR) - birth.get(Calendar.YEAR)) * 12 +
                         now.get(Calendar.MONTH) - birth.get(Calendar.MONTH)
             when {
-                totalMonths < 1  -> "< 1 mês"
+                totalMonths < 1  -> "Filhote"
                 totalMonths < 12 -> "$totalMonths ${if (totalMonths == 1) "mês" else "meses"}"
                 else             -> {
                     val years  = totalMonths / 12

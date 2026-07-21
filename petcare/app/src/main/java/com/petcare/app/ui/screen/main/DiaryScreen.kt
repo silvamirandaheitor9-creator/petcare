@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -72,30 +74,26 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-// ─── Ponto de entrada da aba Diário (SPEC §9 — parte 1: estrutura) ───────────
+// ─── Ponto de entrada da aba Diário ──────────────────────────────────────────
 
 @Composable
 fun DiaryScreen(
     viewModel: DiaryViewModel = hiltViewModel(),
     showAddEntryPlaceholder: Boolean = false,
     onDismissAddEntryPlaceholder: () -> Unit = {},
-    // (bug fix SPEC 9.8-9.11) O editor de fotos deixou de ser um Dialog interno
-    // e virou uma rota de tela cheia normal do NavGraph — ver PetCareNavGraph.
     onNavigateToPhotoEditor: (Uri) -> Unit = {},
+    onEditEntry: (Long) -> Unit = {},
 ) {
-    // collectAsState() retorna State<T> — mantemos a referência para uso no derivedStateOf.
     val entriesState = viewModel.entries.collectAsState()
     val petsState    = viewModel.pets.collectAsState()
     val entries by entriesState
     val pets    by petsState
 
-    // ── Fluxo do "+": escolher foto da galeria → editor de fotos (SPEC 9.8-9.11) ──
+    // ── Fluxo do "+": galeria → editor de fotos ───────────────────────────────
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
-        if (uri != null) {
-            onNavigateToPhotoEditor(uri)
-        }
+        if (uri != null) onNavigateToPhotoEditor(uri)
         onDismissAddEntryPlaceholder()
     }
     LaunchedEffect(showAddEntryPlaceholder) {
@@ -108,13 +106,8 @@ fun DiaryScreen(
         }
     }
 
-    // Filtro por pet (SPEC 9.3) — sem chips de categoria (9.2). Só aparece
-    // quando há pets cadastrados; "Todos" sempre visível como primeira opção.
     var selectedPetId by rememberSaveable { mutableStateOf<Long?>(null) }
 
-    // derivedStateOf: só recompõe o conteúdo da lista quando o resultado do
-    // filtro efetivamente muda — se uma entrada não relacionada ao pet selecionado
-    // for atualizada, a UI do Diário não pisca desnecessariamente.
     val visibleEntries by remember {
         derivedStateOf {
             val e = entriesState.value
@@ -124,11 +117,8 @@ fun DiaryScreen(
 
     var entryPendingDelete by remember { mutableStateOf<DiaryEntry?>(null) }
 
-    // ── Controle de "quais entradas já foram vistas" para a animação polaroid
-    // (SPEC 9.12): só entradas inseridas DEPOIS do carregamento inicial da tela
-    // tocam a animação; as que já existiam aparecem direto, sem efeito.
-    val hasLoadedOnce = remember { mutableStateOf(false) }
-    val knownEntryIds = remember { mutableSetOf<Long>() }
+    val hasLoadedOnce  = remember { mutableStateOf(false) }
+    val knownEntryIds  = remember { mutableSetOf<Long>() }
     LaunchedEffect(entries) {
         if (!hasLoadedOnce.value) {
             knownEntryIds += entries.map { it.id }
@@ -146,9 +136,9 @@ fun DiaryScreen(
             if (pets.size > 1) {
                 item {
                     PetFilterRow(
-                        pets = pets,
+                        pets          = pets,
                         selectedPetId = selectedPetId,
-                        onSelect = { selectedPetId = it },
+                        onSelect      = { selectedPetId = it },
                     )
                 }
                 item { Spacer(Modifier.height(8.dp)) }
@@ -157,15 +147,16 @@ fun DiaryScreen(
             items(visibleEntries, key = { it.id }) { entry ->
                 val pet = pets.firstOrNull { it.id == entry.petId }
                 PolaroidReveal(
-                    entryId = entry.id,
+                    entryId      = entry.id,
                     hasLoadedOnce = hasLoadedOnce.value,
                     knownEntryIds = knownEntryIds,
                 ) {
                     DiaryEntryCard(
-                        entry = entry,
-                        petName = pet?.name ?: "Pet",
+                        entry          = entry,
+                        petName        = pet?.name ?: "Pet",
                         onDeleteRequest = { entryPendingDelete = entry },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        onEditRequest   = { onEditEntry(entry.id) },
+                        modifier        = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                 }
             }
@@ -174,12 +165,14 @@ fun DiaryScreen(
         }
     }
 
-    // ── Confirmação de exclusão (SPEC 9.6) ────────────────────────────────────
+    // ── Confirmação de exclusão ───────────────────────────────────────────────
     entryPendingDelete?.let { entry ->
         AlertDialog(
             onDismissRequest = { entryPendingDelete = null },
             title = { Text("Excluir registro?") },
-            text = { Text("Essa foto e legenda serão removidas do diário. Essa ação não pode ser desfeita.") },
+            text  = {
+                Text("Essa foto e legenda serão removidas do diário. Essa ação não pode ser desfeita.")
+            },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteEntry(entry)
@@ -193,12 +186,9 @@ fun DiaryScreen(
             },
         )
     }
-
 }
 
-// ─── Filtro por pet (chips) ────────────────────────────────────────────────────
-// Recebe ImmutableList<Pet> — o compilador do Compose reconhece como estável
-// e não recompõe este composable quando outras partes da tela atualizam.
+// ─── Filtro por pet ───────────────────────────────────────────────────────────
 
 @Composable
 private fun PetFilterRow(
@@ -208,47 +198,46 @@ private fun PetFilterRow(
 ) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp),
+        contentPadding        = PaddingValues(horizontal = 16.dp),
     ) {
         item {
             FilterChip(
                 selected = selectedPetId == null,
-                onClick = { onSelect(null) },
-                label = { Text("Todos") },
-                colors = FilterChipDefaults.filterChipColors(
+                onClick  = { onSelect(null) },
+                label    = { Text("Todos") },
+                colors   = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = OrangePrimary.copy(alpha = 0.16f),
-                    selectedLabelColor = OrangePrimary,
+                    selectedLabelColor     = OrangePrimary,
                 ),
             )
         }
         items(pets, key = { it.id }) { pet ->
             FilterChip(
                 selected = selectedPetId == pet.id,
-                onClick = { onSelect(pet.id) },
-                label = { Text(pet.name) },
-                colors = FilterChipDefaults.filterChipColors(
+                onClick  = { onSelect(pet.id) },
+                label    = { Text(pet.name) },
+                colors   = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = OrangePrimary.copy(alpha = 0.16f),
-                    selectedLabelColor = OrangePrimary,
+                    selectedLabelColor     = OrangePrimary,
                 ),
             )
         }
     }
 }
 
-// ─── Card de entrada na timeline (SPEC 9.4–9.6) ───────────────────────────────
+// ─── Card de entrada no diário ────────────────────────────────────────────────
 
 @Composable
 private fun DiaryEntryCard(
     entry: DiaryEntry,
     petName: String,
     onDeleteRequest: () -> Unit,
+    onEditRequest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val dateStr = remember(entry.dateMillis) { entry.dateMillis.toDiaryDate() }
 
-    // ImageRequest memoizado: criado uma única vez por caminho de foto.
-    // memoryCacheKey + diskCacheKey explícitos garantem acertos de cache ao rolar
-    // a lista — Coil não precisa re-decodificar o bitmap quando o card volta à tela.
     val imageRequest = remember(entry.photoPath) {
         ImageRequest.Builder(context)
             .data(if (entry.photoPath.isNotEmpty()) File(entry.photoPath) else null)
@@ -263,83 +252,85 @@ private fun DiaryEntryCard(
     }
 
     Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        modifier  = modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column {
-            // Foto grande (SPEC 9.4)
+            // ── Foto ──────────────────────────────────────────────────────────
             AsyncImage(
-                model = imageRequest,
+                model              = imageRequest,
                 contentDescription = "Foto de $petName",
-                contentScale = ContentScale.Crop,
-                fallback = painterResource(R.drawable.avatar_pet_padrao),
-                error = painterResource(R.drawable.avatar_pet_padrao),
-                placeholder = painterResource(R.drawable.avatar_pet_padrao),
-                modifier = Modifier
+                contentScale       = ContentScale.Crop,
+                fallback           = painterResource(R.drawable.avatar_pet_padrao),
+                error              = painterResource(R.drawable.avatar_pet_padrao),
+                placeholder        = painterResource(R.drawable.avatar_pet_padrao),
+                modifier           = Modifier
                     .fillMaxWidth()
                     .height(240.dp)
                     .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)),
             )
 
-            Column(modifier = Modifier.padding(14.dp)) {
-                // Data + pet relacionado
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                // ── Cabeçalho: nome do pet + data ─────────────────────────────
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text(
-                        text = petName,
-                        style = MaterialTheme.typography.labelMedium,
+                        text       = "🐾 $petName",
+                        style      = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = OrangePrimary,
+                        color      = OrangePrimary,
                     )
                     Text(
-                        text = "·",
+                        text  = "·",
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                     )
                     Text(
-                        text = entry.dateMillis.toDiaryDate(),
+                        text  = dateStr,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                     )
                 }
 
+                // ── Legenda ───────────────────────────────────────────────────
                 if (entry.caption.isNotBlank()) {
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        // Legenda limitada a 140 caracteres já na origem (SPEC 9.4);
-                        // truncamento aqui é apenas defensivo.
-                        text = entry.caption.take(140),
+                        text  = entry.caption.take(140),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f),
                     )
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
 
-                // Ações: compartilhar, editar, excluir (SPEC 9.5–9.6)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    IconButton(onClick = { shareDiaryEntry(context, entry) }) {
+                // ── Ações: compartilhar, editar, excluir ──────────────────────
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(0.dp),
+                    verticalAlignment     = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = { shareDiaryEntry(context, entry, petName, dateStr) }) {
                         Icon(
-                            imageVector = Icons.Rounded.Share,
+                            imageVector        = Icons.Rounded.Share,
                             contentDescription = "Compartilhar",
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                            tint               = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
                         )
                     }
-                    IconButton(onClick = { /* TODO próxima tarefa: editor de fotos (SPEC 9.8-9.11) */ }) {
+                    IconButton(onClick = onEditRequest) {
                         Icon(
-                            imageVector = Icons.Rounded.Edit,
-                            contentDescription = "Editar",
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                            imageVector        = Icons.Rounded.Edit,
+                            contentDescription = "Editar legenda",
+                            tint               = OrangePrimary.copy(alpha = 0.80f),
                         )
                     }
                     IconButton(onClick = onDeleteRequest) {
                         Icon(
-                            imageVector = Icons.Rounded.Delete,
+                            imageVector        = Icons.Rounded.Delete,
                             contentDescription = "Excluir",
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.75f),
+                            tint               = MaterialTheme.colorScheme.error.copy(alpha = 0.75f),
                         )
                     }
                 }
@@ -348,26 +339,44 @@ private fun DiaryEntryCard(
     }
 }
 
-/** Dispara um Intent.ACTION_SEND com a foto (via FileProvider) + legenda. */
-private fun shareDiaryEntry(context: android.content.Context, entry: DiaryEntry) {
+/**
+ * Compartilha a foto + uma mensagem formatada com o nome do pet, legenda e data.
+ * Muito mais criativo do que mandar apenas a foto — cria um mini "cartão de memória".
+ */
+private fun shareDiaryEntry(
+    context: android.content.Context,
+    entry: DiaryEntry,
+    petName: String,
+    dateStr: String,
+) {
     if (entry.photoPath.isEmpty()) return
     val file = File(entry.photoPath)
     if (!file.exists()) return
 
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+
+    val shareText = buildString {
+        appendLine("🐾 Momentos com $petName")
+        appendLine()
+        if (entry.caption.isNotBlank()) {
+            appendLine("\"${entry.caption}\"")
+            appendLine()
+        }
+        appendLine("📅 $dateStr")
+        appendLine()
+        append("Compartilhado com amor via PetCare 🐾")
+    }
+
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "image/*"
         putExtra(Intent.EXTRA_STREAM, uri)
-        if (entry.caption.isNotBlank()) putExtra(Intent.EXTRA_TEXT, entry.caption)
+        putExtra(Intent.EXTRA_TEXT, shareText)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     context.startActivity(Intent.createChooser(intent, "Compartilhar via"))
 }
 
-// ─── Animação polaroid ao adicionar entrada (SPEC 9.12) ──────────────────────
-// Rotação leve → endireita com bounce. Entradas já existentes no primeiro
-// carregamento aparecem sem animação; só entradas novas (id ainda não visto
-// nesta composição da tela) tocam o efeito.
+// ─── Animação polaroid ao adicionar entrada ───────────────────────────────────
 
 @Composable
 private fun PolaroidReveal(
@@ -383,7 +392,7 @@ private fun PolaroidReveal(
     }
 
     val rotation = remember(entryId) { Animatable(if (isNewEntry) -9f else 0f) }
-    val scale = remember(entryId) { Animatable(if (isNewEntry) 0.82f else 1f) }
+    val scale    = remember(entryId) { Animatable(if (isNewEntry) 0.82f else 1f) }
 
     LaunchedEffect(entryId) {
         if (isNewEntry) {
@@ -405,25 +414,21 @@ private fun PolaroidReveal(
     Box(
         modifier = Modifier.graphicsLayer {
             rotationZ = rotation.value
-            scaleX = scale.value
-            scaleY = scale.value
+            scaleX    = scale.value
+            scaleY    = scale.value
         },
     ) {
         content()
     }
 }
 
-// ─── Estado vazio: nenhum registro no diário (SPEC 9.1) ──────────────────────
-// Centralizado com Box(fillMaxSize, contentAlignment = Center) — mesmo padrão
-// validado nas seções 7 e 8. Sem botão de CTA: a aba já tem seu FAB "+" próprio.
-// O carregamento inicial já é marcado no DiaryScreen (hasLoadedOnce), então
-// este estado não precisa de lógica própria para a animação polaroid.
+// ─── Estado vazio ─────────────────────────────────────────────────────────────
 
 @Composable
 private fun EmptyDiarySection() {
     Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+        modifier          = Modifier.fillMaxSize(),
+        contentAlignment  = Alignment.Center,
     ) {
         Column(
             modifier = Modifier
@@ -433,25 +438,22 @@ private fun EmptyDiarySection() {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Image(
-                painter = painterResource(R.drawable.vazio_diario),
+                painter            = painterResource(R.drawable.vazio_diario),
                 contentDescription = null,
-                modifier = Modifier.fillMaxWidth(0.62f),
+                modifier           = Modifier.fillMaxWidth(0.62f),
             )
-
             Spacer(Modifier.height(4.dp))
-
             Text(
-                text = "Seu diário ainda está em branco",
-                style = MaterialTheme.typography.titleMedium,
+                text       = "Seu diário ainda está em branco",
+                style      = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center,
+                color      = MaterialTheme.colorScheme.onBackground,
+                textAlign  = TextAlign.Center,
             )
-
             Text(
-                text = "Toque no + para guardar os primeiros momentos com seu pet.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.60f),
+                text      = "Toque no + para guardar os primeiros momentos com seu pet.",
+                style     = MaterialTheme.typography.bodyMedium,
+                color     = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.60f),
                 textAlign = TextAlign.Center,
             )
         }
@@ -460,6 +462,5 @@ private fun EmptyDiarySection() {
 
 // ─── Helpers privados ─────────────────────────────────────────────────────────
 
-// Instância única reutilizada — toDiaryDate() só é chamada da main thread (Compose).
 private val DIARY_DATE_SDF = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
 private fun Long.toDiaryDate(): String = DIARY_DATE_SDF.format(java.util.Date(this))

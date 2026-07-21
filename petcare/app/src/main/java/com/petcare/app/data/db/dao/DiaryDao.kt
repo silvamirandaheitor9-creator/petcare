@@ -20,4 +20,7 @@ interface DiaryDao {
 
     @Delete
     suspend fun deleteEntry(entry: DiaryEntry)
+
+    @Query("SELECT * FROM diary_entries WHERE id = :id LIMIT 1")
+    fun getEntryById(id: Long): Flow<DiaryEntry?>
 }
