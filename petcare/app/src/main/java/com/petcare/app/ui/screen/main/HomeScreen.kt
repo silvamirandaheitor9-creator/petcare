@@ -514,9 +514,9 @@ private fun EmptyPetsSection(
         verticalArrangement   = Arrangement.spacedBy(12.dp),
     ) {
         Image(
-            painter            = painterResource(R.drawable.onboarding_1_boasvindas),
+            painter            = painterResource(R.drawable.vazio_meuspets),
             contentDescription = null,
-            modifier           = Modifier.fillMaxWidth(0.80f),
+            modifier           = Modifier.fillMaxWidth(0.72f),
         )
         Spacer(Modifier.height(4.dp))
         Text(
