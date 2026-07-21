@@ -49,8 +49,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -141,7 +139,6 @@ fun NewPetScreen(
     var breed        by rememberSaveable { mutableStateOf("") }
     var birthDateIso by rememberSaveable { mutableStateOf("") }
     var weightText   by rememberSaveable { mutableStateOf("") }
-    var isCastrated  by rememberSaveable { mutableStateOf(false) }
     var formPreFilled by rememberSaveable { mutableStateOf(false) }
 
     // Pré-preenche ao editar
@@ -154,7 +151,6 @@ fun NewPetScreen(
             breed        = p.breed
             birthDateIso = p.birthDate
             weightText   = if (p.weightKg > 0.0) p.weightKg.toString() else ""
-            isCastrated  = p.isCastrated
             formPreFilled = true
         }
     }
@@ -396,41 +392,6 @@ fun NewPetScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                // ── Castrado(a) ───────────────────────────────────────────────
-                androidx.compose.material3.Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = androidx.compose.material3.CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column {
-                            Text(
-                                "Castrado(a)",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                            )
-                            Text(
-                                "Importante para os cuidados de saúde",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f),
-                            )
-                        }
-                        Switch(
-                            checked = isCastrated,
-                            onCheckedChange = { isCastrated = it },
-                            colors = SwitchDefaults.colors(checkedTrackColor = OrangePrimary),
-                        )
-                    }
-                }
-
                 Spacer(Modifier.height(8.dp))
             }
 
@@ -454,7 +415,7 @@ fun NewPetScreen(
                             species       = species ?: "outro",
                             breed         = breed.trim(),
                             sex           = sex ?: "",
-                            isCastrated   = isCastrated,
+                            isCastrated   = editingPet?.isCastrated ?: false,
                             birthDate     = birthDateIso,
                             weightKg      = weightValue ?: 0.0,
                             photoPath     = photoPath ?: "",

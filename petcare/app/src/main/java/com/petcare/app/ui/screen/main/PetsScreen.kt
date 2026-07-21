@@ -5,10 +5,10 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -61,7 +61,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -254,12 +253,14 @@ private fun PetGridCard(
                         ),
                 )
 
-                // Nome + sexo sobre o gradiente
+                // Nome + sexo + idade centralizados sobre o gradiente
                 Column(
                     modifier = Modifier
-                        .align(Alignment.BottomStart)
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
                         .padding(horizontal = 10.dp, vertical = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -272,7 +273,6 @@ private fun PetGridCard(
                             color = Color.White,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false),
                         )
                         when (pet.sex.trim().lowercase()) {
                             "macho" -> Icon(
@@ -289,10 +289,33 @@ private fun PetGridCard(
                             )
                         }
                     }
-                    // Idade como badge compacto
+                    // Idade como badge compacto centralizado
                     if (ageLabel.isNotBlank()) {
                         AgeBadge(ageLabel)
                     }
+                }
+
+                // Espécie — badge no canto superior esquerdo
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                        .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(50.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Image(
+                        painter = painterResource(speciesIcon),
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        text = pet.species.replaceFirstChar { it.uppercaseChar() },
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.90f),
+                    )
                 }
 
                 // Botão de ações (3 pontos) — canto superior direito
@@ -334,19 +357,18 @@ private fun PetGridCard(
             }
 
             // ── Menu deslizante animado: Editar / Remover ────────────────────
-            // scaleIn a partir do canto superior direito (onde está o botão)
             AnimatedVisibility(
                 visible = showActions,
-                enter = scaleIn(
+                enter = expandVertically(
                     animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        dampingRatio = Spring.DampingRatioNoBouncy,
                         stiffness = Spring.StiffnessMediumLow,
                     ),
-                    transformOrigin = TransformOrigin(1f, 0f),
-                ) + fadeIn(tween(120)),
-                exit = scaleOut(
-                    animationSpec = tween(110),
-                    transformOrigin = TransformOrigin(1f, 0f),
+                    expandFrom = Alignment.Top,
+                ) + fadeIn(tween(160)),
+                exit = shrinkVertically(
+                    animationSpec = tween(140),
+                    shrinkTowards = Alignment.Top,
                 ) + fadeOut(tween(100)),
             ) {
                 Row(

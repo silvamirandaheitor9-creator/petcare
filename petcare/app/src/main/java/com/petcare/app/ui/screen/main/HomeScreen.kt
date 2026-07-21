@@ -380,31 +380,50 @@ private fun PetHorizontalCard(pet: Pet) {
                 )
             }
 
-            // ── Idade como badge com ícone ─────────────────────────────────────
-            if (ageLabel.isNotBlank()) {
+            // ── Idade e espécie centralizadas ──────────────────────────────────
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                if (ageLabel.isNotBlank()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Cake,
+                            contentDescription = null,
+                            tint = OrangePrimary,
+                            modifier = Modifier.size(13.dp),
+                        )
+                        Text(
+                            text = ageLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                // Espécie
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Cake,
+                    Image(
+                        painter = painterResource(speciesDrawable(pet.species)),
                         contentDescription = null,
-                        tint = OrangePrimary,
-                        modifier = Modifier.size(13.dp),
+                        modifier = Modifier.size(14.dp),
                     )
                     Text(
-                        text = ageLabel,
+                        text = pet.species.replaceFirstChar { it.uppercaseChar() },
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                     )
                 }
-            } else {
-                Spacer(Modifier.height(8.dp))
             }
         }
     }
