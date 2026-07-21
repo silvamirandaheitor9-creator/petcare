@@ -21,10 +21,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Alarm
 import androidx.compose.material.icons.rounded.AutoStories
-import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Pets
-import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -73,11 +72,11 @@ private enum class MainTab(
     /** Quando true, exibe o FAB "+" de ação. */
     val hasAddFab: Boolean,
 ) {
-    HOME     (label = "Início",    icon = Icons.Rounded.Favorite,      hasAddFab = false),
-    PETS     (label = "Meus Pets", icon = Icons.Rounded.Pets,          hasAddFab = true),
-    DIARY    (label = "Diário",    icon = Icons.Rounded.PhotoLibrary,   hasAddFab = true),
-    REMINDERS(label = "Lembretes", icon = Icons.Rounded.Alarm,         hasAddFab = true),
-    PROFILE  (label = "Perfil",    icon = Icons.Rounded.Person,        hasAddFab = false),
+    HOME     (label = "Início",    icon = Icons.Rounded.Home,        hasAddFab = false),
+    PETS     (label = "Meus Pets", icon = Icons.Rounded.Pets,        hasAddFab = true),
+    DIARY    (label = "Diário",    icon = Icons.Rounded.AutoStories,  hasAddFab = true),
+    REMINDERS(label = "Lembretes", icon = Icons.Rounded.Alarm,       hasAddFab = true),
+    PROFILE  (label = "Perfil",    icon = Icons.Rounded.Person,      hasAddFab = false),
 }
 
 // ─── Tela principal ───────────────────────────────────────────────────────────
