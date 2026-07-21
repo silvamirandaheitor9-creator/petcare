@@ -6,8 +6,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,12 +26,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -50,6 +56,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -72,6 +80,8 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 // ─── Ponto de entrada da aba Diário ──────────────────────────────────────────
@@ -133,27 +143,32 @@ fun DiaryScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = 12.dp, bottom = 96.dp),
         ) {
+            // Header com contador de memórias
+            item(key = "memories_header") {
+                MemoriesHeader(count = entries.size)
+            }
+
             if (pets.size > 1) {
-                item {
+                item(key = "pet_filter") {
                     PetFilterRow(
                         pets          = pets,
                         selectedPetId = selectedPetId,
                         onSelect      = { selectedPetId = it },
                     )
                 }
-                item { Spacer(Modifier.height(8.dp)) }
+                item(key = "filter_spacer") { Spacer(Modifier.height(8.dp)) }
             }
 
             items(visibleEntries, key = { it.id }) { entry ->
                 val pet = pets.firstOrNull { it.id == entry.petId }
                 PolaroidReveal(
-                    entryId      = entry.id,
+                    entryId       = entry.id,
                     hasLoadedOnce = hasLoadedOnce.value,
                     knownEntryIds = knownEntryIds,
                 ) {
                     DiaryEntryCard(
-                        entry          = entry,
-                        petName        = pet?.name ?: "Pet",
+                        entry           = entry,
+                        petName         = pet?.name ?: "Pet",
                         onDeleteRequest = { entryPendingDelete = entry },
                         onEditRequest   = { onEditEntry(entry.id) },
                         modifier        = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -161,7 +176,7 @@ fun DiaryScreen(
                 }
             }
 
-            item { Spacer(Modifier.height(20.dp)) }
+            item(key = "bottom_spacer") { Spacer(Modifier.height(20.dp)) }
         }
     }
 
@@ -169,21 +184,59 @@ fun DiaryScreen(
     entryPendingDelete?.let { entry ->
         AlertDialog(
             onDismissRequest = { entryPendingDelete = null },
-            title = { Text("Excluir registro?") },
-            text  = {
-                Text("Essa foto e legenda serão removidas do diário. Essa ação não pode ser desfeita.")
+            shape = RoundedCornerShape(20.dp),
+            title = {
+                Text(
+                    text       = "Remover esta memória?",
+                    fontWeight = FontWeight.Bold,
+                )
+            },
+            text = {
+                Text("Esta foto e legenda serão removidas do diário para sempre. Essa ação não pode ser desfeita.")
             },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.deleteEntry(entry)
-                    entryPendingDelete = null
-                }) {
-                    Text("Excluir", color = MaterialTheme.colorScheme.error)
+                Button(
+                    onClick = {
+                        viewModel.deleteEntry(entry)
+                        entryPendingDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
+                    shape = RoundedCornerShape(50),
+                ) {
+                    Text("Remover", fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { entryPendingDelete = null }) { Text("Cancelar") }
+                TextButton(onClick = { entryPendingDelete = null }) {
+                    Text("Cancelar")
+                }
             },
+        )
+    }
+}
+
+// ─── Header de memórias ───────────────────────────────────────────────────────
+
+@Composable
+private fun MemoriesHeader(count: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text       = "📸",
+            style      = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text       = if (count == 1) "1 memória guardada" else "$count memórias guardadas",
+            style      = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color      = MaterialTheme.colorScheme.onBackground,
         )
     }
 }
@@ -225,7 +278,7 @@ private fun PetFilterRow(
     }
 }
 
-// ─── Card de entrada no diário ────────────────────────────────────────────────
+// ─── Card de entrada no diário (redesenhado) ──────────────────────────────────
 
 @Composable
 private fun DiaryEntryCard(
@@ -235,8 +288,9 @@ private fun DiaryEntryCard(
     onEditRequest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
-    val dateStr = remember(entry.dateMillis) { entry.dateMillis.toDiaryDate() }
+    val context     = LocalContext.current
+    val friendlyDate = remember(entry.dateMillis) { entry.dateMillis.toFriendlyDate() }
+    val fullDateStr  = remember(entry.dateMillis) { entry.dateMillis.toDiaryDate() }
 
     val imageRequest = remember(entry.photoPath) {
         ImageRequest.Builder(context)
@@ -253,96 +307,158 @@ private fun DiaryEntryCard(
 
     Card(
         modifier  = modifier.fillMaxWidth(),
-        shape     = RoundedCornerShape(18.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        shape     = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column {
-            // ── Foto ──────────────────────────────────────────────────────────
-            AsyncImage(
-                model              = imageRequest,
-                contentDescription = "Foto de $petName",
-                contentScale       = ContentScale.Crop,
-                fallback           = painterResource(R.drawable.avatar_pet_padrao),
-                error              = painterResource(R.drawable.avatar_pet_padrao),
-                placeholder        = painterResource(R.drawable.avatar_pet_padrao),
-                modifier           = Modifier
+            // ── Foto com overlays (pet badge + data) ──────────────────────────
+            Box(
+                modifier = Modifier
                     .fillMaxWidth()
-                    .height(240.dp)
-                    .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)),
-            )
+                    .height(260.dp),
+            ) {
+                AsyncImage(
+                    model              = imageRequest,
+                    contentDescription = "Foto de $petName",
+                    contentScale       = ContentScale.Crop,
+                    fallback           = painterResource(R.drawable.avatar_pet_padrao),
+                    error              = painterResource(R.drawable.avatar_pet_padrao),
+                    placeholder        = painterResource(R.drawable.avatar_pet_padrao),
+                    modifier           = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
+                )
 
-            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-                // ── Cabeçalho: nome do pet + data ─────────────────────────────
-                Row(
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                // Gradiente inferior para legibilidade dos badges
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(110.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.72f)),
+                            ),
+                        ),
+                )
+
+                // Badge do nome do pet (canto inferior esquerdo)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(12.dp)
+                        .background(OrangePrimary, RoundedCornerShape(50))
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
                 ) {
                     Text(
                         text       = "🐾 $petName",
                         style      = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color      = OrangePrimary,
-                    )
-                    Text(
-                        text  = "·",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                    )
-                    Text(
-                        text  = dateStr,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        color      = Color.White,
                     )
                 }
 
-                // ── Legenda ───────────────────────────────────────────────────
-                if (entry.caption.isNotBlank()) {
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text  = entry.caption.take(140),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f),
-                    )
-                }
-
-                Spacer(Modifier.height(4.dp))
-
-                // ── Ações: compartilhar, editar, excluir ──────────────────────
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(0.dp),
-                    verticalAlignment     = Alignment.CenterVertically,
+                // Badge da data amigável (canto superior direito)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                        .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(50))
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
                 ) {
-                    IconButton(onClick = { shareDiaryEntry(context, entry, petName, dateStr) }) {
-                        Icon(
-                            imageVector        = Icons.Rounded.Share,
-                            contentDescription = "Compartilhar",
-                            tint               = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
-                        )
-                    }
-                    IconButton(onClick = onEditRequest) {
-                        Icon(
-                            imageVector        = Icons.Rounded.Edit,
-                            contentDescription = "Editar legenda",
-                            tint               = OrangePrimary.copy(alpha = 0.80f),
-                        )
-                    }
-                    IconButton(onClick = onDeleteRequest) {
-                        Icon(
-                            imageVector        = Icons.Rounded.Delete,
-                            contentDescription = "Excluir",
-                            tint               = MaterialTheme.colorScheme.error.copy(alpha = 0.75f),
-                        )
-                    }
+                    Text(
+                        text  = friendlyDate,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.92f),
+                    )
+                }
+            }
+
+            // ── Legenda (se houver) ────────────────────────────────────────────
+            if (entry.caption.isNotBlank()) {
+                Text(
+                    text     = "\"${entry.caption.take(140)}\"",
+                    style    = MaterialTheme.typography.bodyMedium,
+                    color    = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+            } else {
+                Spacer(Modifier.height(8.dp))
+            }
+
+            // ── Linha separadora sutil ─────────────────────────────────────────
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp)
+                    .height(1.dp)
+                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.10f)),
+            )
+
+            // ── Barra de ações ────────────────────────────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment     = Alignment.CenterVertically,
+            ) {
+                // Botão de compartilhar — ação principal, destaque laranja
+                Button(
+                    onClick = { shareDiaryEntry(context, entry, petName, fullDateStr) },
+                    colors  = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                    shape   = RoundedCornerShape(50),
+                    modifier = Modifier.height(36.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp),
+                ) {
+                    Icon(
+                        imageVector        = Icons.Rounded.Share,
+                        contentDescription = null,
+                        modifier           = Modifier.size(15.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text       = "Compartilhar",
+                        style      = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+
+                Spacer(Modifier.weight(1f))
+
+                // Editar
+                IconButton(
+                    onClick  = onEditRequest,
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        imageVector        = Icons.Rounded.Edit,
+                        contentDescription = "Editar legenda",
+                        tint               = OrangePrimary.copy(alpha = 0.82f),
+                        modifier           = Modifier.size(20.dp),
+                    )
+                }
+
+                // Excluir
+                IconButton(
+                    onClick  = onDeleteRequest,
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        imageVector        = Icons.Rounded.Delete,
+                        contentDescription = "Excluir",
+                        tint               = MaterialTheme.colorScheme.error.copy(alpha = 0.75f),
+                        modifier           = Modifier.size(20.dp),
+                    )
                 }
             }
         }
     }
 }
 
-/**
- * Compartilha a foto + uma mensagem formatada com o nome do pet, legenda e data.
- * Muito mais criativo do que mandar apenas a foto — cria um mini "cartão de memória".
- */
+// ─── Compartilhamento temático e personalizado ────────────────────────────────
+
 private fun shareDiaryEntry(
     context: android.content.Context,
     entry: DiaryEntry,
@@ -356,24 +472,27 @@ private fun shareDiaryEntry(
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 
     val shareText = buildString {
-        appendLine("🐾 Momentos com $petName")
-        appendLine()
+        appendLine("💛 ${petName.uppercase()} — Diário PetCare")
+        appendLine("──────────────────")
         if (entry.caption.isNotBlank()) {
-            appendLine("\"${entry.caption}\"")
             appendLine()
+            appendLine("\"${entry.caption}\"")
         }
+        appendLine()
         appendLine("📅 $dateStr")
         appendLine()
-        append("Compartilhado com amor via PetCare 🐾")
+        val tag = petName.replace(" ", "")
+        append("#PetCare #$tag #MeuPet #AmorPelosPets #DiárioPetCare")
     }
 
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "image/*"
         putExtra(Intent.EXTRA_STREAM, uri)
         putExtra(Intent.EXTRA_TEXT, shareText)
+        putExtra(Intent.EXTRA_SUBJECT, "Memórias do $petName 🐾")
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(intent, "Compartilhar via"))
+    context.startActivity(Intent.createChooser(intent, "Compartilhar memória de $petName"))
 }
 
 // ─── Animação polaroid ao adicionar entrada ───────────────────────────────────
@@ -427,8 +546,8 @@ private fun PolaroidReveal(
 @Composable
 private fun EmptyDiarySection() {
     Box(
-        modifier          = Modifier.fillMaxSize(),
-        contentAlignment  = Alignment.Center,
+        modifier         = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
     ) {
         Column(
             modifier = Modifier
@@ -444,14 +563,14 @@ private fun EmptyDiarySection() {
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text       = "Seu diário ainda está em branco",
+                text       = "Seu diário de memórias está em branco",
                 style      = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color      = MaterialTheme.colorScheme.onBackground,
                 textAlign  = TextAlign.Center,
             )
             Text(
-                text      = "Toque no + para guardar os primeiros momentos com seu pet.",
+                text      = "Toque no 📸 para guardar o primeiro momento especial com seu pet.",
                 style     = MaterialTheme.typography.bodyMedium,
                 color     = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.60f),
                 textAlign = TextAlign.Center,
@@ -462,5 +581,29 @@ private fun EmptyDiarySection() {
 
 // ─── Helpers privados ─────────────────────────────────────────────────────────
 
-private val DIARY_DATE_SDF = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
-private fun Long.toDiaryDate(): String = DIARY_DATE_SDF.format(java.util.Date(this))
+private val DIARY_DATE_SDF      = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
+private val DIARY_WEEKDAY_SDF   = SimpleDateFormat("EEEE", Locale("pt", "BR"))
+
+private fun Long.toDiaryDate(): String = DIARY_DATE_SDF.format(Date(this))
+
+/**
+ * Retorna label amigável:
+ * - "Hoje" / "Ontem" para as duas últimas datas
+ * - Nome do dia da semana para os últimos 7 dias
+ * - dd/MM/yyyy para datas mais antigas
+ */
+private fun Long.toFriendlyDate(): String {
+    val now   = Calendar.getInstance()
+    val entry = Calendar.getInstance().apply { timeInMillis = this@toFriendlyDate }
+
+    val sameYear  = now.get(Calendar.YEAR) == entry.get(Calendar.YEAR)
+    val daysDiff  = ((now.timeInMillis - this) / (24L * 60 * 60 * 1000)).toInt()
+
+    return when {
+        sameYear && now.get(Calendar.DAY_OF_YEAR) == entry.get(Calendar.DAY_OF_YEAR) -> "Hoje"
+        sameYear && daysDiff == 1 -> "Ontem"
+        daysDiff < 7              -> DIARY_WEEKDAY_SDF.format(Date(this))
+            .replaceFirstChar { it.uppercaseChar() }
+        else                      -> toDiaryDate()
+    }
+}

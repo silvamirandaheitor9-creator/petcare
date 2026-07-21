@@ -74,18 +74,35 @@ class HomeViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /**
-     * Data da próxima CONSULTA (category == "consulta") dos lembretes.
-     * Formatada como "dd/MM". Null se nenhuma no futuro.
+     * Data da próxima CONSULTA — combina duas fontes:
+     * 1. Lembretes com category == "consulta" (criados via aba Lembretes)
+     * 2. HealthRecords tipo "consultation" com data futura (adicionados em PetDetailScreen)
+     *
+     * Retorna a data mais próxima no futuro, formatada "dd/MM". Null se nenhuma.
      */
-    val nextConsultDate: StateFlow<String?> = reminderDao.getPendingReminders()
-        .map { list ->
-            val now = System.currentTimeMillis()
-            list.filter { it.category == "consulta" && it.dateTimeMillis > now }
-                .minByOrNull { it.dateTimeMillis }
-                ?.dateTimeMillis
-                ?.toShortDate()
+    val nextConsultDate: StateFlow<String?> = combine(
+        reminderDao.getPendingReminders(),
+        healthRecordDao.getUpcomingConsultations(System.currentTimeMillis()),
+    ) { reminders, consultRecords ->
+        val now = System.currentTimeMillis()
+
+        val fromReminders = reminders
+            .filter { it.category == "consulta" && it.dateTimeMillis > now }
+            .minByOrNull { it.dateTimeMillis }
+            ?.dateTimeMillis
+
+        val fromRecords = consultRecords
+            .filter { it.dateMillis > now }
+            .minByOrNull { it.dateMillis }
+            ?.dateMillis
+
+        val earliest = when {
+            fromReminders == null -> fromRecords
+            fromRecords   == null -> fromReminders
+            else                  -> minOf(fromReminders, fromRecords)
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        earliest?.toShortDate()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 }
 
 // ─── Helpers privados ─────────────────────────────────────────────────────────

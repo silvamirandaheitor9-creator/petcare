@@ -30,4 +30,8 @@ interface HealthRecordDao {
     /** Todos os registros de vacina que possuem nextDoseDate preenchido. */
     @Query("SELECT * FROM health_records WHERE type = 'vaccine' AND nextDoseDate != '' ORDER BY dateMillis ASC")
     fun getVaccinesWithNextDose(): Flow<List<HealthRecord>>
+
+    /** Consultas agendadas no futuro (dateMillis > agora). */
+    @Query("SELECT * FROM health_records WHERE type = 'consultation' AND dateMillis > :nowMillis ORDER BY dateMillis ASC")
+    fun getUpcomingConsultations(nowMillis: Long): Flow<List<HealthRecord>>
 }
