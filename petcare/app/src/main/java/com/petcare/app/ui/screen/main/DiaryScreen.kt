@@ -328,7 +328,7 @@ private fun DiaryEntryCard(
             .diskCacheKey(entry.photoPath)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
-            .size(720)
+            .size(480) // 720 → 480: suficiente para 260dp, reduz ~40% de memória por entry
             .scale(Scale.FILL)
             .crossfade(true)
             .build()

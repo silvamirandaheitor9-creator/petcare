@@ -13,6 +13,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -35,36 +36,42 @@ class PetDetailViewModel @Inject constructor(
 
     /** Dados completos do pet — null enquanto o banco carrega. */
     val pet: StateFlow<Pet?> = petDao.getPetById(petId)
+        .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Vacinas do pet ordenadas por data (mais recente primeiro). */
     val vaccines: StateFlow<ImmutableList<HealthRecord>> =
         healthRecordDao.getRecordsByPetAndType(petId, "vaccine")
             .map { it.toPersistentList() }
+            .distinctUntilChanged()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf())
 
     /** Medicamentos do pet ordenados por data (mais recente primeiro). */
     val medications: StateFlow<ImmutableList<HealthRecord>> =
         healthRecordDao.getRecordsByPetAndType(petId, "medication")
             .map { it.toPersistentList() }
+            .distinctUntilChanged()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf())
 
     /** Consultas do pet ordenadas por data (mais recente primeiro). */
     val consultations: StateFlow<ImmutableList<HealthRecord>> =
         healthRecordDao.getRecordsByPetAndType(petId, "consultation")
             .map { it.toPersistentList() }
+            .distinctUntilChanged()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf())
 
     /** Pesagens do pet — usadas para o gráfico e a lista da sub-aba Peso. */
     val weights: StateFlow<ImmutableList<HealthRecord>> =
         healthRecordDao.getRecordsByPetAndType(petId, "weight")
             .map { it.toPersistentList() }
+            .distinctUntilChanged()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf())
 
     /** Registros de alimentação do pet — sub-aba Alimentação (tipo, porção, horários). */
     val feedings: StateFlow<ImmutableList<HealthRecord>> =
         healthRecordDao.getRecordsByPetAndType(petId, "feeding")
             .map { it.toPersistentList() }
+            .distinctUntilChanged()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf())
 
     /**

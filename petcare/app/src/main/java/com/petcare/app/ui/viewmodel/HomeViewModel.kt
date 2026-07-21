@@ -15,6 +15,7 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.text.SimpleDateFormat
@@ -35,14 +36,17 @@ class HomeViewModel @Inject constructor(
     /** Lista completa de pets, mais recentes primeiro. */
     val pets: StateFlow<ImmutableList<Pet>> = petDao.getAllPets()
         .map { it.toPersistentList() }
+        .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf())
 
     /** Contagem total de pets cadastrados. */
     val petCount: StateFlow<Int> = petDao.getPetCount()
+        .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     /** Nome do usuário salvo no DataStore. */
     val userName: StateFlow<String> = prefs.userName
+        .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
 
     /**

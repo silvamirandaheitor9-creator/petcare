@@ -3,6 +3,7 @@ package com.petcare.app.data.db.entity
 import androidx.compose.runtime.Stable
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Stable
@@ -13,7 +14,9 @@ import androidx.room.PrimaryKey
         parentColumns = ["id"],
         childColumns = ["petId"],
         onDelete = ForeignKey.CASCADE,
-    )]
+    )],
+    // Índice em petId para filtros e joins com pets sem full-table-scan
+    indices = [Index("petId")],
 )
 data class Reminder(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

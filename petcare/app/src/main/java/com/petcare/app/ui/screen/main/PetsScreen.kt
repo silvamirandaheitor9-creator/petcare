@@ -216,7 +216,7 @@ private fun PetGridCard(
                     AsyncImage(
                         model = ImageRequest.Builder(context)
                             .data(File(pet.photoPath))
-                            .size(500)
+                            .size(360) // 500 → 360: suficiente para 168dp de altura
                             .scale(Scale.FILL)
                             .crossfade(true)
                             .build(),

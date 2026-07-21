@@ -2,6 +2,7 @@ package com.petcare.app.data.db.entity
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 // Shared entity for Vacinas, Consultas, Peso, Alimentação, Medicamentos
@@ -12,7 +13,9 @@ import androidx.room.PrimaryKey
         parentColumns = ["id"],
         childColumns = ["petId"],
         onDelete = ForeignKey.CASCADE,
-    )]
+    )],
+    // Índice em petId evita full-table-scan nas queries getRecordsByPetAndType
+    indices = [Index("petId")],
 )
 data class HealthRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

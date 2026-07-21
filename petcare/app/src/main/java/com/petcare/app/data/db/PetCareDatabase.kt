@@ -13,7 +13,7 @@ import com.petcare.app.data.db.entity.Reminder
 
 @Database(
     entities = [Pet::class, Reminder::class, DiaryEntry::class, HealthRecord::class],
-    version = 1,
+    version = 2, // v2: adicionados índices em petId (health_records, diary_entries, reminders)
     exportSchema = true,
 )
 abstract class PetCareDatabase : RoomDatabase() {
