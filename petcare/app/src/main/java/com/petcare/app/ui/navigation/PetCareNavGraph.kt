@@ -181,17 +181,12 @@ fun PetCareNavGraph() {
         ) { backStackEntry ->
             val encodedUri = backStackEntry.arguments?.getString("imageUri").orEmpty()
             val imageUri   = Uri.parse(URLDecoder.decode(encodedUri, "UTF-8"))
-            // Partilha o ViewModel com a rota EditPet pai (não com NewPet)
-            val editPetRoute = Screen.EditPet.route.substringBefore("{")
+            // Partilha o ViewModel escopado à rota EditPet pai.
+            // getBackStackEntry com o padrão de rota encontra a entrada corretamente.
             val editPetEntry = remember(backStackEntry) {
-                navController.backQueue
-                    .lastOrNull { it.destination.route?.startsWith(editPetRoute) == true }
+                navController.getBackStackEntry(Screen.EditPet.route)
             }
-            val editPetViewModel: NewPetViewModel = if (editPetEntry != null) {
-                hiltViewModel(editPetEntry)
-            } else {
-                hiltViewModel()
-            }
+            val editPetViewModel: NewPetViewModel = hiltViewModel(editPetEntry)
             PetPhotoEditorScreen(
                 imageUri  = imageUri,
                 onDismiss = { navController.popBackStack() },

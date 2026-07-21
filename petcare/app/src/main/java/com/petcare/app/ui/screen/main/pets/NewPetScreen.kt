@@ -83,7 +83,6 @@ import com.petcare.app.R
 import com.petcare.app.data.db.entity.Pet
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.theme.OrangeGradStart
-import com.petcare.app.ui.theme.OrangeGradEnd
 import com.petcare.app.ui.viewmodel.NewPetViewModel
 import com.petcare.app.util.DateUtils
 import java.io.File
