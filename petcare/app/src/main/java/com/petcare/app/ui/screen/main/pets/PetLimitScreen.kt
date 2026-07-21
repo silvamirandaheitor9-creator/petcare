@@ -1,6 +1,7 @@
 package com.petcare.app.ui.screen.main.pets
 
 import android.app.Activity
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -24,8 +25,15 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Pets
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.VideoLibrary
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,20 +57,26 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
+import com.petcare.app.R
 import com.petcare.app.ui.theme.OrangeGradEnd
 import com.petcare.app.ui.theme.OrangeGradStart
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.PET_LIMIT_BONUS
 import com.petcare.app.ui.viewmodel.PET_LIMIT_FREE
+import kotlinx.coroutines.delay
 
 // ID de teste oficial do Google para rewarded ads
 private const val REWARDED_TEST_AD_UNIT_ID = "ca-app-pub-3940256099942544/5224354917"
@@ -116,23 +130,26 @@ fun PetLimitSheet(
                 .padding(bottom = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-
-            // ── Cabeçalho gradiente com ícone animado ─────────────────────────
+            // ── Cabeçalho com imagem e gradiente ─────────────────────────────
             LimitHeader()
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
 
             Column(
                 modifier            = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 28.dp),
+                    .padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
+                // ── Badge "+5 vagas grátis" ───────────────────────────────────
+                BonusBadge()
+
+                Spacer(Modifier.height(12.dp))
 
                 // ── Título ────────────────────────────────────────────────────
                 Text(
-                    text       = "Limite de pets atingido!",
+                    text       = "Você chegou ao limite!",
                     style      = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                     color      = MaterialTheme.colorScheme.onSurface,
@@ -143,25 +160,29 @@ fun PetLimitSheet(
 
                 // ── Descrição ─────────────────────────────────────────────────
                 Text(
-                    text = "Você atingiu o limite de $PET_LIMIT_FREE pets do plano gratuito. " +
-                           "Assista a um anúncio curto e ganhe +$PET_LIMIT_BONUS vagas extras — " +
-                           "de graça, sem precisar assinar nada!",
-                    style     = MaterialTheme.typography.bodyMedium,
-                    color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-                    textAlign = TextAlign.Center,
+                    text = "O plano gratuito inclui $PET_LIMIT_FREE pets. " +
+                           "Assista a um anúncio curto e ganhe $PET_LIMIT_BONUS vagas extras — sem assinar nada.",
+                    style      = MaterialTheme.typography.bodyMedium,
+                    color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
+                    textAlign  = TextAlign.Center,
                     lineHeight = 22.sp,
                 )
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(22.dp))
 
-                // ── Contador visual de vagas ──────────────────────────────────
-                SlotIndicator(
-                    used  = petCount,
-                    total = petLimit,
-                    bonus = PET_LIMIT_BONUS,
+                // ── Indicador de vagas individual ─────────────────────────────
+                SlotGrid(
+                    used    = petCount,
+                    base    = petLimit,
+                    bonus   = PET_LIMIT_BONUS,
                 )
 
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(22.dp))
+
+                // ── Como funciona: 3 passos ───────────────────────────────────
+                HowItWorksRow()
+
+                Spacer(Modifier.height(22.dp))
 
                 // ── Botão principal com pulso ─────────────────────────────────
                 PulsatingButton(
@@ -177,13 +198,13 @@ fun PetLimitSheet(
                     },
                 )
 
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(4.dp))
 
                 TextButton(onClick = onDismiss) {
                     Text(
                         text  = "Agora não",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                     )
                 }
             }
@@ -191,80 +212,131 @@ fun PetLimitSheet(
     }
 }
 
-// ─── Cabeçalho com gradiente laranja e ícone animado ─────────────────────────
+// ─── Cabeçalho com imagem feedback_desbloquear e gradiente ───────────────────
 
 @Composable
 private fun LimitHeader() {
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
 
-    // Animação de entrada: escala spring
+    // Animação de entrada: escala spring na imagem
     val scale by animateFloatAsState(
-        targetValue   = if (entered) 1f else 0.5f,
+        targetValue   = if (entered) 1f else 0.3f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness    = Spring.StiffnessMediumLow,
         ),
-        label = "header_icon_scale",
+        label = "header_image_scale",
     )
 
-    // Rotação contínua suave no ícone de cadeado
-    val rotation = rememberInfiniteTransition(label = "lock_rotation")
+    // Balanço contínuo suave
+    val rotation = rememberInfiniteTransition(label = "img_wobble")
     val wobble by rotation.animateFloat(
-        initialValue  = -6f,
-        targetValue   = 6f,
+        initialValue  = -4f,
+        targetValue   = 4f,
         animationSpec = infiniteRepeatable(
-            animation  = tween(1200, easing = FastOutSlowInEasing),
+            animation  = tween(1600, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse,
         ),
-        label = "lock_wobble",
+        label = "img_wobble_val",
     )
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp)
+            .height(160.dp)
             .background(
                 Brush.horizontalGradient(listOf(OrangeGradStart, OrangeGradEnd)),
             ),
         contentAlignment = Alignment.Center,
     ) {
-        // Círculo decorativo grande atrás
+        // Círculos decorativos concêntricos
         Box(
             modifier = Modifier
-                .size(200.dp)
+                .size(220.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.06f)),
+        )
+        Box(
+            modifier = Modifier
+                .size(160.dp)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.08f)),
         )
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // Emoji de cadeado com animações
+        // Imagem principal do mascote com animações
+        androidx.compose.foundation.Image(
+            painter           = painterResource(R.drawable.feedback_desbloquear),
+            contentDescription= "Limite de pets",
+            modifier          = Modifier
+                .size(110.dp)
+                .scale(scale)
+                .graphicsLayer { rotationZ = wobble * scale },
+            contentScale      = ContentScale.Fit,
+        )
+    }
+}
+
+// ─── Badge "+5 vagas grátis" com animação de entrada ─────────────────────────
+
+@Composable
+private fun BonusBadge() {
+    val alpha   = remember { Animatable(0f) }
+    val offsetY = remember { Animatable(-12f) }
+
+    LaunchedEffect(Unit) {
+        delay(200)
+        alpha.animateTo(1f, tween(300))
+        offsetY.animateTo(0f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium))
+    }
+
+    Box(
+        modifier = Modifier
+            .wrapContentWidth()
+            .graphicsLayer { this.alpha = alpha.value; translationY = offsetY.value }
+            .clip(RoundedCornerShape(50))
+            .background(
+                Brush.horizontalGradient(listOf(OrangeGradStart, OrangeGradEnd)),
+            )
+            .padding(horizontal = 18.dp, vertical = 7.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                Icons.Rounded.Star,
+                contentDescription = null,
+                tint     = Color.White,
+                modifier = Modifier.size(14.dp),
+            )
             Text(
-                text     = "🔒",
-                fontSize = 56.sp,
-                modifier = Modifier
-                    .scale(scale)
-                    .graphicsLayer { rotationZ = wobble * scale },
+                text       = "+$PET_LIMIT_BONUS vagas grátis disponíveis",
+                style      = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color      = Color.White,
             )
         }
     }
 }
 
-// ─── Indicador visual de vagas usadas/disponíveis ────────────────────────────
+// ─── Grade de vagas (círculos individuais) ────────────────────────────────────
 
 @Composable
-private fun SlotIndicator(used: Int, total: Int, bonus: Int) {
-    val newTotal = total + bonus
+private fun SlotGrid(used: Int, base: Int, bonus: Int) {
+    val total   = base + bonus
+    val columns = 5
 
     Column(
         modifier            = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        // Linha: "X de Y vagas usadas"
+        // Texto de contagem
         Row(
-            verticalAlignment     = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
                 text       = "$used",
@@ -273,88 +345,196 @@ private fun SlotIndicator(used: Int, total: Int, bonus: Int) {
                 color      = OrangePrimary,
             )
             Text(
-                text  = "de $total vagas usadas",
+                text  = "de $base vagas usadas",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
             )
         }
 
-        // Barra de progresso personalizada
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(12.dp)
-                .clip(RoundedCornerShape(50))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-        ) {
-            // Porção usada
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(fraction = (used.toFloat() / newTotal).coerceIn(0f, 1f))
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(
-                        Brush.horizontalGradient(listOf(OrangeGradStart, OrangeGradEnd)),
-                    ),
-            )
-            // Linha divisória mostrando onde estão as vagas bonus
-            if (bonus > 0 && total < newTotal) {
-                val dividerFraction = total.toFloat() / newTotal
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(fraction = dividerFraction)
-                        .align(Alignment.CenterEnd),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(2.dp)
-                            .height(12.dp)
-                            .align(Alignment.CenterEnd)
-                            .background(Color.White.copy(alpha = 0.7f)),
-                    )
+        Spacer(Modifier.height(2.dp))
+
+        // Grade de círculos - stagger reveal
+        val rows = (total + columns - 1) / columns
+        for (row in 0 until rows) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                for (col in 0 until columns) {
+                    val index = row * columns + col
+                    if (index < total) {
+                        SlotCircle(
+                            state = when {
+                                index < used  -> SlotState.USED
+                                index < base  -> SlotState.FREE
+                                else          -> SlotState.BONUS
+                            },
+                            animDelay = index * 30,
+                        )
+                    }
                 }
             }
         }
 
+        Spacer(Modifier.height(4.dp))
+
         // Legenda
         Row(
-            modifier              = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text  = "Plano gratuito ($total vagas)",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f),
+            LegendDot(color = OrangePrimary, label = "Ocupada")
+            LegendDot(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), label = "Livre")
+            LegendDot(
+                color = OrangePrimary.copy(alpha = 0.35f),
+                label = "+$bonus ao assistir",
+                isDashed = true,
             )
-            Row(
-                verticalAlignment     = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(OrangePrimary.copy(alpha = 0.50f)),
-                )
-                Text(
-                    text  = "+$bonus grátis",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = OrangePrimary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
         }
     }
+}
+
+private enum class SlotState { USED, FREE, BONUS }
+
+@Composable
+private fun SlotCircle(state: SlotState, animDelay: Int) {
+    val scale = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        delay(animDelay.toLong())
+        scale.animateTo(
+            1f,
+            spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium),
+        )
+    }
+
+    val size: Dp = 32.dp
+
+    Box(
+        modifier = Modifier
+            .size(size)
+            .scale(scale.value)
+            .clip(CircleShape)
+            .then(
+                when (state) {
+                    SlotState.USED  -> Modifier.background(
+                        Brush.radialGradient(listOf(OrangeGradStart, OrangeGradEnd))
+                    )
+                    SlotState.FREE  -> Modifier
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f))
+                        .border(1.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f), CircleShape)
+                    SlotState.BONUS -> Modifier
+                        .background(OrangePrimary.copy(alpha = 0.08f))
+                        .border(1.5.dp, OrangePrimary.copy(alpha = 0.35f), CircleShape)
+                }
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        when (state) {
+            SlotState.USED  -> Icon(
+                Icons.Rounded.Pets,
+                contentDescription = null,
+                tint     = Color.White,
+                modifier = Modifier.size(16.dp),
+            )
+            SlotState.BONUS -> Text(
+                "+",
+                style      = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color      = OrangePrimary.copy(alpha = 0.7f),
+            )
+            SlotState.FREE  -> {}
+        }
+    }
+}
+
+@Composable
+private fun LegendDot(color: Color, label: String, isDashed: Boolean = false) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .clip(CircleShape)
+                .background(color)
+                .then(
+                    if (isDashed) Modifier.border(1.dp, OrangePrimary.copy(alpha = 0.5f), CircleShape)
+                    else Modifier
+                ),
+        )
+        Text(
+            text  = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+        )
+    }
+}
+
+// ─── Seção "Como funciona": 3 passos ─────────────────────────────────────────
+
+@Composable
+private fun HowItWorksRow() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f))
+            .padding(horizontal = 12.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.Top,
+    ) {
+        HowItWorksStep(icon = Icons.Rounded.VideoLibrary, label = "Assiste\num anúncio")
+        StepArrow()
+        HowItWorksStep(icon = Icons.Rounded.Star, label = "Ganha\n+$PET_LIMIT_BONUS vagas")
+        StepArrow()
+        HowItWorksStep(icon = Icons.Rounded.CheckCircle, label = "Cadastra\nmais pets")
+    }
+}
+
+@Composable
+private fun HowItWorksStep(icon: ImageVector, label: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(OrangePrimary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(20.dp))
+        }
+        Text(
+            text      = label,
+            style     = MaterialTheme.typography.labelSmall,
+            color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
+            textAlign = TextAlign.Center,
+            lineHeight= 16.sp,
+        )
+    }
+}
+
+@Composable
+private fun StepArrow() {
+    Text(
+        "→",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
+        modifier = Modifier.padding(top = 10.dp),
+    )
 }
 
 // ─── Botão com animação de pulso ──────────────────────────────────────────────
 
 @Composable
 private fun PulsatingButton(
-    isLoading: Boolean,
-    loadFailed: Boolean,
-    enabled: Boolean,
-    onClick: () -> Unit,
+    isLoading  : Boolean,
+    loadFailed : Boolean,
+    enabled    : Boolean,
+    onClick    : () -> Unit,
 ) {
     val pulse = rememberInfiniteTransition(label = "btn_pulse")
     val pulseScale by pulse.animateFloat(
@@ -367,19 +547,19 @@ private fun PulsatingButton(
         label = "btn_pulse_scale",
     )
 
-    // Halo pulsante atrás do botão
     Box(
-        modifier            = Modifier.fillMaxWidth(),
-        contentAlignment    = Alignment.Center,
+        modifier         = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center,
     ) {
+        // Halo pulsante
         if (enabled) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
-                    .scale(pulseScale * 1.04f)
+                    .scale(pulseScale * 1.05f)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(OrangePrimary.copy(alpha = 0.20f)),
+                    .background(OrangePrimary.copy(alpha = 0.18f)),
             )
         }
 
@@ -400,7 +580,7 @@ private fun PulsatingButton(
             when {
                 isLoading  -> {
                     CircularProgressIndicator(
-                        modifier    = Modifier.size(22.dp),
+                        modifier    = Modifier.size(20.dp),
                         color       = Color.White,
                         strokeWidth = 2.5.dp,
                     )
@@ -413,15 +593,21 @@ private fun PulsatingButton(
                 }
                 loadFailed -> {
                     Text(
-                        text       = "😔  Anúncio indisponível",
+                        text       = "Anúncio indisponível",
                         fontWeight = FontWeight.SemiBold,
                         style      = MaterialTheme.typography.bodyLarge,
                     )
                 }
                 else -> {
+                    Icon(
+                        Icons.Rounded.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
                     Text(
-                        text       = "▶  Assistir anúncio e ganhar vagas",
-                        fontWeight = FontWeight.Bold,
+                        text       = "Assistir e ganhar vagas",
+                        fontWeight = FontWeight.ExtraBold,
                         style      = MaterialTheme.typography.bodyLarge,
                     )
                 }
