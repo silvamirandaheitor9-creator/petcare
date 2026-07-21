@@ -57,28 +57,81 @@ private val PRIVACY_TEXT = """
 Política de Privacidade do PetCare
 Última atualização: Julho de 2026
 
-O PetCare foi criado para funcionar sem exigir cadastro ou conta de usuário. Não coletamos nem armazenamos seus dados pessoais em nenhum servidor.
+1. SOBRE ESTE DOCUMENTO
+Esta Política de Privacidade descreve como o aplicativo PetCare trata as informações dos seus usuários. Ao usar o app, você concorda com as práticas descritas aqui.
 
-Dados armazenados no seu dispositivo: nomes, fotos, datas e informações de saúde dos seus pets, as entradas do Diário e os lembretes ficam salvos apenas no seu aparelho.
+2. DADOS QUE FICAM NO SEU APARELHO
+O PetCare não exige criação de conta nem coleta dados pessoais em servidores próprios. Todas as informações que você cadastrar — nomes dos pets, fotos, datas, registros de saúde (vacinas, consultas, peso, medicamentos, alimentação), entradas do Diário e lembretes — ficam armazenadas exclusivamente no seu dispositivo.
 
-Permissões usadas pelo app: Câmera, Galeria e Notificações. Cada permissão só é solicitada no momento do uso.
+3. BACKUP E EXPORTAÇÃO
+O app oferece função de backup manual. O arquivo gerado é salvo na pasta que você escolher no próprio dispositivo. Você é responsável pela guarda e segurança desse arquivo.
 
-Publicidade: o PetCare exibe anúncios fornecidos pelo Google AdMob. O AdMob pode coletar identificadores de publicidade do dispositivo.
+4. PERMISSÕES UTILIZADAS
+• Câmera: usada apenas quando você decide fotografar um pet diretamente pelo app.
+• Galeria / Armazenamento: usada para selecionar fotos existentes no dispositivo.
+• Notificações: usadas para enviar lembretes de vacinas, consultas e outros cuidados que você cadastrar. Você pode desativar notificações a qualquer momento nas configurações do sistema.
+Nenhuma permissão é solicitada antes do momento em que você realmente precisa dela.
 
-Conformidade com a LGPD: seguimos os princípios da Lei Geral de Proteção de Dados. Você tem controle total sobre seus dados.
+5. PUBLICIDADE — GOOGLE ADMOB
+O PetCare exibe anúncios fornecidos pelo Google AdMob para manter os recursos gratuitos. O AdMob pode coletar e processar dados como identificador de publicidade do dispositivo (GAID/IDFA), endereço IP e informações sobre o dispositivo, conforme a Política de Privacidade do Google (policies.google.com/privacy). Você pode redefinir ou desativar seu identificador de publicidade nas configurações do sistema operacional.
+
+6. TERCEIROS
+O app não compartilha seus dados pessoais com empresas terceiras além do AdMob. Não utilizamos ferramentas de análise de comportamento ou rastreamento de usuário.
+
+7. CRIANÇAS
+O PetCare não é destinado a crianças menores de 13 anos. Não coletamos intencionalmente informações de menores.
+
+8. SEUS DIREITOS (LGPD — LEI 13.709/2018)
+Em conformidade com a Lei Geral de Proteção de Dados, você tem direito a:
+• Confirmar a existência de tratamento de dados;
+• Acessar, corrigir ou excluir seus dados (feito diretamente no app);
+• Solicitar a portabilidade ou eliminação dos dados;
+• Revogar consentimentos a qualquer momento.
+Como todos os dados ficam no seu dispositivo, você exerce esses direitos diretamente pelo app ou desinstalando-o.
+
+9. ALTERAÇÕES NESTA POLÍTICA
+Podemos atualizar esta política periodicamente. Alterações relevantes serão comunicadas dentro do próprio app. A data de "última atualização" no topo sempre reflete a versão vigente.
+
+10. CONTATO
+Dúvidas ou solicitações: suporte@petcareapp.com.br
 """.trimIndent()
 
 private val TERMS_TEXT = """
 Termos de Uso do PetCare
 Última atualização: Julho de 2026
 
-1. Natureza do app: ferramenta de organização pessoal para cuidados com pets.
+1. ACEITAÇÃO DOS TERMOS
+Ao instalar ou usar o PetCare, você concorda com estes Termos de Uso. Se não concordar, não utilize o aplicativo.
 
-2. Seus dados: armazenados localmente. Você é responsável pelos backups.
+2. DESCRIÇÃO DO SERVIÇO
+O PetCare é um aplicativo de organização pessoal para tutores de animais de estimação. Permite cadastrar pets, registrar histórico de saúde, criar lembretes e manter um diário fotográfico — tudo armazenado localmente no seu dispositivo.
 
-3. Anúncios: o app oferece recursos gratuitos com limite de pets, expansível via anúncios.
+3. NÃO SUBSTITUI VETERINÁRIO
+As funcionalidades do PetCare — incluindo campos de saúde, lembretes e registros — têm finalidade exclusivamente organizacional. O app não oferece diagnósticos, prescrições ou orientações médico-veterinárias. Consulte sempre um médico-veterinário habilitado para decisões sobre a saúde dos seus pets.
 
-4. Propriedade intelectual: nome, mascote e design são de nossa propriedade.
+4. RESPONSABILIDADES DO USUÁRIO
+• Você é responsável pela veracidade das informações cadastradas.
+• Você é responsável por realizar backups regulares dos seus dados.
+• Você concorda em usar o app somente para fins lícitos e pessoais.
+• Não é permitido usar o app para fins comerciais sem autorização expressa.
+
+5. PUBLICIDADE
+O app exibe anúncios do Google AdMob para viabilizar os recursos gratuitos. O número de pets gratuitos pode ser ampliado por meio de anúncios recompensados. Não nos responsabilizamos pelo conteúdo dos anúncios exibidos pela rede do Google.
+
+6. PROPRIEDADE INTELECTUAL
+O nome "PetCare", o mascote, o design, os ícones, os textos e demais elementos visuais são propriedade exclusiva dos criadores do app. É vedada a reprodução, cópia ou uso comercial sem autorização prévia por escrito.
+
+7. LIMITAÇÃO DE RESPONSABILIDADE
+O PetCare é fornecido "como está", sem garantias de disponibilidade ininterrupta ou ausência de erros. Não nos responsabilizamos por perdas de dados decorrentes de falhas no dispositivo, desinstalação do app ou ausência de backup.
+
+8. MODIFICAÇÕES
+Podemos alterar estes Termos a qualquer momento. O uso continuado do app após a publicação das alterações implica aceitação das novas condições. A data de "última atualização" no topo indica a versão vigente.
+
+9. LEI APLICÁVEL
+Estes Termos são regidos pelas leis da República Federativa do Brasil. Qualquer controvérsia será submetida ao foro da comarca do usuário, conforme o Código de Defesa do Consumidor.
+
+10. CONTATO
+Dúvidas ou solicitações: suporte@petcareapp.com.br
 """.trimIndent()
 
 // ─── Itens do resumo visual ───────────────────────────────────────────────────
