@@ -6,6 +6,9 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,6 +16,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,7 +26,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -30,17 +37,19 @@ import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.AlarmOn
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Notes
+import androidx.compose.material.icons.rounded.Pets
+import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -70,6 +79,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -84,9 +94,9 @@ import com.petcare.app.util.DateUtils
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-import java.util.TimeZone
+import java.util.concurrent.TimeUnit
 
-// ─── Tela "Novo Lembrete" / Editar Lembrete (SPEC §10 — redesign completo) ───
+// ─── Tela "Novo Lembrete" / Editar Lembrete ───────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,21 +109,24 @@ fun NewReminderScreen(
     val context = LocalContext.current
     val pets by viewModel.pets.collectAsState()
 
-    // Carrega lembrete existente no modo edição.
-    // A auto-seleção de pet agora é feita no ViewModel.init — não precisa de LaunchedEffect aqui.
     LaunchedEffect(reminderId) {
         if (reminderId > 0L) viewModel.loadReminder(reminderId)
     }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    // Diálogo exibido quando SCHEDULE_EXACT_ALARM não foi concedida pelo usuário
     var showAlarmPermissionDialog by remember { mutableStateOf(false) }
 
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
     val dateStr = dateFormat.format(viewModel.dateTimeMillis)
     val timeStr = timeFormat.format(viewModel.dateTimeMillis)
+
+    // Dias restantes para exibir no resumo
+    val daysUntil = remember(viewModel.dateTimeMillis) {
+        val diff = viewModel.dateTimeMillis - System.currentTimeMillis()
+        TimeUnit.MILLISECONDS.toDays(diff).toInt()
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -124,31 +137,12 @@ fun NewReminderScreen(
                 .fillMaxSize()
                 .systemBarsPadding(),
         ) {
-            // ── Cabeçalho com gradiente (mesmo padrão das outras telas) ────────
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.horizontalGradient(listOf(OrangeGradStart, OrangeGradEnd))
-                    )
-                    .padding(horizontal = 4.dp, vertical = 8.dp),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        Icons.Rounded.ArrowBack,
-                        contentDescription = "Voltar",
-                        tint = Color.White,
-                    )
-                }
-                Text(
-                    text = if (reminderId > 0L) "Editar Lembrete" else "Novo Lembrete",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier.align(Alignment.Center),
-                )
-            }
+            // ── Cabeçalho ─────────────────────────────────────────────────────
+            ReminderHeader(
+                isEditing   = reminderId > 0L,
+                category    = viewModel.category,
+                onDismiss   = onDismiss,
+            )
 
             // ── Formulário ────────────────────────────────────────────────────
             Column(
@@ -159,142 +153,104 @@ fun NewReminderScreen(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
 
-                // Título
-                FormSection(title = "Título *") {
-                    OutlinedTextField(
-                        value = viewModel.title,
-                        onValueChange = { viewModel.title = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Ex: Vacina anual do Rex") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = outlinedFieldColors(),
-                    )
-                }
-
-                // Pet
-                if (pets.isNotEmpty()) {
-                    FormSection(title = "Pet *") {
-                        PetDropdown(
-                            pets = pets,
-                            selectedPetId = viewModel.selectedPetId,
-                            onPetSelected = { viewModel.selectedPetId = it },
+                // ── Título ────────────────────────────────────────────────────
+                SectionLabel("Título do lembrete")
+                OutlinedTextField(
+                    value         = viewModel.title,
+                    onValueChange = { viewModel.title = it },
+                    modifier      = Modifier.fillMaxWidth(),
+                    placeholder   = {
+                        Text(
+                            "Ex: Vacina anual do Rex",
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.40f),
                         )
-                    }
-                }
+                    },
+                    singleLine = true,
+                    shape      = RoundedCornerShape(16.dp),
+                    colors     = outlinedFieldColors(),
+                )
 
-                // Categoria
-                FormSection(title = "Categoria") {
-                    CategorySelector(
-                        selected = viewModel.category,
-                        onSelect = { viewModel.category = it },
+                // ── Pet ───────────────────────────────────────────────────────
+                if (pets.isNotEmpty()) {
+                    SectionLabel("Para qual pet?")
+                    PetChipRow(
+                        pets           = pets,
+                        selectedPetId  = viewModel.selectedPetId,
+                        onPetSelected  = { viewModel.selectedPetId = it },
                     )
                 }
 
-                // Data e Hora
-                FormSection(title = "Data e Hora") {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        // Botão Data
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(16.dp))
-                                .border(
-                                    1.dp,
-                                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
-                                    RoundedCornerShape(16.dp),
-                                )
-                                .clickable { showDatePicker = true }
-                                .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
+                // ── Categoria ─────────────────────────────────────────────────
+                SectionLabel("Categoria")
+                CategoryGrid(
+                    selected = viewModel.category,
+                    onSelect = { viewModel.category = it },
+                )
+
+                // ── Data e Hora ───────────────────────────────────────────────
+                SectionLabel("Data e horário")
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    DateTimeButton(
+                        modifier  = Modifier.weight(1f),
+                        icon      = Icons.Rounded.CalendarMonth,
+                        label     = dateStr,
+                        onClick   = { showDatePicker = true },
+                    )
+                    DateTimeButton(
+                        modifier  = Modifier.weight(1f),
+                        icon      = Icons.Rounded.AccessTime,
+                        label     = timeStr,
+                        onClick   = { showTimePicker = true },
+                    )
+                }
+
+                // Contagem regressiva
+                if (daysUntil >= 0) {
+                    CountdownBadge(daysUntil)
+                }
+
+                // ── Recorrência ───────────────────────────────────────────────
+                SectionLabel("Repetição")
+                RecurrenceSelector(
+                    selected = viewModel.recurrence,
+                    onSelect = { viewModel.recurrence = it },
+                )
+
+                // ── Observações ───────────────────────────────────────────────
+                SectionLabel("Observações (opcional)")
+                OutlinedTextField(
+                    value         = viewModel.notes,
+                    onValueChange = { viewModel.notes = it },
+                    modifier      = Modifier.fillMaxWidth(),
+                    placeholder   = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                Icons.Rounded.CalendarMonth,
+                                Icons.Rounded.Notes,
                                 contentDescription = null,
-                                tint = OrangePrimary,
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                             )
+                            Spacer(Modifier.width(6.dp))
                             Text(
-                                text = dateStr,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground,
+                                "Adicione detalhes relevantes...",
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.40f),
                             )
                         }
+                    },
+                    minLines = 3,
+                    maxLines = 5,
+                    shape    = RoundedCornerShape(16.dp),
+                    colors   = outlinedFieldColors(),
+                )
 
-                        // Botão Hora
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(16.dp))
-                                .border(
-                                    1.dp,
-                                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
-                                    RoundedCornerShape(16.dp),
-                                )
-                                .clickable { showTimePicker = true }
-                                .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(
-                                Icons.Rounded.AccessTime,
-                                contentDescription = null,
-                                tint = OrangePrimary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Text(
-                                text = timeStr,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground,
-                            )
-                        }
-                    }
-                }
+                Spacer(Modifier.height(4.dp))
 
-                // Recorrência
-                FormSection(title = "Repetir") {
-                    RecurrenceSelector(
-                        selected = viewModel.recurrence,
-                        onSelect = { viewModel.recurrence = it },
-                    )
-                }
-
-                // Observações
-                FormSection(title = "Observações (opcional)") {
-                    OutlinedTextField(
-                        value = viewModel.notes,
-                        onValueChange = { viewModel.notes = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Rounded.Notes,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text("Adicione detalhes relevantes...")
-                            }
-                        },
-                        minLines = 3,
-                        maxLines = 5,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = outlinedFieldColors(),
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Botão salvar
+                // ── Botão salvar ──────────────────────────────────────────────
                 Button(
                     onClick = {
-                        // Verifica se o alarme exato pode ser agendado (Android 12+/API 31+).
-                        // Sem essa permissão o lembrete é salvo mas nunca dispara no horário.
                         val alarmManager =
                             context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
                         val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -310,46 +266,40 @@ fun NewReminderScreen(
                         .fillMaxWidth()
                         .height(54.dp),
                     enabled = viewModel.isValid && !viewModel.isSaving,
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = OrangePrimary,
-                        contentColor = Color.White,
+                    shape   = RoundedCornerShape(24.dp),
+                    colors  = ButtonDefaults.buttonColors(
+                        containerColor         = OrangePrimary,
+                        contentColor           = Color.White,
                         disabledContainerColor = OrangePrimary.copy(alpha = 0.35f),
-                        disabledContentColor = Color.White,
+                        disabledContentColor   = Color.White,
                     ),
                 ) {
                     if (viewModel.isSaving) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.White,
+                            modifier    = Modifier.size(20.dp),
+                            color       = Color.White,
                             strokeWidth = 2.dp,
                         )
                     } else {
                         Text(
-                            text = if (reminderId > 0L) "Salvar alterações" else "Criar lembrete",
-                            style = MaterialTheme.typography.titleMedium,
+                            text       = if (reminderId > 0L) "Salvar alterações" else "Criar lembrete",
+                            style      = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
             }
         }
     }
 
-    // ── Diálogo: permissão de alarme exato não concedida ─────────────────────
-    // Aparece quando o usuário toca em Salvar mas SCHEDULE_EXACT_ALARM não está ativa.
-    // Direciona para Configurações → Apps → Acesso especial → Alarmes e lembretes.
+    // ── Diálogo: permissão de alarme exato ────────────────────────────────────
     if (showAlarmPermissionDialog) {
         AlertDialog(
             onDismissRequest = { showAlarmPermissionDialog = false },
             icon = {
-                Icon(
-                    Icons.Rounded.AlarmOn,
-                    contentDescription = null,
-                    tint = OrangePrimary,
-                )
+                Icon(Icons.Rounded.AlarmOn, contentDescription = null, tint = OrangePrimary)
             },
             title = { Text("Permissão de alarme necessária") },
             text = {
@@ -365,60 +315,49 @@ fun NewReminderScreen(
                     onClick = {
                         showAlarmPermissionDialog = false
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                            context.startActivity(intent)
+                            context.startActivity(
+                                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                            )
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
-                    shape = RoundedCornerShape(24.dp),
-                ) {
-                    Text("Abrir configurações", color = Color.White)
-                }
+                    shape  = RoundedCornerShape(24.dp),
+                ) { Text("Abrir configurações", color = Color.White) }
             },
             dismissButton = {
-                TextButton(onClick = { showAlarmPermissionDialog = false }) {
-                    Text("Agora não")
-                }
+                TextButton(onClick = { showAlarmPermissionDialog = false }) { Text("Agora não") }
             },
         )
     }
 
-    // ── Diálogo de erro ao salvar ─────────────────────────────────────────────
+    // ── Diálogo de erro ───────────────────────────────────────────────────────
     val saveError = viewModel.saveError
     if (saveError != null) {
         AlertDialog(
             onDismissRequest = { viewModel.clearError() },
-            title = { Text("Não foi possível salvar") },
-            text = { Text(saveError) },
-            confirmButton = {
+            title            = { Text("Não foi possível salvar") },
+            text             = { Text(saveError) },
+            confirmButton    = {
                 TextButton(onClick = { viewModel.clearError() }) { Text("OK") }
             },
         )
     }
 
-    // ── DatePicker Dialog ─────────────────────────────────────────────────────
+    // ── DatePicker ────────────────────────────────────────────────────────────
     if (showDatePicker) {
-        // O DatePicker do Material3 sempre trabalha em UTC à meia-noite.
-        // DateUtils.localMillisToUtcMidnight converte o instante local para
-        // a meia-noite UTC do mesmo dia, que é o que o picker espera.
         val utcMidnightInitial = remember(viewModel.dateTimeMillis) {
             DateUtils.localMillisToUtcMidnight(viewModel.dateTimeMillis)
         }
-
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = utcMidnightInitial,
         )
-
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { selectedUtcMillis ->
-                        // DateUtils.utcMillisToLocalPreservingTime extrai Y/M/D
-                        // no fuso UTC e os aplica ao millis local, preservando
-                        // a hora/minuto que o usuário já configurou.
+                    datePickerState.selectedDateMillis?.let { utc ->
                         viewModel.dateTimeMillis = DateUtils.utcMillisToLocalPreservingTime(
-                            selectedUtcMillis, viewModel.dateTimeMillis
+                            utc, viewModel.dateTimeMillis
                         )
                     }
                     showDatePicker = false
@@ -432,7 +371,7 @@ fun NewReminderScreen(
         }
     }
 
-    // ── TimePicker Dialog ─────────────────────────────────────────────────────
+    // ── TimePicker ────────────────────────────────────────────────────────────
     if (showTimePicker) {
         val timeCal = remember(viewModel.dateTimeMillis) {
             Calendar.getInstance().apply { timeInMillis = viewModel.dateTimeMillis }
@@ -444,25 +383,24 @@ fun NewReminderScreen(
         )
         Dialog(onDismissRequest = { showTimePicker = false }) {
             Surface(
-                shape = RoundedCornerShape(28.dp),
-                color = MaterialTheme.colorScheme.surface,
+                shape          = RoundedCornerShape(28.dp),
+                color          = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp,
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier            = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
                     Text(
                         "Selecionar horário",
-                        style = MaterialTheme.typography.titleMedium,
+                        style      = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     TimePicker(state = timePickerState)
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier              = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         TextButton(onClick = { showTimePicker = false }) { Text("Cancelar") }
                         Spacer(Modifier.width(8.dp))
@@ -484,72 +422,290 @@ fun NewReminderScreen(
     }
 }
 
-// ─── Seletor de categoria (grade de ícones) ───────────────────────────────────
+// ─── Cabeçalho com gradiente + ícone dinâmico da categoria ───────────────────
+
+@Composable
+private fun ReminderHeader(
+    isEditing: Boolean,
+    category: String,
+    onDismiss: () -> Unit,
+) {
+    val catItem = CATEGORIES.find { it.key == category } ?: CATEGORIES.first()
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Brush.horizontalGradient(listOf(OrangeGradStart, OrangeGradEnd)))
+            .padding(horizontal = 4.dp, vertical = 10.dp),
+    ) {
+        // Botão voltar
+        IconButton(
+            onClick  = onDismiss,
+            modifier = Modifier.align(Alignment.CenterStart),
+        ) {
+            Icon(Icons.Rounded.ArrowBack, contentDescription = "Voltar", tint = Color.White)
+        }
+
+        // Título + ícone da categoria
+        Column(
+            modifier            = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            // Ícone da categoria selecionada num badge branco translúcido
+            Box(
+                modifier         = Modifier
+                    .size(40.dp)
+                    .background(Color.White.copy(alpha = 0.22f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter            = painterResource(catItem.icon),
+                    contentDescription = catItem.label,
+                    modifier           = Modifier.size(24.dp),
+                    contentScale       = ContentScale.Fit,
+                )
+            }
+            Text(
+                text       = if (isEditing) "Editar Lembrete" else "Novo Lembrete",
+                style      = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color      = Color.White,
+            )
+            Text(
+                text  = catItem.label,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.80f),
+            )
+        }
+    }
+}
+
+// ─── Chips de seleção de pet ──────────────────────────────────────────────────
+
+@Composable
+private fun PetChipRow(
+    pets: ImmutableList<Pet>,
+    selectedPetId: Long,
+    onPetSelected: (Long) -> Unit,
+) {
+    LazyRow(
+        contentPadding       = PaddingValues(horizontal = 0.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        items(pets, key = { it.id }) { pet ->
+            val isSelected = pet.id == selectedPetId
+            val bgColor by animateColorAsState(
+                targetValue = if (isSelected) OrangePrimary else OrangePrimary.copy(alpha = 0.08f),
+                animationSpec = tween(200), label = "petChipBg",
+            )
+            val borderWidth by animateDpAsState(
+                targetValue   = if (isSelected) 0.dp else 1.dp,
+                animationSpec = tween(200), label = "petChipBorder",
+            )
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(bgColor)
+                    .border(
+                        borderWidth,
+                        OrangePrimary.copy(alpha = 0.25f),
+                        RoundedCornerShape(50),
+                    )
+                    .clickable { onPetSelected(pet.id) }
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
+            ) {
+                if (isSelected) {
+                    Icon(
+                        Icons.Rounded.Check,
+                        contentDescription = null,
+                        tint               = Color.White,
+                        modifier           = Modifier.size(14.dp),
+                    )
+                } else {
+                    Icon(
+                        Icons.Rounded.Pets,
+                        contentDescription = null,
+                        tint               = OrangePrimary.copy(alpha = 0.70f),
+                        modifier           = Modifier.size(14.dp),
+                    )
+                }
+                Text(
+                    text       = pet.name,
+                    style      = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    color      = if (isSelected) Color.White else OrangePrimary,
+                )
+            }
+        }
+    }
+}
+
+// ─── Grade de categorias ──────────────────────────────────────────────────────
 
 private data class CategoryItem(val key: String, val label: String, @DrawableRes val icon: Int)
 
 private val CATEGORIES = listOf(
-    CategoryItem("vacina",       "Vacina",       R.drawable.icone_vacina),
-    CategoryItem("consulta",     "Consulta",     R.drawable.icone_consulta),
-    CategoryItem("banho",        "Banho",        R.drawable.icone_banho),
-    CategoryItem("medicacao",    "Medicação",    R.drawable.icone_medicacao),
-    CategoryItem("alimentacao",  "Alimentação",  R.drawable.icone_alimentacao),
-    CategoryItem("vermifugo",    "Vermífugo",    R.drawable.icone_vermifugo),
-    CategoryItem("personalizado","Personalizado",R.drawable.icone_personalizado),
+    CategoryItem("vacina",        "Vacina",        R.drawable.icone_vacina),
+    CategoryItem("consulta",      "Consulta",      R.drawable.icone_consulta),
+    CategoryItem("banho",         "Banho",         R.drawable.icone_banho),
+    CategoryItem("medicacao",     "Medicação",     R.drawable.icone_medicacao),
+    CategoryItem("alimentacao",   "Alimentação",   R.drawable.icone_alimentacao),
+    CategoryItem("vermifugo",     "Vermífugo",     R.drawable.icone_vermifugo),
+    CategoryItem("personalizado", "Personalizado", R.drawable.icone_personalizado),
 )
 
 @Composable
-private fun CategorySelector(selected: String, onSelect: (String) -> Unit) {
+private fun CategoryGrid(selected: String, onSelect: (String) -> Unit) {
     val chunked = CATEGORIES.chunked(4)
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         chunked.forEach { row ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 row.forEach { cat ->
                     val isSelected = selected == cat.key
+                    val bgColor by animateColorAsState(
+                        targetValue   = if (isSelected) OrangePrimary.copy(alpha = 0.14f)
+                                        else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                        animationSpec = tween(180), label = "catBg",
+                    )
+                    val borderColor by animateColorAsState(
+                        targetValue   = if (isSelected) OrangePrimary
+                                        else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f),
+                        animationSpec = tween(180), label = "catBorder",
+                    )
+                    val borderWidth by animateDpAsState(
+                        targetValue   = if (isSelected) 2.dp else 1.dp,
+                        animationSpec = tween(180), label = "catBorderW",
+                    )
+
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(
-                                if (isSelected) OrangePrimary.copy(alpha = 0.12f)
-                                else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)
-                            )
-                            .border(
-                                width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) OrangePrimary
-                                else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f),
-                                shape = RoundedCornerShape(14.dp),
-                            )
+                            .background(bgColor)
+                            .border(borderWidth, borderColor, RoundedCornerShape(14.dp))
                             .clickable { onSelect(cat.key) }
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                            .padding(vertical = 12.dp, horizontal = 4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Image(
-                            painter = painterResource(cat.icon),
-                            contentDescription = cat.label,
-                            modifier = Modifier.size(28.dp),
-                            contentScale = ContentScale.Fit,
-                        )
+                        // Ícone dentro de badge circular quando selecionado
+                        Box(
+                            modifier         = Modifier
+                                .size(36.dp)
+                                .background(
+                                    if (isSelected) OrangePrimary.copy(alpha = 0.18f) else Color.Transparent,
+                                    CircleShape,
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Image(
+                                painter      = painterResource(cat.icon),
+                                contentDescription = cat.label,
+                                modifier     = Modifier.size(24.dp),
+                                contentScale = ContentScale.Fit,
+                            )
+                        }
                         Text(
-                            text = cat.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) OrangePrimary
-                            else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                            text       = cat.label,
+                            style      = MaterialTheme.typography.labelSmall,
+                            color      = if (isSelected) OrangePrimary
+                                         else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            maxLines = 1,
+                            maxLines   = 1,
+                            textAlign  = TextAlign.Center,
                         )
                     }
                 }
-                // Células vazias para completar a última linha
-                repeat(4 - row.size) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
+                repeat(4 - row.size) { Spacer(modifier = Modifier.weight(1f)) }
             }
         }
+    }
+}
+
+// ─── Botão de data / hora ─────────────────────────────────────────────────────
+
+@Composable
+private fun DateTimeButton(
+    modifier: Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier  = modifier,
+        shape     = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors    = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f),
+        ),
+        onClick   = onClick,
+    ) {
+        Row(
+            modifier              = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                modifier         = Modifier
+                    .size(34.dp)
+                    .background(OrangePrimary.copy(alpha = 0.12f), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector        = icon,
+                    contentDescription = null,
+                    tint               = OrangePrimary,
+                    modifier           = Modifier.size(18.dp),
+                )
+            }
+            Text(
+                text       = label,
+                style      = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color      = MaterialTheme.colorScheme.onBackground,
+            )
+        }
+    }
+}
+
+// ─── Badge de contagem regressiva ─────────────────────────────────────────────
+
+@Composable
+private fun CountdownBadge(daysUntil: Int) {
+    val text = when {
+        daysUntil == 0 -> "Lembrete para hoje"
+        daysUntil == 1 -> "Lembrete para amanhã"
+        else           -> "Faltam $daysUntil dias para o lembrete"
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(OrangePrimary.copy(alpha = 0.08f))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            Icons.Rounded.Repeat,
+            contentDescription = null,
+            tint               = OrangePrimary,
+            modifier           = Modifier.size(18.dp),
+        )
+        Text(
+            text       = text,
+            style      = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color      = OrangePrimary,
+        )
     }
 }
 
@@ -557,101 +713,55 @@ private fun CategorySelector(selected: String, onSelect: (String) -> Unit) {
 
 private val RECURRENCES = listOf(
     "none"    to "Não repete",
-    "daily"   to "Diariamente",
-    "weekly"  to "Semanalmente",
-    "monthly" to "Mensalmente",
+    "daily"   to "Diário",
+    "weekly"  to "Semanal",
+    "monthly" to "Mensal",
 )
 
 @Composable
 private fun RecurrenceSelector(selected: String, onSelect: (String) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier              = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         RECURRENCES.forEach { (key, label) ->
             val isSelected = selected == key
+            val bg by animateColorAsState(
+                targetValue   = if (isSelected) OrangePrimary else OrangePrimary.copy(alpha = 0.07f),
+                animationSpec = tween(180), label = "recBg",
+            )
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(
-                        if (isSelected) OrangePrimary else OrangePrimary.copy(alpha = 0.07f)
-                    )
+                    .background(bg)
                     .clickable { onSelect(key) }
-                    .padding(vertical = 10.dp, horizontal = 4.dp),
+                    .padding(vertical = 11.dp, horizontal = 4.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
+                    text       = label,
+                    style      = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isSelected) Color.White else OrangePrimary,
-                    maxLines = 2,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    color      = if (isSelected) Color.White else OrangePrimary,
+                    textAlign  = TextAlign.Center,
+                    maxLines   = 2,
                 )
             }
         }
     }
 }
 
-// ─── Dropdown de seleção de pet ───────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PetDropdown(
-    pets: ImmutableList<Pet>,
-    selectedPetId: Long,
-    onPetSelected: (Long) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val selectedPet = pets.find { it.id == selectedPetId }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        OutlinedTextField(
-            value = selectedPet?.name ?: "Selecione um pet",
-            onValueChange = {},
-            readOnly = true,
-            modifier = Modifier
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                .fillMaxWidth(),
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            shape = RoundedCornerShape(16.dp),
-            colors = outlinedFieldColors(),
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            pets.forEach { pet ->
-                DropdownMenuItem(
-                    text = { Text(pet.name) },
-                    onClick = {
-                        onPetSelected(pet.id)
-                        expanded = false
-                    },
-                )
-            }
-        }
-    }
-}
-
-// ─── Seção de formulário com rótulo ──────────────────────────────────────────
+// ─── Label de seção ───────────────────────────────────────────────────────────
 
 @Composable
-private fun FormSection(title: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
-        )
-        content()
-    }
+private fun SectionLabel(text: String) {
+    Text(
+        text       = text,
+        style      = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        color      = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.60f),
+    )
 }
 
 // ─── Cores padrão dos campos de texto ────────────────────────────────────────
@@ -660,6 +770,5 @@ private fun FormSection(title: String, content: @Composable () -> Unit) {
 private fun outlinedFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor   = OrangePrimary,
     unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
-    cursorColor          = OrangePrimary,
     focusedLabelColor    = OrangePrimary,
 )
