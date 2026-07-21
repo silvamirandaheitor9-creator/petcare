@@ -43,7 +43,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -75,6 +74,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
@@ -110,13 +110,11 @@ private val SPECIES_OPTIONS = listOf(
 
 private val isoDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
-// ─── Tela unificada de Novo Pet / Editar Pet (SPEC §11) ──────────────────────
+// ─── Tela unificada de Novo Pet / Editar Pet (SPEC §11 simplificado) ─────────
 
 /**
- * Formulário único e scrollável para criar ou editar um pet.
- * [petId] == -1L → modo criação; > 0 → modo edição (carrega dados existentes).
- * A foto de perfil passa por [PetPhotoEditorScreen] (rota separada no NavGraph);
- * o resultado fica em [NewPetViewModel.photoPath], compartilhada por escopo.
+ * Formulário único e scrollável — apenas informações básicas.
+ * [petId] == -1L → modo criação; > 0 → modo edição.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -127,77 +125,62 @@ fun NewPetScreen(
     onSaved: () -> Unit,
     onNavigateToPhotoEditor: (Uri) -> Unit = {},
 ) {
-    val isEditMode = petId > 0L
-    val photoPath by viewModel.photoPath.collectAsState()
-    val editingPet by viewModel.editingPet.collectAsState()
-    val isSaving by viewModel.isSaving.collectAsState()
+    val isEditMode  = petId > 0L
+    val photoPath   by viewModel.photoPath.collectAsState()
+    val editingPet  by viewModel.editingPet.collectAsState()
+    val isSaving    by viewModel.isSaving.collectAsState()
 
-    // Carrega os dados do pet existente quando estiver em modo edição
     LaunchedEffect(petId) {
         if (isEditMode) viewModel.loadPetForEditing(petId)
     }
 
     // ── Estados do formulário ────────────────────────────────────────────────
-    var name               by rememberSaveable { mutableStateOf("") }
-    var species            by rememberSaveable { mutableStateOf<String?>(null) }
-    var sex                by rememberSaveable { mutableStateOf<String?>(null) }
-    var breed              by rememberSaveable { mutableStateOf("") }
-    var birthDateIso       by rememberSaveable { mutableStateOf("") }
-    var weightText         by rememberSaveable { mutableStateOf("") }
-    var bloodType          by rememberSaveable { mutableStateOf("") }
-    var allergies          by rememberSaveable { mutableStateOf("") }
-    var chronicConditions  by rememberSaveable { mutableStateOf("") }
-    var isCastrated        by rememberSaveable { mutableStateOf(false) }
-    var microchip          by rememberSaveable { mutableStateOf("") }
-    var vetName            by rememberSaveable { mutableStateOf("") }
-    var vetPhone           by rememberSaveable { mutableStateOf("") }
-    var notes              by rememberSaveable { mutableStateOf("") }
-    var formPreFilled      by rememberSaveable { mutableStateOf(false) }
+    var name         by rememberSaveable { mutableStateOf("") }
+    var species      by rememberSaveable { mutableStateOf<String?>(null) }
+    var sex          by rememberSaveable { mutableStateOf<String?>(null) }
+    var breed        by rememberSaveable { mutableStateOf("") }
+    var birthDateIso by rememberSaveable { mutableStateOf("") }
+    var weightText   by rememberSaveable { mutableStateOf("") }
+    var isCastrated  by rememberSaveable { mutableStateOf(false) }
+    var formPreFilled by rememberSaveable { mutableStateOf(false) }
 
-    // Pré-preenche o formulário quando os dados do pet chegarem (modo edição)
+    // Pré-preenche ao editar
     LaunchedEffect(editingPet) {
         val p = editingPet ?: return@LaunchedEffect
         if (!formPreFilled) {
-            name              = p.name
-            species           = p.species.takeIf { it.isNotBlank() }
-            sex               = p.sex.takeIf { it.isNotBlank() }
-            breed             = p.breed
-            birthDateIso      = p.birthDate
-            weightText        = if (p.weightKg > 0.0) p.weightKg.toString() else ""
-            bloodType         = p.bloodType
-            allergies         = p.allergies
-            chronicConditions = p.chronicConditions
-            isCastrated       = p.isCastrated
-            microchip         = p.microchip
-            vetName           = p.vetName
-            vetPhone          = p.vetPhone
-            notes             = p.notes
-            formPreFilled     = true
+            name         = p.name
+            species      = p.species.takeIf { it.isNotBlank() }
+            sex          = p.sex.takeIf { it.isNotBlank() }
+            breed        = p.breed
+            birthDateIso = p.birthDate
+            weightText   = if (p.weightKg > 0.0) p.weightKg.toString() else ""
+            isCastrated  = p.isCastrated
+            formPreFilled = true
         }
     }
 
     // ── Validações ────────────────────────────────────────────────────────────
-    var attemptedSave by remember { mutableStateOf(false) }
-    val nameError     = attemptedSave && name.isBlank()
-    val weightValue   = weightText.trim().replace(',', '.').toDoubleOrNull()
-    val weightError   = attemptedSave && weightText.isNotBlank() && (weightValue == null || weightValue <= 0.0)
-    val birthDateError = attemptedSave && birthDateIso.isNotBlank() && isIsoDateInFuture(birthDateIso)
+    var attemptedSave  by remember { mutableStateOf(false) }
+    val nameError      = attemptedSave && name.isBlank()
+    val weightValue    = weightText.trim().replace(',', '.').toDoubleOrNull()
+    val weightError    = attemptedSave && weightText.isNotBlank() &&
+        (weightValue == null || weightValue <= 0.0)
+    val birthDateError = attemptedSave && birthDateIso.isNotBlank() &&
+        isIsoDateInFuture(birthDateIso)
 
     var showDatePicker by remember { mutableStateOf(false) }
 
     // ── Seletor de foto ───────────────────────────────────────────────────────
     val pickPhotoLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia(),
-    ) { uri ->
-        if (uri != null) onNavigateToPhotoEditor(uri)
-    }
+    ) { uri -> if (uri != null) onNavigateToPhotoEditor(uri) }
 
     BackHandler(enabled = !isSaving) { onDismiss() }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
 
-            // ── TopAppBar com gradiente laranja ──────────────────────────────
+            // ── TopAppBar ────────────────────────────────────────────────────
             TopAppBar(
                 title = {
                     Text(
@@ -211,30 +194,29 @@ fun NewPetScreen(
                         Icon(Icons.Rounded.ArrowBack, "Voltar", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = OrangeGradStart,
-                ),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = OrangeGradStart),
             )
 
-            // ── Formulário único com scroll ──────────────────────────────────
+            // ── Formulário ───────────────────────────────────────────────────
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                    .padding(horizontal = 16.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
 
-                // ── Foto de perfil ───────────────────────────────────────────
-                Box(
+                // ── Avatar / Foto ─────────────────────────────────────────────
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(110.dp)
+                            .size(120.dp)
                             .clip(CircleShape)
-                            .border(3.dp, OrangePrimary.copy(alpha = 0.30f), CircleShape)
+                            .border(3.dp, OrangePrimary.copy(alpha = 0.35f), CircleShape)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
@@ -249,16 +231,19 @@ fun NewPetScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         if (photoPath.isNullOrBlank()) {
-                            val speciesIconRes = SPECIES_OPTIONS.find { it.storageValue == species }?.iconRes
+                            val speciesIconRes = SPECIES_OPTIONS
+                                .find { it.storageValue == species }?.iconRes
                             if (speciesIconRes != null) {
                                 Box(
-                                    Modifier.fillMaxSize().background(OrangePrimary.copy(alpha = 0.10f)),
+                                    Modifier
+                                        .fillMaxSize()
+                                        .background(OrangePrimary.copy(alpha = 0.10f)),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Image(
                                         painter = painterResource(speciesIconRes),
                                         contentDescription = null,
-                                        modifier = Modifier.size(70.dp),
+                                        modifier = Modifier.size(72.dp),
                                     )
                                 }
                             } else {
@@ -280,11 +265,11 @@ fun NewPetScreen(
                             )
                         }
 
-                        // Ícone de câmera no canto inferior direito
+                        // Ícone câmera no canto
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
-                                .size(30.dp)
+                                .size(32.dp)
                                 .clip(CircleShape)
                                 .background(OrangePrimary)
                                 .border(2.dp, MaterialTheme.colorScheme.background, CircleShape),
@@ -297,66 +282,82 @@ fun NewPetScreen(
                             )
                         }
                     }
+
+                    Text(
+                        text = if (photoPath.isNullOrBlank()) "Toque para adicionar uma foto"
+                               else "Toque para trocar a foto",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.50f),
+                        textAlign = TextAlign.Center,
+                    )
                 }
 
-                Text(
-                    text = if (photoPath.isNullOrBlank()) "Toque para adicionar uma foto" else "Toque para trocar a foto",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.50f),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                // ── Seção: Informações Básicas ────────────────────────────────
-                SectionHeader("Informações Básicas")
-
+                // ── Nome ───────────────────────────────────────────────────────
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nome*") },
+                    label = { Text("Nome do pet*") },
                     isError = nameError,
                     supportingText = { if (nameError) Text("O nome é obrigatório") },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                Text("Espécie", style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(SPECIES_OPTIONS, key = { it.storageValue }) { option ->
-                        SpeciesChip(
-                            option = option,
-                            selected = species == option.storageValue,
-                            onClick = { species = option.storageValue },
+                // ── Espécie ────────────────────────────────────────────────────
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Espécie",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(SPECIES_OPTIONS, key = { it.storageValue }) { option ->
+                            SpeciesChip(
+                                option = option,
+                                selected = species == option.storageValue,
+                                onClick = { species = option.storageValue },
+                            )
+                        }
+                    }
+                }
+
+                // ── Sexo ──────────────────────────────────────────────────────
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Sexo",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        SexOptionChip(
+                            label = "Macho", icon = Icons.Rounded.Male,
+                            selected = sex == "Macho",
+                            onClick = { sex = "Macho" },
+                            modifier = Modifier.weight(1f),
+                        )
+                        SexOptionChip(
+                            label = "Fêmea", icon = Icons.Rounded.Female,
+                            selected = sex == "Fêmea",
+                            onClick = { sex = "Fêmea" },
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
 
-                Text("Sexo", style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SexOptionChip(
-                        label = "Macho", icon = Icons.Rounded.Male,
-                        selected = sex == "Macho",
-                        onClick = { sex = "Macho" },
-                        modifier = Modifier.weight(1f),
-                    )
-                    SexOptionChip(
-                        label = "Fêmea", icon = Icons.Rounded.Female,
-                        selected = sex == "Fêmea",
-                        onClick = { sex = "Fêmea" },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-
+                // ── Raça ───────────────────────────────────────────────────────
                 OutlinedTextField(
                     value = breed,
                     onValueChange = { breed = it },
                     label = { Text("Raça (opcional)") },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                // Data de nascimento (somente leitura — abre DatePicker ao tocar)
+                // ── Data de nascimento ─────────────────────────────────────────
                 val dateInteractionSource = remember { MutableInteractionSource() }
                 val isDatePressed by dateInteractionSource.collectIsPressedAsState()
                 LaunchedEffect(isDatePressed) { if (isDatePressed) showDatePicker = true }
@@ -368,7 +369,9 @@ fun NewPetScreen(
                     readOnly = true,
                     label = { Text("Data de nascimento (opcional)") },
                     isError = birthDateError,
-                    supportingText = { if (birthDateError) Text("A data não pode ser no futuro") },
+                    supportingText = {
+                        if (birthDateError) Text("A data não pode ser no futuro")
+                    },
                     trailingIcon = {
                         Icon(Icons.Rounded.CalendarMonth, "Selecionar data")
                     },
@@ -376,98 +379,62 @@ fun NewPetScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
+                // ── Peso ───────────────────────────────────────────────────────
                 OutlinedTextField(
                     value = weightText,
                     onValueChange = { weightText = it },
-                    label = { Text("Peso (kg, opcional)") },
+                    label = { Text("Peso atual (kg, opcional)") },
                     isError = weightError,
-                    supportingText = { if (weightError) Text("Informe um peso numérico maior que zero") },
+                    supportingText = {
+                        if (weightError) Text("Informe um peso numérico maior que zero")
+                    },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal,
-                        imeAction = ImeAction.Next,
+                        imeAction = ImeAction.Done,
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                // ── Seção: Saúde ──────────────────────────────────────────────
-                SectionHeader("Saúde (opcional)")
-
-                OutlinedTextField(
-                    value = bloodType,
-                    onValueChange = { bloodType = it },
-                    label = { Text("Tipo sanguíneo") },
-                    singleLine = true,
+                // ── Castrado(a) ───────────────────────────────────────────────
+                androidx.compose.material3.Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = androidx.compose.material3.CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
                     modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = allergies,
-                    onValueChange = { allergies = it },
-                    label = { Text("Alergias") },
-                    minLines = 2,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = chronicConditions,
-                    onValueChange = { chronicConditions = it },
-                    label = { Text("Condições crônicas") },
-                    minLines = 2,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Castrado(a)", style = MaterialTheme.typography.bodyLarge)
-                    Switch(
-                        checked = isCastrated,
-                        onCheckedChange = { isCastrated = it },
-                        colors = SwitchDefaults.colors(checkedTrackColor = OrangePrimary),
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column {
+                            Text(
+                                "Castrado(a)",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                "Importante para os cuidados de saúde",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f),
+                            )
+                        }
+                        Switch(
+                            checked = isCastrated,
+                            onCheckedChange = { isCastrated = it },
+                            colors = SwitchDefaults.colors(checkedTrackColor = OrangePrimary),
+                        )
+                    }
                 }
-
-                OutlinedTextField(
-                    value = microchip,
-                    onValueChange = { microchip = it },
-                    label = { Text("Microchip") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                // ── Seção: Veterinário ────────────────────────────────────────
-                SectionHeader("Veterinário (opcional)")
-
-                OutlinedTextField(
-                    value = vetName,
-                    onValueChange = { vetName = it },
-                    label = { Text("Nome do veterinário") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = vetPhone,
-                    onValueChange = { vetPhone = it },
-                    label = { Text("Telefone do veterinário") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Observações gerais") },
-                    minLines = 3,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth(),
-                )
 
                 Spacer(Modifier.height(8.dp))
             }
 
-            // ── Botão Salvar fixo na parte inferior ───────────────────────────
+            // ── Botão Salvar fixo ─────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -477,26 +444,28 @@ fun NewPetScreen(
                     onClick = {
                         attemptedSave = true
                         val hasError = name.isBlank() ||
-                            (weightText.isNotBlank() && (weightValue == null || weightValue <= 0.0)) ||
+                            (weightText.isNotBlank() &&
+                                (weightValue == null || weightValue <= 0.0)) ||
                             (birthDateIso.isNotBlank() && isIsoDateInFuture(birthDateIso))
                         if (hasError) return@Button
 
                         val pet = Pet(
-                            name              = name.trim(),
-                            species           = species ?: "outro",
-                            breed             = breed.trim(),
-                            sex               = sex ?: "",
-                            isCastrated       = isCastrated,
-                            birthDate         = birthDateIso,
-                            weightKg          = weightValue ?: 0.0,
-                            bloodType         = bloodType.trim(),
-                            allergies         = allergies.trim(),
-                            chronicConditions = chronicConditions.trim(),
-                            microchip         = microchip.trim(),
-                            notes             = notes.trim(),
-                            vetName           = vetName.trim(),
-                            vetPhone          = vetPhone.trim(),
-                            photoPath         = photoPath ?: "",
+                            name          = name.trim(),
+                            species       = species ?: "outro",
+                            breed         = breed.trim(),
+                            sex           = sex ?: "",
+                            isCastrated   = isCastrated,
+                            birthDate     = birthDateIso,
+                            weightKg      = weightValue ?: 0.0,
+                            photoPath     = photoPath ?: "",
+                            // campos não coletados nesta tela — ficam em branco
+                            bloodType         = editingPet?.bloodType ?: "",
+                            allergies         = editingPet?.allergies ?: "",
+                            chronicConditions = editingPet?.chronicConditions ?: "",
+                            microchip         = editingPet?.microchip ?: "",
+                            notes             = editingPet?.notes ?: "",
+                            vetName           = editingPet?.vetName ?: "",
+                            vetPhone          = editingPet?.vetPhone ?: "",
                         )
 
                         if (isEditMode && editingPet != null) {
@@ -511,7 +480,10 @@ fun NewPetScreen(
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                 ) {
                     if (isSaving) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                        )
                     } else {
                         Text(
                             text = if (isEditMode) "Salvar alterações" else "Adicionar Pet",
@@ -545,26 +517,11 @@ fun NewPetScreen(
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
             },
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        ) { DatePicker(state = datePickerState) }
     }
 }
 
 // ─── Helpers internos ─────────────────────────────────────────────────────────
-
-@Composable
-private fun SectionHeader(title: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = OrangePrimary,
-        )
-        HorizontalDivider(color = OrangePrimary.copy(alpha = 0.20f))
-    }
-}
 
 @Composable
 private fun SpeciesChip(option: SpeciesOption, selected: Boolean, onClick: () -> Unit) {
@@ -575,7 +532,9 @@ private fun SpeciesChip(option: SpeciesOption, selected: Boolean, onClick: () ->
             .width(72.dp)
             .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
-            .background(if (selected) OrangePrimary.copy(alpha = 0.14f) else Color.Transparent)
+            .background(
+                if (selected) OrangePrimary.copy(alpha = 0.14f) else Color.Transparent,
+            )
             .border(
                 width = if (selected) 1.5.dp else 1.dp,
                 color = if (selected) OrangePrimary
@@ -611,7 +570,9 @@ private fun SexOptionChip(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .background(if (selected) OrangePrimary.copy(alpha = 0.14f) else Color.Transparent)
+            .background(
+                if (selected) OrangePrimary.copy(alpha = 0.14f) else Color.Transparent,
+            )
             .border(
                 width = if (selected) 1.5.dp else 1.dp,
                 color = if (selected) OrangePrimary
@@ -642,7 +603,9 @@ private fun SexOptionChip(
 private fun isIsoDateInFuture(iso: String): Boolean {
     val parsed = runCatching { isoDateFormat.parse(iso) }.getOrNull() ?: return false
     val today = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59)
+        set(Calendar.HOUR_OF_DAY, 23)
+        set(Calendar.MINUTE, 59)
+        set(Calendar.SECOND, 59)
     }.time
     return parsed.after(today)
 }

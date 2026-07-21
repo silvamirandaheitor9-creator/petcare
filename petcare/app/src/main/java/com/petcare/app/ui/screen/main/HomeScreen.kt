@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Cake
 import androidx.compose.material.icons.rounded.MedicalServices
 import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.material.icons.rounded.Vaccines
@@ -41,8 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -298,7 +298,7 @@ private fun TipCard(species: String?, modifier: Modifier = Modifier) {
     }
 }
 
-// ─── Card horizontal de pet (na LazyRow) ─────────────────────────────────────
+// ─── Card horizontal de pet — redesenhado sem círculo ────────────────────────
 
 @Composable
 private fun PetHorizontalCard(pet: Pet) {
@@ -307,6 +307,7 @@ private fun PetHorizontalCard(pet: Pet) {
     val hasRealPhoto = remember(pet.photoPath) {
         pet.photoPath.isNotEmpty() && File(pet.photoPath).exists()
     }
+    val ageLabel = remember(pet.birthDate, pet.approximateAge) { petAgeLabel(pet) }
 
     Card(
         modifier  = Modifier.width(148.dp),
@@ -314,80 +315,96 @@ private fun PetHorizontalCard(pet: Pet) {
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
         colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Column(
-            modifier            = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Área da foto com fundo laranja suave
+        Column(modifier = Modifier.fillMaxWidth()) {
+
+            // ── Área da foto — retangular, sem círculo ────────────────────────
             Box(
                 modifier         = Modifier
                     .fillMaxWidth()
-                    .height(110.dp)
-                    .background(OrangePrimary.copy(alpha = 0.08f)),
+                    .height(118.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 if (hasRealPhoto) {
                     AsyncImage(
                         model = ImageRequest.Builder(context)
                             .data(File(pet.photoPath))
-                            .size(200)
+                            .size(300)
                             .scale(Scale.FILL)
                             .crossfade(true)
                             .build(),
                         contentDescription = pet.name,
                         contentScale       = ContentScale.Crop,
-                        modifier           = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .shadow(2.dp, CircleShape),
+                        modifier           = Modifier.fillMaxSize(),
                     )
                 } else {
-                    // Sem foto: círculo laranja suave com ícone da espécie centralizado
+                    // Sem foto: fundo laranja suave + ícone da espécie centralizado
                     Box(
                         modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(OrangePrimary.copy(alpha = 0.15f)),
+                            .fillMaxSize()
+                            .background(OrangePrimary.copy(alpha = 0.10f)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Image(
                             painter            = painterResource(speciesIcon),
                             contentDescription = pet.species,
                             contentScale       = ContentScale.Fit,
-                            modifier           = Modifier.size(52.dp),
+                            modifier           = Modifier.size(64.dp),
                         )
                     }
                 }
 
-
-            }
-
-            // Info do pet
-            Column(
-                modifier            = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                Text(
-                    text       = pet.name,
-                    style      = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color      = MaterialTheme.colorScheme.onSurface,
-                    maxLines   = 1,
-                    overflow   = TextOverflow.Ellipsis,
+                // Gradiente inferior
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)),
+                            ),
+                        ),
                 )
-                val ageLabel = remember(pet.birthDate, pet.approximateAge, pet.species) {
-                    petAgeLabel(pet)
-                }
+
+                // Nome sobre o gradiente
                 Text(
-                    text     = ageLabel,
-                    style    = MaterialTheme.typography.bodySmall,
-                    color    = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f),
+                    text = pet.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
                 )
+            }
+
+            // ── Idade como badge com ícone ─────────────────────────────────────
+            if (ageLabel.isNotBlank()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Cake,
+                        contentDescription = null,
+                        tint = OrangePrimary,
+                        modifier = Modifier.size(13.dp),
+                    )
+                    Text(
+                        text = ageLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            } else {
+                Spacer(Modifier.height(8.dp))
             }
         }
     }
@@ -471,7 +488,7 @@ private fun petAgeLabel(pet: Pet): String {
     if (pet.birthDate.isNotBlank()) {
         return try {
             val sdf   = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val bd    = sdf.parse(pet.birthDate) ?: return pet.approximateAge.ifBlank { pet.species }
+            val bd    = sdf.parse(pet.birthDate) ?: return pet.approximateAge.ifBlank { "" }
             val now   = Calendar.getInstance()
             val birth = Calendar.getInstance().apply { time = bd }
             val totalMonths =
@@ -481,13 +498,17 @@ private fun petAgeLabel(pet: Pet): String {
                 totalMonths < 1  -> "< 1 mês"
                 totalMonths < 12 -> "$totalMonths ${if (totalMonths == 1) "mês" else "meses"}"
                 else             -> {
-                    val years = totalMonths / 12
-                    "$years ${if (years == 1) "ano" else "anos"}"
+                    val years  = totalMonths / 12
+                    val months = totalMonths % 12
+                    buildString {
+                        append("$years ${if (years == 1) "ano" else "anos"}")
+                        if (months > 0) append(" e $months ${if (months == 1) "mês" else "meses"}")
+                    }
                 }
             }
         } catch (e: Exception) {
-            pet.approximateAge.ifBlank { pet.species }
+            pet.approximateAge.ifBlank { "" }
         }
     }
-    return pet.approximateAge.ifBlank { pet.species }
+    return pet.approximateAge.ifBlank { "" }
 }

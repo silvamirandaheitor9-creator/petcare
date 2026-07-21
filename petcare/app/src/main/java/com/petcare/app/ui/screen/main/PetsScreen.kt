@@ -7,8 +7,9 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -33,6 +34,7 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Cake
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Female
@@ -59,6 +61,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -66,6 +69,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
@@ -90,8 +94,6 @@ fun PetsScreen(
     onEditPet: (Long) -> Unit = {},
 ) {
     val pets by viewModel.pets.collectAsState()
-
-    // Pet selecionado para exclusão — controla o modal customizado dentro da aba
     var petToDelete by remember { mutableStateOf<Pet?>(null) }
 
     if (pets.isEmpty()) {
@@ -101,10 +103,10 @@ fun PetsScreen(
             columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp,
+                start = 14.dp, end = 14.dp, top = 14.dp, bottom = 96.dp,
             ),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             itemsIndexed(pets, key = { _, pet -> pet.id }) { index, pet ->
                 StaggeredPetCard(
@@ -118,7 +120,7 @@ fun PetsScreen(
         }
     }
 
-    // Modal customizado de exclusão (SPEC §13) — movido para cá (não mais na tela de detalhe)
+    // Modal customizado de exclusão (SPEC §13)
     petToDelete?.let { pet ->
         DeletePetConfirmModal(
             pet = pet,
@@ -148,7 +150,9 @@ private fun StaggeredPetCard(
     }
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(tween(280)) + slideInVertically(tween(300), initialOffsetY = { it / 4 }),
+        enter = fadeIn(tween(280)) + slideInVertically(
+            tween(300), initialOffsetY = { it / 4 },
+        ),
     ) {
         PetGridCard(
             pet = pet,
@@ -180,7 +184,7 @@ private fun PetGridCard(
     val hasRealPhoto = remember(pet.photoPath) {
         pet.photoPath.isNotEmpty() && File(pet.photoPath).exists()
     }
-    val ageLabel = remember(pet.birthDate, pet.approximateAge) { petAgeLabel(pet) }
+    val ageLabel    = remember(pet.birthDate, pet.approximateAge) { petAgeLabel(pet) }
     val speciesIcon = speciesIconRes(pet.species)
 
     var showActions by remember { mutableStateOf(false) }
@@ -202,13 +206,13 @@ private fun PetGridCard(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
 
-            // ── Área de foto (160dp) com overlays ──────────────────────────
+            // ── Área de foto (168dp) com overlays ──────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp),
+                    .height(168.dp),
             ) {
-                // Foto ou placeholder por espécie
+                // Foto ou placeholder por espécie — preenchimento total
                 if (hasRealPhoto) {
                     AsyncImage(
                         model = ImageRequest.Builder(context)
@@ -232,30 +236,30 @@ private fun PetGridCard(
                             painter = painterResource(speciesIcon),
                             contentDescription = pet.species,
                             contentScale = ContentScale.Fit,
-                            modifier = Modifier.size(72.dp),
+                            modifier = Modifier.size(80.dp),
                         )
                     }
                 }
 
-                // Gradiente inferior (legibilidade do nome)
+                // Gradiente inferior para legibilidade
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(80.dp)
+                        .height(90.dp)
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f)),
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.72f)),
                             ),
                         ),
                 )
 
-                // Nome + idade + ícone de sexo sobre o gradiente
+                // Nome + sexo sobre o gradiente
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(1.dp),
+                        .padding(horizontal = 10.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -280,43 +284,25 @@ private fun PetGridCard(
                             "fêmea", "femea" -> Icon(
                                 imageVector = Icons.Rounded.Female,
                                 contentDescription = "Fêmea",
-                                tint = Color.White.copy(alpha = 0.85f),
+                                tint = Color(0xFFFFB3D9).copy(alpha = 0.90f),
                                 modifier = Modifier.size(14.dp),
                             )
                         }
                     }
+                    // Idade como badge compacto
                     if (ageLabel.isNotBlank()) {
-                        Text(
-                            text = ageLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.80f),
-                        )
+                        AgeBadge(ageLabel)
                     }
-                }
-
-                // Pílula de espécie — canto superior esquerdo
-                Box(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .align(Alignment.TopStart)
-                        .background(Color.Black.copy(alpha = 0.38f), RoundedCornerShape(50.dp))
-                        .padding(horizontal = 7.dp, vertical = 4.dp),
-                ) {
-                    Image(
-                        painter = painterResource(speciesIcon),
-                        contentDescription = pet.species,
-                        modifier = Modifier.size(14.dp),
-                    )
                 }
 
                 // Botão de ações (3 pontos) — canto superior direito
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .size(30.dp)
+                        .padding(8.dp)
+                        .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.38f))
+                        .background(Color.Black.copy(alpha = 0.40f))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
@@ -328,7 +314,7 @@ private fun PetGridCard(
                         imageVector = Icons.Rounded.MoreVert,
                         contentDescription = "Opções",
                         tint = Color.White,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }
@@ -338,26 +324,30 @@ private fun PetGridCard(
                 Text(
                     text = pet.breed,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
                 )
             } else {
                 Spacer(Modifier.height(4.dp))
             }
 
-            // ── Menu deslizante: Editar / Remover ────────────────────────────
+            // ── Menu deslizante animado: Editar / Remover ────────────────────
+            // scaleIn a partir do canto superior direito (onde está o botão)
             AnimatedVisibility(
                 visible = showActions,
-                enter = fadeIn(tween(160)) + slideInVertically(
-                    spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMediumLow),
-                    initialOffsetY = { -it / 2 },
-                ),
-                exit = fadeOut(tween(130)) + slideOutVertically(
-                    tween(130),
-                    targetOffsetY = { -it / 2 },
-                ),
+                enter = scaleIn(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow,
+                    ),
+                    transformOrigin = TransformOrigin(1f, 0f),
+                ) + fadeIn(tween(120)),
+                exit = scaleOut(
+                    animationSpec = tween(110),
+                    transformOrigin = TransformOrigin(1f, 0f),
+                ) + fadeOut(tween(100)),
             ) {
                 Row(
                     modifier = Modifier
@@ -367,12 +357,15 @@ private fun PetGridCard(
                 ) {
                     Button(
                         onClick = { showActions = false; onEdit() },
-                        modifier = Modifier.weight(1f).height(36.dp),
+                        modifier = Modifier.weight(1f).height(38.dp),
                         shape = RoundedCornerShape(24.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
                         contentPadding = PaddingValues(horizontal = 6.dp),
                     ) {
-                        Icon(Icons.Rounded.Edit, null, modifier = Modifier.size(14.dp))
+                        Icon(
+                            Icons.Rounded.Edit, null,
+                            modifier = Modifier.size(14.dp),
+                        )
                         Spacer(Modifier.width(4.dp))
                         Text(
                             "Editar",
@@ -382,15 +375,21 @@ private fun PetGridCard(
                     }
                     OutlinedButton(
                         onClick = { showActions = false; onDelete() },
-                        modifier = Modifier.weight(1f).height(36.dp),
+                        modifier = Modifier.weight(1f).height(38.dp),
                         shape = RoundedCornerShape(24.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.error.copy(alpha = 0.55f),
+                        ),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.error,
                         ),
                         contentPadding = PaddingValues(horizontal = 6.dp),
                     ) {
-                        Icon(Icons.Rounded.Delete, null, modifier = Modifier.size(14.dp))
+                        Icon(
+                            Icons.Rounded.Delete, null,
+                            modifier = Modifier.size(14.dp),
+                        )
                         Spacer(Modifier.width(4.dp))
                         Text(
                             "Remover",
@@ -401,6 +400,32 @@ private fun PetGridCard(
                 }
             }
         }
+    }
+}
+
+// ─── Badge de idade ───────────────────────────────────────────────────────────
+
+@Composable
+private fun AgeBadge(label: String) {
+    Row(
+        modifier = Modifier
+            .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(50.dp))
+            .padding(horizontal = 7.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Cake,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.80f),
+            modifier = Modifier.size(10.dp),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = 10.sp,
+            color = Color.White.copy(alpha = 0.90f),
+        )
     }
 }
 
@@ -469,7 +494,9 @@ private fun DeletePetConfirmModal(
 private fun EmptyPetsGridState() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -532,7 +559,11 @@ private fun petAgeLabel(pet: Pet): String {
                 totalMonths < 12 -> "$totalMonths ${if (totalMonths == 1) "mês" else "meses"}"
                 else -> {
                     val years = totalMonths / 12
-                    "$years ${if (years == 1) "ano" else "anos"}"
+                    val months = totalMonths % 12
+                    buildString {
+                        append("$years ${if (years == 1) "ano" else "anos"}")
+                        if (months > 0) append(" e $months ${if (months == 1) "mês" else "meses"}")
+                    }
                 }
             }
         } catch (e: Exception) {
