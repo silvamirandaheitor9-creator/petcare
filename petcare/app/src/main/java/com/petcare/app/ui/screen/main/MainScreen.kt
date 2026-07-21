@@ -213,6 +213,8 @@ fun MainScreen(
     // ── Sheet de limite de pets com rewarded ad (SPEC §18.3-18.4) ───────────
     if (showPetLimitSheet) {
         PetLimitSheet(
+            petCount   = petCount,
+            petLimit   = petLimit,
             onUnlocked = { petsViewModel.unlockExtraSlots() },
             onDismiss  = { showPetLimitSheet = false },
         )

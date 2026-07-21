@@ -2,8 +2,6 @@ package com.petcare.app.ui.navigation
 
 import android.net.Uri
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
@@ -87,35 +85,27 @@ fun PetCareNavGraph() {
     val isOnboardingDone by appViewModel.isOnboardingDone.collectAsState()
     val isReady          by appViewModel.isReady.collectAsState()
 
-    // Duração padrão das transições de slide
-    val slideDuration = 300
+    // Duração padrão das transições de slide (sem fade — offset 100% elimina sobreposição)
+    val slideDuration = 280
 
     NavHost(
         navController    = navController,
         startDestination = Screen.Splash.route,
-        // Navegar PARA frente: nova tela entra pela direita
-        enterTransition  = {
-            slideInHorizontally(tween(slideDuration)) { it } + fadeIn(tween(slideDuration))
-        },
-        // Navegar PARA frente: tela atual sai pela esquerda (1/3)
-        exitTransition   = {
-            slideOutHorizontally(tween(slideDuration)) { -it / 3 } + fadeOut(tween(slideDuration))
-        },
+        // Navegar PARA frente: nova tela entra pela direita (offset = largura total)
+        enterTransition  = { slideInHorizontally(tween(slideDuration)) { it } },
+        // Navegar PARA frente: tela atual sai pela esquerda (offset = largura total)
+        exitTransition   = { slideOutHorizontally(tween(slideDuration)) { -it } },
         // Voltar (popBackStack): tela anterior entra pela esquerda
-        popEnterTransition = {
-            slideInHorizontally(tween(slideDuration)) { -it / 3 } + fadeIn(tween(slideDuration))
-        },
+        popEnterTransition = { slideInHorizontally(tween(slideDuration)) { -it } },
         // Voltar (popBackStack): tela atual sai pela direita
-        popExitTransition  = {
-            slideOutHorizontally(tween(slideDuration)) { it } + fadeOut(tween(slideDuration))
-        },
+        popExitTransition  = { slideOutHorizontally(tween(slideDuration)) { it } },
     ) {
 
-        // Splash usa apenas fade (não slide), pois não há tela anterior
+        // Splash sem transição (primeira tela — não há tela anterior)
         composable(
             route          = Screen.Splash.route,
-            enterTransition = { fadeIn(tween(400)) },
-            exitTransition  = { fadeOut(tween(400)) },
+            enterTransition = { slideInHorizontally(tween(slideDuration)) { it } },
+            exitTransition  = { slideOutHorizontally(tween(slideDuration)) { -it } },
         ) {
             SplashScreen(
                 isReady    = isReady,
