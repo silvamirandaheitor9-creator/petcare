@@ -934,10 +934,7 @@ Em conformidade com a Lei Geral de Proteção de Dados, você tem direito a:
 Como todos os dados ficam no seu dispositivo, você exerce esses direitos diretamente pelo app ou desinstalando-o.
 
 9. ALTERAÇÕES NESTA POLÍTICA
-Podemos atualizar esta política periodicamente. Alterações relevantes serão comunicadas dentro do próprio app. A data de "última atualização" no topo sempre reflete a versão vigente.
-
-10. CONTATO
-Dúvidas ou solicitações: suporte@petcareapp.com.br"""
+Podemos atualizar esta política periodicamente. Alterações relevantes serão comunicadas dentro do próprio app. A data de "última atualização" no topo sempre reflete a versão vigente."""
 
 private const val TERMS_OF_USE_TEXT = """Termos de Uso do PetCare
 Última atualização: Julho de 2026
@@ -970,10 +967,7 @@ O PetCare é fornecido "como está", sem garantias de disponibilidade ininterrup
 Podemos alterar estes Termos a qualquer momento. O uso continuado do app após a publicação das alterações implica aceitação das novas condições. A data de "última atualização" no topo indica a versão vigente.
 
 9. LEI APLICÁVEL
-Estes Termos são regidos pelas leis da República Federativa do Brasil. Qualquer controvérsia será submetida ao foro da comarca do usuário, conforme o Código de Defesa do Consumidor.
-
-10. CONTATO
-Dúvidas ou solicitações: suporte@petcareapp.com.br"""
+Estes Termos são regidos pelas leis da República Federativa do Brasil. Qualquer controvérsia será submetida ao foro da comarca do usuário, conforme o Código de Defesa do Consumidor."""
 
 private const val ABOUT_TEXT = """Sobre o PetCare
 

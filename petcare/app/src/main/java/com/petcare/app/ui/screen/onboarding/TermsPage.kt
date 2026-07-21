@@ -91,9 +91,6 @@ Como todos os dados ficam no seu dispositivo, você exerce esses direitos direta
 
 9. ALTERAÇÕES NESTA POLÍTICA
 Podemos atualizar esta política periodicamente. Alterações relevantes serão comunicadas dentro do próprio app. A data de "última atualização" no topo sempre reflete a versão vigente.
-
-10. CONTATO
-Dúvidas ou solicitações: suporte@petcareapp.com.br
 """.trimIndent()
 
 private val TERMS_TEXT = """
@@ -129,9 +126,6 @@ Podemos alterar estes Termos a qualquer momento. O uso continuado do app após a
 
 9. LEI APLICÁVEL
 Estes Termos são regidos pelas leis da República Federativa do Brasil. Qualquer controvérsia será submetida ao foro da comarca do usuário, conforme o Código de Defesa do Consumidor.
-
-10. CONTATO
-Dúvidas ou solicitações: suporte@petcareapp.com.br
 """.trimIndent()
 
 // ─── Itens do resumo visual ───────────────────────────────────────────────────
