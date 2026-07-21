@@ -484,3 +484,26 @@ _3. **Diagnóstico de performance** — investigado e reportado. Fixes pendentes
 ### APK gerado
 - Build #85 — sucesso ✅
 - Expiração dos artifacts: 2026-07-28
+
+---
+
+## Melhoria 9 — Redesign Novo Lembrete + imagem Home corrigida (2026-07-21)
+
+### Mudanças implementadas
+
+**`HomeScreen.kt`**
+- Imagem do estado vazio trocada de `mel_avatar` → `onboarding_1_boasvindas` (largura 0.80f)
+
+**`NewReminderScreen.kt` — redesign completo**
+- **Cabeçalho dinâmico**: gradiente laranja com ícone da categoria selecionada num badge circular branco translúcido (atualiza em tempo real conforme o usuário escolhe a categoria) + subtítulo com o nome da categoria
+- **Seletor de pet**: substituído o dropdown `ExposedDropdownMenuBox` por `LazyRow` de chips animados com ícone de patinha (não selecionado) ou check (selecionado); cor laranja preenchida quando ativo
+- **Grade de categorias**: ícones com `animateColorAsState` e `animateDpAsState` — fundo laranja translúcido + borda laranja 2dp + badge circular ao selecionar; ícone ampliado para 24dp dentro de badge de 36dp
+- **Botões de Data/Hora**: substituídos os `Row` border por `Card` com badge de ícone laranja à esquerda e texto em `FontWeight.SemiBold` — visual mais moderno
+- **Badge de contagem regressiva**: faixa laranja suave ("Faltam X dias", "Lembrete para amanhã", "Lembrete para hoje") com ícone Repeat — aparece abaixo da data/hora
+- **Seletor de recorrência**: animação de cor nas pills com `animateColorAsState`; labels encurtadas ("Diário", "Semanal", "Mensal") para caber melhor
+- **Labels de seção**: função `SectionLabel` com alpha 0.60f; limpeza geral de espaçamentos
+- Removido `PetDropdown` (ExposedDropdownMenuBox) — substituído por chips; removidos imports não usados
+
+### APK gerado
+- Build #86 — sucesso ✅
+- Expiração dos artifacts: 2026-07-28
