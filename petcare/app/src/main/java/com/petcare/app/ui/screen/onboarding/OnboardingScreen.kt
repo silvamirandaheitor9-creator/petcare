@@ -91,6 +91,12 @@ private fun buildPages(): List<OnboardingPageData> = listOf(
         subtitle    = "",
         isTermsPage = true,
     ),
+    OnboardingPageData(
+        imageRes         = null,
+        title            = "Permissões",
+        subtitle         = "",
+        isPermissionsPage = true,
+    ),
 )
 
 // ─── Tela principal ───────────────────────────────────────────────────────────
@@ -100,9 +106,10 @@ fun OnboardingScreen(
     onFinished: () -> Unit,
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
-    val pages      = remember { buildPages() }
-    val totalPages = pages.size
-    val termsIndex = totalPages - 1
+    val pages            = remember { buildPages() }
+    val totalPages       = pages.size
+    val termsIndex       = pages.indexOfFirst { it.isTermsPage }
+    val permissionsIndex = pages.indexOfFirst { it.isPermissionsPage }
 
     val pagerState  = rememberPagerState(pageCount = { totalPages })
     val scope       = rememberCoroutineScope()
@@ -149,6 +156,9 @@ fun OnboardingScreen(
                             checked         = termsChecked,
                             onCheckedChange = { viewModel.setTermsChecked(it) },
                         )
+                        pages[page].isPermissionsPage -> PermissionsPage(
+                            isActive = pagerState.currentPage == page,
+                        )
                         else -> StandardOnboardingPage(data = pages[page])
                     }
                 }
@@ -165,18 +175,31 @@ fun OnboardingScreen(
                 // Pontinhos simples
                 DotsIndicator(pageCount = totalPages, currentPage = currentPage)
 
-                // Botão
-                val isLast   = currentPage == termsIndex
-                val btnLabel = if (isLast) "Aceitar e continuar" else "PRÓXIMO"
+                // Botão — rótulo e ação variam por página
+                val isTerms       = currentPage == termsIndex
+                val isPermissions = currentPage == permissionsIndex
+                val btnLabel = when {
+                    isTerms       -> "Aceitar e continuar"
+                    isPermissions -> "Entrar no PetCare!"
+                    else          -> "PRÓXIMO"
+                }
                 NextButton(
                     label   = btnLabel,
-                    enabled = if (isLast) termsChecked else true,
+                    enabled = if (isTerms) termsChecked else true,
                     onClick = {
-                        if (isLast) {
-                            viewModel.completeOnboarding()
-                            onFinished()
-                        } else {
-                            scope.launch { pagerState.animateScrollToPage(currentPage + 1) }
+                        when {
+                            isPermissions -> {
+                                // Última página: salva prefs e navega
+                                viewModel.completeOnboarding()
+                                onFinished()
+                            }
+                            isTerms -> {
+                                // Aceite dos termos: avança para permissões
+                                scope.launch { pagerState.animateScrollToPage(currentPage + 1) }
+                            }
+                            else -> {
+                                scope.launch { pagerState.animateScrollToPage(currentPage + 1) }
+                            }
                         }
                     },
                 )
