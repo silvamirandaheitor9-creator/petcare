@@ -5,47 +5,57 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Gavel
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.LightMode
-import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.material.icons.rounded.Policy
 import androidx.compose.material.icons.rounded.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -69,21 +79,36 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.petcare.app.R
+import com.petcare.app.ui.theme.OrangeGradEnd
+import com.petcare.app.ui.theme.OrangeGradStart
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.ProfileUiEvent
 import com.petcare.app.ui.viewmodel.ProfileViewModel
 import com.petcare.app.ui.viewmodel.ThemeViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProfileScreen — redesign completo
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun ProfileScreen(
@@ -95,17 +120,29 @@ fun ProfileScreen(
     val scope           = rememberCoroutineScope()
     val snackbarState   = remember { SnackbarHostState() }
 
-    // ── State ─────────────────────────────────────────────────────────────────
-    val userName  by viewModel.userName.collectAsState()
-    val isDark    by themeViewModel.isDarkTheme.collectAsState()
+    val userName      by viewModel.userName.collectAsState()
+    val isDark        by themeViewModel.isDarkTheme.collectAsState()
+    val petCount      by viewModel.petCount.collectAsState()
+    val diaryCount    by viewModel.diaryCount.collectAsState()
+    val reminderCount by viewModel.reminderCount.collectAsState()
 
     var nameInput         by remember(userName) { mutableStateOf(userName) }
     var pendingImportUri  by remember { mutableStateOf<android.net.Uri?>(null) }
+    var editingName       by remember { mutableStateOf(false) }
 
-    // Dialog flags
     var showImportDialog  by remember { mutableStateOf(false) }
     var showDeleteDialog1 by remember { mutableStateOf(false) }
     var showDeleteDialog2 by remember { mutableStateOf(false) }
+
+    // ── Stagger: controla visibilidade de cada seção ──────────────────────────
+    val sectionCount = 5
+    val sectionVisible = remember { List(sectionCount) { mutableStateOf(false) } }
+    LaunchedEffect(Unit) {
+        sectionVisible.forEachIndexed { i, state ->
+            delay(80L * i)
+            state.value = true
+        }
+    }
 
     // ── Eventos do ViewModel ──────────────────────────────────────────────────
     LaunchedEffect(viewModel.events) {
@@ -125,12 +162,11 @@ fun ProfileScreen(
         }
     }
 
-    // ── SAF: exportar (escolher pasta) ────────────────────────────────────────
+    // ── SAF: exportar ─────────────────────────────────────────────────────────
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
     ) { treeUri ->
         if (treeUri != null) {
-            // Permissão persistente para acessar a pasta futuramente
             context.contentResolver.takePersistableUriPermission(
                 treeUri,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
@@ -139,148 +175,131 @@ fun ProfileScreen(
         }
     }
 
-    // ── SAF: importar (escolher arquivo) ─────────────────────────────────────
+    // ── SAF: importar ─────────────────────────────────────────────────────────
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { fileUri ->
         if (fileUri != null) {
-            pendingImportUri  = fileUri
-            showImportDialog  = true
+            pendingImportUri = fileUri
+            showImportDialog = true
         }
     }
 
-    // ── Diálogo: mesclar ou substituir ───────────────────────────────────────
+    // ── Diálogos ──────────────────────────────────────────────────────────────
     if (showImportDialog && pendingImportUri != null) {
-        Dialog(onDismissRequest = { showImportDialog = false }) {
-            Card(
-                shape  = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Text(
-                        "Importar Backup",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        "Como você quer importar os dados?",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                    )
-                    OutlinedButton(
-                        onClick = {
-                            showImportDialog = false
-                            viewModel.importBackup(context.contentResolver, pendingImportUri!!, merge = true)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                    ) {
-                        Text("Mesclar com dados atuais")
-                    }
-                    Button(
-                        onClick = {
-                            showImportDialog = false
-                            viewModel.importBackup(context.contentResolver, pendingImportUri!!, merge = false)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
-                    ) {
-                        Text("Substituir tudo")
-                    }
-                    TextButton(
-                        onClick = { showImportDialog = false },
-                        modifier = Modifier.align(Alignment.End),
-                    ) { Text("Cancelar") }
-                }
+        PetCareDialog(onDismiss = { showImportDialog = false }) {
+            Text(
+                "Importar Backup",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Como você quer importar os dados?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+            )
+            Spacer(Modifier.height(16.dp))
+            OutlinedButton(
+                onClick = {
+                    showImportDialog = false
+                    viewModel.importBackup(context.contentResolver, pendingImportUri!!, merge = true)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = OrangePrimary),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, OrangePrimary),
+            ) { Text("Mesclar com dados atuais", fontWeight = FontWeight.SemiBold) }
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    showImportDialog = false
+                    viewModel.importBackup(context.contentResolver, pendingImportUri!!, merge = false)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+            ) { Text("Substituir tudo", fontWeight = FontWeight.SemiBold) }
+            TextButton(onClick = { showImportDialog = false }, modifier = Modifier.align(Alignment.End)) {
+                Text("Cancelar", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
             }
         }
     }
 
-    // ── Diálogo: apagar dados — 1ª confirmação ────────────────────────────────
     if (showDeleteDialog1) {
-        Dialog(onDismissRequest = { showDeleteDialog1 = false }) {
-            Card(
-                shape  = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        PetCareDialog(onDismiss = { showDeleteDialog1 = false }) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
             ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Text(
-                        "Apagar todos os dados?",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        "Todos os pets, lembretes, entradas do diário e registros de saúde serão removidos do aparelho.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    ) {
-                        TextButton(onClick = { showDeleteDialog1 = false }) { Text("Cancelar") }
-                        Button(
-                            onClick = { showDeleteDialog1 = false; showDeleteDialog2 = true },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error),
-                            shape = RoundedCornerShape(24.dp),
-                        ) { Text("Continuar") }
-                    }
-                }
+                Icon(
+                    Icons.Rounded.DeleteForever,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "Apagar todos os dados?",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Todos os pets, lembretes, entradas do diário e registros de saúde serão removidos do aparelho.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(16.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = { showDeleteDialog1 = false },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(24.dp),
+                ) { Text("Cancelar") }
+                Button(
+                    onClick = { showDeleteDialog1 = false; showDeleteDialog2 = true },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                ) { Text("Continuar") }
             }
         }
     }
 
-    // ── Diálogo: apagar dados — 2ª confirmação (irreversível) ─────────────────
     if (showDeleteDialog2) {
-        Dialog(onDismissRequest = { showDeleteDialog2 = false }) {
-            Card(
-                shape  = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Text(
-                        "Tem certeza absoluta?",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                    Text(
-                        "Esta ação é irreversível e não pode ser desfeita. Considere exportar um backup antes de continuar.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    ) {
-                        TextButton(onClick = { showDeleteDialog2 = false }) { Text("Cancelar") }
-                        Button(
-                            onClick = {
-                                showDeleteDialog2 = false
-                                viewModel.deleteAllData()
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error),
-                            shape = RoundedCornerShape(24.dp),
-                        ) { Text("Apagar tudo") }
-                    }
-                }
+        PetCareDialog(onDismiss = { showDeleteDialog2 = false }) {
+            Text(
+                "Tem certeza absoluta?",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.error,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Esta ação é irreversível e não pode ser desfeita. Considere exportar um backup antes de continuar.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(16.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = { showDeleteDialog2 = false },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(24.dp),
+                ) { Text("Cancelar") }
+                Button(
+                    onClick = { showDeleteDialog2 = false; viewModel.deleteAllData() },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                ) { Text("Apagar tudo") }
             }
         }
     }
@@ -289,186 +308,75 @@ fun ProfileScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 100.dp),
         ) {
-            // ── 1. Nome do usuário ────────────────────────────────────────────
+
+            // ── Hero header ───────────────────────────────────────────────────
             item {
-                ProfileCard(title = "Como podemos te chamar?", icon = Icons.Rounded.Person) {
-                    OutlinedTextField(
-                        value = nameInput,
-                        onValueChange = { nameInput = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Seu apelido ou nome") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Words,
-                            imeAction      = ImeAction.Done,
-                        ),
-                        keyboardActions = KeyboardActions(onDone = {
-                            viewModel.setUserName(nameInput)
-                            focusManager.clearFocus()
-                            scope.launch {
-                                snackbarState.showSnackbar("Nome salvo! 🐾")
-                            }
-                        }),
-                        shape  = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor   = OrangePrimary,
-                            focusedLabelColor    = OrangePrimary,
-                            cursorColor          = OrangePrimary,
-                        ),
+                ProfileHeroHeader(
+                    userName      = userName,
+                    petCount      = petCount,
+                    diaryCount    = diaryCount,
+                    reminderCount = reminderCount,
+                    isDark        = isDark,
+                    editingName   = editingName,
+                    nameInput     = nameInput,
+                    onNameInputChange = { nameInput = it },
+                    onEditToggle  = { editingName = !editingName },
+                    onNameSave    = {
+                        viewModel.setUserName(nameInput)
+                        focusManager.clearFocus()
+                        editingName = false
+                        scope.launch { snackbarState.showSnackbar("Nome salvo! 🐾") }
+                    },
+                )
+            }
+
+            // ── Seções com stagger ────────────────────────────────────────────
+            item {
+                StaggerSection(visible = sectionVisible[0].value, index = 0) {
+                    AppearanceCard(isDark = isDark, onToggle = { themeViewModel.setDarkTheme(it) })
+                }
+            }
+            item {
+                StaggerSection(visible = sectionVisible[1].value, index = 1) {
+                    BackupCard(
+                        onExport = { exportLauncher.launch(null) },
+                        onImport = { importLauncher.launch(arrayOf("*/*")) },
                     )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "Este nome aparece na saudação da tela Início.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                }
+            }
+            item {
+                StaggerSection(visible = sectionVisible[2].value, index = 2) {
+                    LegalExpandableCard(
+                        title   = "Política de Privacidade",
+                        icon    = Icons.Rounded.Policy,
+                        content = PRIVACY_POLICY_TEXT,
                     )
                 }
             }
-
-            // ── 2. Aparência (tema) ───────────────────────────────────────────
             item {
-                ProfileCard(title = "Aparência", icon = if (isDark) Icons.Rounded.LightMode
-                                                         else        Icons.Rounded.DarkMode) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Column {
-                            // Ícone: lua quando tema claro, sol quando tema escuro (SPEC 14)
-                            val themeLabel = if (isDark) "Tema Escuro" else "Tema Claro"
-                            Text(
-                                themeLabel,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                if (isDark) "Toque para usar o tema claro"
-                                else        "Toque para usar o tema escuro",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                            )
-                        }
-
-                        // Switch com animação de cor suave (~300ms) SPEC 16
-                        val trackColor by animateColorAsState(
-                            targetValue = if (isDark) OrangePrimary else Color.LightGray,
-                            animationSpec = tween(durationMillis = 300),
-                            label = "theme_track",
+                StaggerSection(visible = sectionVisible[3].value, index = 3) {
+                    LegalExpandableCard(
+                        title   = "Termos de Uso",
+                        icon    = Icons.Rounded.Gavel,
+                        content = TERMS_OF_USE_TEXT,
+                    )
+                }
+            }
+            item {
+                StaggerSection(visible = sectionVisible[4].value, index = 4) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LegalExpandableCard(
+                            title   = "Sobre o PetCare",
+                            icon    = Icons.Rounded.Info,
+                            content = ABOUT_TEXT,
                         )
-                        Switch(
-                            checked  = isDark,
-                            onCheckedChange = { themeViewModel.setDarkTheme(it) },
-                            thumbContent = {
-                                Icon(
-                                    imageVector = if (isDark) Icons.Rounded.LightMode
-                                                  else        Icons.Rounded.DarkMode,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = if (isDark) OrangePrimary else Color.Gray,
-                                )
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedTrackColor   = OrangePrimary.copy(alpha = 0.4f),
-                                checkedThumbColor   = OrangePrimary,
-                                uncheckedTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
-                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                            ),
-                        )
+                        // Apagar dados — botão destrutivo isolado no fundo
+                        DangerCard(onDeleteClick = { showDeleteDialog1 = true })
                     }
                 }
             }
-
-            // ── 3. Backup e Restauração ───────────────────────────────────────
-            item {
-                ProfileCard(title = "Backup e Restauração", icon = Icons.Rounded.Backup) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick   = { exportLauncher.launch(null) },
-                            modifier  = Modifier.fillMaxWidth(),
-                            shape     = RoundedCornerShape(24.dp),
-                            colors    = ButtonDefaults.outlinedButtonColors(
-                                contentColor = OrangePrimary),
-                        ) {
-                            Icon(Icons.Rounded.Upload, contentDescription = null,
-                                modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Exportar backup", fontWeight = FontWeight.SemiBold)
-                        }
-                        OutlinedButton(
-                            onClick   = { importLauncher.launch(arrayOf("*/*")) },
-                            modifier  = Modifier.fillMaxWidth(),
-                            shape     = RoundedCornerShape(24.dp),
-                            colors    = ButtonDefaults.outlinedButtonColors(
-                                contentColor = OrangePrimary),
-                        ) {
-                            Icon(Icons.Rounded.Download, contentDescription = null,
-                                modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Importar backup", fontWeight = FontWeight.SemiBold)
-                        }
-                        Text(
-                            "O backup salva todos os pets, lembretes, diário e registros de saúde num arquivo .db.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                        )
-                    }
-                }
-            }
-
-            // ── 4. Meus Dados (apagar) ────────────────────────────────────────
-            item {
-                ProfileCard(title = "Meus Dados", icon = Icons.Rounded.DeleteForever) {
-                    TextButton(
-                        onClick = { showDeleteDialog1 = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error),
-                    ) {
-                        Icon(Icons.Rounded.DeleteForever, contentDescription = null,
-                            modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "Apagar todos os dados",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
-            }
-
-            // ── 5. Seções legais ──────────────────────────────────────────────
-            item {
-                ExpandableSection(
-                    title  = "Política de Privacidade",
-                    icon   = Icons.Rounded.Policy,
-                ) {
-                    LegalText(PRIVACY_POLICY_TEXT)
-                }
-            }
-            item {
-                ExpandableSection(
-                    title = "Termos de Uso",
-                    icon  = Icons.Rounded.Gavel,
-                ) {
-                    LegalText(TERMS_OF_USE_TEXT)
-                }
-            }
-            item {
-                ExpandableSection(
-                    title = "Sobre o PetCare",
-                    icon  = Icons.Rounded.Info,
-                ) {
-                    LegalText(ABOUT_TEXT)
-                }
-            }
-
-            item { Spacer(Modifier.height(80.dp)) }
         }
 
         // ── Snackbar flutuante ────────────────────────────────────────────────
@@ -489,65 +397,403 @@ fun ProfileScreen(
     }
 }
 
-// ─── Card de seção de perfil ──────────────────────────────────────────────────
+// ─── Hero header ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun ProfileCard(
-    title   : String,
-    icon    : ImageVector,
-    content : @Composable () -> Unit,
+private fun ProfileHeroHeader(
+    userName      : String,
+    petCount      : Int,
+    diaryCount    : Int,
+    reminderCount : Int,
+    isDark        : Boolean,
+    editingName   : Boolean,
+    nameInput     : String,
+    onNameInputChange: (String) -> Unit,
+    onEditToggle  : () -> Unit,
+    onNameSave    : () -> Unit,
 ) {
-    Card(
-        modifier  = Modifier.fillMaxWidth(),
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Cabeçalho da card
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // ── Zona do gradiente com informações do usuário ──────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(OrangeGradStart, OrangeGradEnd),
+                    )
+                )
+        ) {
+            // Círculo decorativo de fundo
+            Box(
+                modifier = Modifier
+                    .size(180.dp)
+                    .align(Alignment.TopEnd)
+                    .offset(x = 40.dp, y = (-30).dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.08f)),
+            )
+
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 28.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(icon, contentDescription = null,
-                    tint     = OrangePrimary,
-                    modifier = Modifier.size(20.dp))
+                // Avatar com inicial do nome
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .shadow(8.dp, CircleShape)
+                        .clip(CircleShape)
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (userName.isNotBlank()) {
+                        Text(
+                            text       = userName.trim().first().uppercase(),
+                            style      = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color      = OrangePrimary,
+                        )
+                    } else {
+                        Image(
+                            painter           = painterResource(R.drawable.mel_avatar_pequeno),
+                            contentDescription= "Mascote",
+                            modifier          = Modifier.fillMaxSize(),
+                            contentScale      = ContentScale.Crop,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.width(16.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    if (editingName) {
+                        OutlinedTextField(
+                            value           = nameInput,
+                            onValueChange   = onNameInputChange,
+                            singleLine      = true,
+                            placeholder     = { Text("Seu apelido", color = Color.White.copy(alpha = 0.7f)) },
+                            keyboardOptions = KeyboardOptions(
+                                capitalization = KeyboardCapitalization.Words,
+                                imeAction      = ImeAction.Done,
+                            ),
+                            keyboardActions = KeyboardActions(onDone = { onNameSave() }),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor   = Color.White,
+                                unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                                focusedTextColor     = Color.White,
+                                unfocusedTextColor   = Color.White,
+                                cursorColor          = Color.White,
+                            ),
+                            shape    = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = onEditToggle) {
+                                Text("Cancelar", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
+                            }
+                            Button(
+                                onClick = onNameSave,
+                                colors  = ButtonDefaults.buttonColors(containerColor = Color.White),
+                                shape   = RoundedCornerShape(24.dp),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                            ) {
+                                Text("Salvar", color = OrangePrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                        }
+                    } else {
+                        Text(
+                            text       = if (userName.isNotBlank()) "Olá, ${userName.trim()}! 👋"
+                                         else "Como podemos te chamar?",
+                            style      = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color      = Color.White,
+                        )
+                        Text(
+                            text  = "Tutor PetCare",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.75f),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(Color.White.copy(alpha = 0.18f))
+                                .clickable(onClick = onEditToggle)
+                                .padding(horizontal = 12.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(Icons.Rounded.Edit, null, tint = Color.White, modifier = Modifier.size(13.dp))
+                            Text("Editar nome", style = MaterialTheme.typography.labelSmall, color = Color.White)
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Faixa de estatísticas (fora do Box de gradiente, sem overlap) ─────
+        Card(
+            modifier  = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+
+            shape     = RoundedCornerShape(20.dp),
+            colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(8.dp),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                StatChip(icon = Icons.Rounded.Pets,          label = "Pets",      value = petCount.toString())
+                StatDivider()
+                StatChip(icon = Icons.Rounded.AutoStories,   label = "Memórias",  value = diaryCount.toString())
+                StatDivider()
+                StatChip(icon = Icons.Rounded.Notifications, label = "Lembretes", value = reminderCount.toString())
+            }
+        }
+
+
+    }
+}
+
+@Composable
+private fun StatChip(icon: ImageVector, label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(OrangePrimary.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(20.dp))
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+    }
+}
+
+@Composable
+private fun StatDivider() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .height(48.dp)
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+    )
+}
+
+// ─── Wrapper de stagger ───────────────────────────────────────────────────────
+
+@Composable
+private fun StaggerSection(visible: Boolean, index: Int, content: @Composable () -> Unit) {
+    val alpha   = remember { Animatable(0f) }
+    val offsetY = remember { Animatable(24f) }
+
+    LaunchedEffect(visible) {
+        if (visible) {
+            delay(index * 60L)
+            launch { alpha.animateTo(1f, tween(260, easing = FastOutSlowInEasing)) }
+            launch { offsetY.animateTo(0f, tween(260, easing = FastOutSlowInEasing)) }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .graphicsLayer { this.alpha = alpha.value; translationY = offsetY.value }
+            .padding(horizontal = 16.dp)
+            .padding(top = 14.dp),
+    ) {
+        content()
+    }
+}
+
+// ─── Card de aparência / tema ─────────────────────────────────────────────────
+
+@Composable
+private fun AppearanceCard(isDark: Boolean, onToggle: (Boolean) -> Unit) {
+    val trackColor by animateColorAsState(
+        targetValue   = if (isDark) OrangePrimary else Color.LightGray,
+        animationSpec = tween(300),
+        label         = "theme_track",
+    )
+    ProfileSectionCard(title = "Aparência", icon = if (isDark) Icons.Rounded.LightMode else Icons.Rounded.DarkMode) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column {
                 Text(
-                    title,
-                    style      = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color      = MaterialTheme.colorScheme.onSurface,
+                    if (isDark) "Tema Escuro" else "Tema Claro",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    if (isDark) "Toque para usar o tema claro" else "Toque para usar o tema escuro",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f),
                 )
             }
-            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-            content()
+            Switch(
+                checked        = isDark,
+                onCheckedChange= onToggle,
+                thumbContent   = {
+                    Icon(
+                        imageVector = if (isDark) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = if (isDark) OrangePrimary else Color.Gray,
+                    )
+                },
+                colors = SwitchDefaults.colors(
+                    checkedTrackColor   = OrangePrimary.copy(alpha = 0.4f),
+                    checkedThumbColor   = OrangePrimary,
+                    uncheckedTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
+                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                ),
+            )
         }
     }
 }
 
-// ─── Seção expansível (legal) ─────────────────────────────────────────────────
+// ─── Card de backup ───────────────────────────────────────────────────────────
 
 @Composable
-private fun ExpandableSection(
-    title   : String,
-    icon    : ImageVector,
-    content : @Composable () -> Unit,
-) {
+private fun BackupCard(onExport: () -> Unit, onImport: () -> Unit) {
+    ProfileSectionCard(title = "Backup e Restauração", icon = Icons.Rounded.Backup) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Exportar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.5.dp, OrangePrimary.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    .clickable(onClick = onExport)
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(OrangePrimary.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Rounded.Upload, null, tint = OrangePrimary, modifier = Modifier.size(18.dp))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Exportar backup", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text("Salva seus dados num arquivo .db", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                }
+                Icon(Icons.Rounded.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), modifier = Modifier.size(20.dp))
+            }
+            // Importar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .clickable(onClick = onImport)
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Rounded.Download, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Importar backup", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text("Restaura dados de um arquivo .db", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                }
+                Icon(Icons.Rounded.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), modifier = Modifier.size(20.dp))
+            }
+        }
+    }
+}
+
+// ─── Card de dados perigosos ──────────────────────────────────────────────────
+
+@Composable
+private fun DangerCard(onDeleteClick: () -> Unit) {
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.06f),
+        ),
+        elevation = CardDefaults.cardElevation(0.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onDeleteClick)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Rounded.DeleteForever, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Apagar todos os dados",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                Text(
+                    "Remove pets, lembretes, diário e saúde",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                )
+            }
+            Icon(Icons.Rounded.ChevronRight, null, tint = MaterialTheme.colorScheme.error.copy(alpha = 0.4f), modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+// ─── Card expandível para textos legais ───────────────────────────────────────
+
+@Composable
+private fun LegalExpandableCard(title: String, icon: ImageVector, content: String) {
     var expanded by remember { mutableStateOf(false) }
+    val arrowRotation by animateFloatAsState(
+        targetValue   = if (expanded) 180f else 0f,
+        animationSpec = tween(200),
+        label         = "arrow_$title",
+    )
 
     Card(
         modifier  = Modifier.fillMaxWidth(),
         shape     = RoundedCornerShape(16.dp),
         colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Cabeçalho clicável
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(if (expanded) RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
-                          else          RoundedCornerShape(16.dp))
                     .clickable { expanded = !expanded }
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -555,54 +801,100 @@ private fun ExpandableSection(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Icon(icon, contentDescription = null,
-                        tint     = OrangePrimary,
-                        modifier = Modifier.size(20.dp))
-                    Text(
-                        title,
-                        style      = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color      = MaterialTheme.colorScheme.onSurface,
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(OrangePrimary.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(icon, null, tint = OrangePrimary, modifier = Modifier.size(18.dp))
+                    }
+                    Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 }
                 Icon(
-                    imageVector        = if (expanded) Icons.Rounded.ExpandLess
-                                        else           Icons.Rounded.ExpandMore,
-                    contentDescription = if (expanded) "Recolher" else "Expandir",
-                    tint               = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                    modifier           = Modifier.size(20.dp),
+                    Icons.Rounded.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    modifier = Modifier
+                        .size(20.dp)
+                        .graphicsLayer { rotationZ = arrowRotation },
                 )
             }
 
-            // Conteúdo expansível com animação
             AnimatedVisibility(
                 visible = expanded,
-                enter   = expandVertically(animationSpec = tween(250)) + fadeIn(tween(250)),
-                exit    = shrinkVertically(animationSpec = tween(200)) + fadeOut(tween(200)),
+                enter   = expandVertically(tween(250)) + fadeIn(tween(250)),
+                exit    = shrinkVertically(tween(200)) + fadeOut(tween(200)),
             ) {
                 Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
-                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                     Spacer(Modifier.height(12.dp))
-                    content()
+                    Text(
+                        text       = content,
+                        style      = MaterialTheme.typography.bodySmall,
+                        color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f),
+                        lineHeight = 20.sp,
+                    )
                 }
             }
         }
     }
 }
 
-// ─── Texto legal formatado ────────────────────────────────────────────────────
+// ─── Componentes reutilizáveis ────────────────────────────────────────────────
 
 @Composable
-private fun LegalText(text: String) {
-    Text(
-        text  = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-        lineHeight = androidx.compose.ui.unit.TextUnit(
-            20f, androidx.compose.ui.unit.TextUnitType.Sp),
-    )
+private fun ProfileSectionCard(
+    title: String,
+    icon: ImageVector,
+    content: @Composable () -> Unit,
+) {
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(2.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(OrangePrimary.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icon, null, tint = OrangePrimary, modifier = Modifier.size(18.dp))
+                }
+                Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f))
+            content()
+        }
+    }
+}
+
+@Composable
+private fun PetCareDialog(onDismiss: () -> Unit, content: @Composable (androidx.compose.foundation.layout.ColumnScope.() -> Unit)) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape     = RoundedCornerShape(24.dp),
+            colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(8.dp),
+        ) {
+            Column(
+                modifier            = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                content             = content,
+            )
+        }
+    }
 }
 
 // ─── Textos legais (SPEC §19) ─────────────────────────────────────────────────
@@ -623,11 +915,11 @@ Conformidade com a LGPD: seguimos os princípios da Lei Geral de Proteção de D
 private const val TERMS_OF_USE_TEXT = """Termos de Uso do PetCare
 Última atualização: Julho de 2026
 
-1. Natureza do app: ferramenta de organização pessoal para cuidados com pets.
+1. Natureza do app: ferramenta de organização pessoal para cuidados com pets. As dicas do Mel não substituem veterinário.
 
-2. Seus dados: armazenados localmente. Você é responsável pelos backups.
+2. Seus dados: armazenados localmente no seu dispositivo. Você é responsável pelos backups.
 
-3. Anúncios: o app oferece recursos gratuitos com limite de pets, expansível via anúncios.
+3. Anúncios: o app oferece recursos gratuitos com limite de pets, expansível via anúncios recompensados.
 
 4. Propriedade intelectual: nome, mascote e design são de nossa propriedade."""
 

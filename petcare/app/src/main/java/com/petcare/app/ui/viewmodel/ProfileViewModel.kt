@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
@@ -57,31 +58,30 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch { prefs.setUserName(name.trim()) }
     }
 
+    // ── Contadores de estatísticas para o header ──────────────────────────────
+    val petCount: kotlinx.coroutines.flow.StateFlow<Int> = petDao.getPetCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    val diaryCount: kotlinx.coroutines.flow.StateFlow<Int> = diaryDao.getAllEntries()
+        .map { it.size }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    val reminderCount: kotlinx.coroutines.flow.StateFlow<Int> = reminderDao.getAllReminders()
+        .map { it.size }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     // ── Eventos one-shot para a UI ────────────────────────────────────────────
     private val _events = MutableSharedFlow<ProfileUiEvent>()
     val events: SharedFlow<ProfileUiEvent> = _events.asSharedFlow()
 
     // ─────────────────────────────────────────────────────────────────────────
     // Exportar backup via SAF
-    //
-    // PROBLEMA WAL: Room usa WAL mode por padrão. O arquivo petcare.db pode
-    // estar praticamente vazio (só header) enquanto todos os dados — inclusive
-    // os CREATE TABLE — ficam em petcare.db-wal. PRAGMA wal_checkpoint(FULL)
-    // com conexão ativa do Room não funciona (ele deteta readers abertos e
-    // desiste silenciosamente). Copiar só o .db produz um arquivo sem tabelas.
-    //
-    // SOLUÇÃO: copiar o .db + .db-wal para um diretório temporário, abrir a
-    // cópia com SQLiteDatabase nativo (merge do WAL é automático no open),
-    // forçar PRAGMA wal_checkpoint(TRUNCATE) lá — agora sem conexões do Room
-    // interferindo — fechar e só então copiar o arquivo resultante para o SAF.
-    // O arquivo exportado é um SQLite limpo, auto-suficiente, sem WAL.
     // ─────────────────────────────────────────────────────────────────────────
     fun exportBackup(contentResolver: ContentResolver, treeUri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val srcDb  = context.getDatabasePath("petcare.db")
                 val srcWal = File(srcDb.parent!!, "petcare.db-wal")
-                val srcShm = File(srcDb.parent!!, "petcare.db-shm")
 
                 if (!srcDb.exists()) {
                     _events.emit(ProfileUiEvent.ExportError(
@@ -89,7 +89,6 @@ class ProfileViewModel @Inject constructor(
                     return@launch
                 }
 
-                // 1. Copia .db (e .db-wal se existir) para diretório temporário
                 val tempDir = File(context.cacheDir, "petcare_export_tmp")
                 tempDir.deleteRecursively()
                 tempDir.mkdirs()
@@ -98,19 +97,13 @@ class ProfileViewModel @Inject constructor(
 
                 srcDb.copyTo(tempDb, overwrite = true)
                 if (srcWal.exists()) srcWal.copyTo(tempWal, overwrite = true)
-                // .db-shm é recriado automaticamente; não é necessário copiar
 
-                // 2. Abre a cópia com SQLite nativo — merge do WAL é automático
-                //    Força checkpoint TRUNCATE: aqui não há conexão do Room
-                //    interferindo, então o checkpoint completa de verdade.
                 val exportDb = SQLiteDatabase.openDatabase(
                     tempDb.absolutePath, null, SQLiteDatabase.OPEN_READWRITE,
                 )
                 exportDb.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)", null).close()
                 exportDb.close()
-                // Após o close, tempDb é um .db limpo e auto-suficiente (sem WAL)
 
-                // 3. Cria petcare_backup.db dentro da pasta escolhida pelo usuário
                 val treeDocId = DocumentsContract.getTreeDocumentId(treeUri)
                 val parentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, treeDocId)
                 val docUri = DocumentsContract.createDocument(
@@ -123,7 +116,6 @@ class ProfileViewModel @Inject constructor(
                     return@launch
                 }
 
-                // 4. Copia o arquivo limpo para o SAF
                 contentResolver.openOutputStream(docUri)?.use { out ->
                     tempDb.inputStream().use { it.copyTo(out) }
                 }
@@ -138,16 +130,10 @@ class ProfileViewModel @Inject constructor(
 
     // ─────────────────────────────────────────────────────────────────────────
     // Importar backup via SAF
-    // merge = true  → mantém dados existentes e adiciona os do backup
-    // merge = false → apaga tudo e substitui pelos dados do backup
-    //
-    // Estratégia: lê o .db do backup com SQLiteDatabase nativo (sem Room),
-    // re-insere via DAOs com id=0 para gerar novos IDs e preservar FK chains.
     // ─────────────────────────────────────────────────────────────────────────
     fun importBackup(contentResolver: ContentResolver, fileUri: Uri, merge: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // 1. Salva backup em arquivo temporário
                 val tempFile = File(context.cacheDir, "petcare_import_temp.db")
                 contentResolver.openInputStream(fileUri)?.use { input ->
                     tempFile.outputStream().use { input.copyTo(it) }
@@ -160,10 +146,8 @@ class ProfileViewModel @Inject constructor(
                     tempFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY,
                 )
 
-                // 2. Se substituir, limpa todos os dados antes
                 if (!merge) db.clearAllTables()
 
-                // 3. Pets: insere com id=0 e mapeia oldId → newId para preservar FKs
                 val petIdMap = mutableMapOf<Long, Long>()
                 src.rawQuery("SELECT * FROM pets", null).use { c ->
                     while (c.moveToNext()) {
@@ -192,7 +176,6 @@ class ProfileViewModel @Inject constructor(
                     }
                 }
 
-                // 4. Lembretes
                 src.rawQuery("SELECT * FROM reminders", null).use { c ->
                     while (c.moveToNext()) {
                         val newPetId = petIdMap[c.getLong(c.getColumnIndexOrThrow("petId"))]
@@ -211,7 +194,6 @@ class ProfileViewModel @Inject constructor(
                     }
                 }
 
-                // 5. Diário
                 src.rawQuery("SELECT * FROM diary_entries", null).use { c ->
                     while (c.moveToNext()) {
                         val newPetId = petIdMap[c.getLong(c.getColumnIndexOrThrow("petId"))]
@@ -226,7 +208,6 @@ class ProfileViewModel @Inject constructor(
                     }
                 }
 
-                // 6. Registros de saúde
                 src.rawQuery("SELECT * FROM health_records", null).use { c ->
                     while (c.moveToNext()) {
                         val newPetId = petIdMap[c.getLong(c.getColumnIndexOrThrow("petId"))]
@@ -267,8 +248,6 @@ class ProfileViewModel @Inject constructor(
 
     // ─────────────────────────────────────────────────────────────────────────
     // Apagar todos os dados (confirmação dupla na UI)
-    // Limpa todas as tabelas Room + reseta nome do usuário.
-    // Preferências de tema e onboarding são preservadas.
     // ─────────────────────────────────────────────────────────────────────────
     fun deleteAllData() {
         viewModelScope.launch(Dispatchers.IO) {
