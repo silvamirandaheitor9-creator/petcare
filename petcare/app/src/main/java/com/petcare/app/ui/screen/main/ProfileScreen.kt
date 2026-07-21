@@ -538,8 +538,7 @@ private fun ProfileHeroHeader(
         Card(
             modifier  = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-
+                .padding(horizontal = 20.dp),
             shape     = RoundedCornerShape(20.dp),
             colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(8.dp),
