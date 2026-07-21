@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.media.RingtoneManager
 import androidx.core.app.NotificationCompat
 import com.petcare.app.MainActivity
 import com.petcare.app.R
@@ -14,7 +15,8 @@ import java.io.File
 
 /**
  * Recebe alarmes agendados pelo [ReminderScheduler] e exibe a notificação rica:
- *  - Título e corpo contextuais baseados na categoria
+ *  - Título e corpo contextuais e variados por categoria
+ *  - Som padrão do dispositivo habilitado
  *  - Foto do pet como ícone grande (ou ícone de categoria como fallback)
  *  - Botões de ação "Concluir" e "Adiar 1h"
  *  - Vibração personalizada
@@ -27,10 +29,11 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         val petName      = intent.getStringExtra(EXTRA_PET_NAME) ?: ""
         val petPhotoPath = intent.getStringExtra(EXTRA_PET_PHOTO_PATH) ?: ""
         val category     = intent.getStringExtra(EXTRA_CATEGORY) ?: "personalizado"
-        val title        = intent.getStringExtra(EXTRA_TITLE) ?: "Lembrete PetCare"
+        val title        = intent.getStringExtra(EXTRA_TITLE) ?: ""
         val notifId      = intent.getIntExtra(EXTRA_NOTIF_ID, reminderId.toInt().coerceAtLeast(1))
 
-        val body = contextualBody(category, petName)
+        val notifTitle = professionalTitle(category, petName, title)
+        val notifBody  = professionalBody(category, petName)
 
         // ── Intent principal: abre o app ──────────────────────────────────────
         val mainPi = PendingIntent.getActivity(
@@ -71,16 +74,20 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         // ── Ícone grande: foto do pet → ícone de categoria → null ─────────────
         val largeBitmap: Bitmap? = loadLargeIcon(context, petPhotoPath, category)
 
+        // Som padrão do dispositivo
+        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
         // ── Constrói a notificação ────────────────────────────────────────────
         val builder = NotificationCompat.Builder(context, NotificationChannels.REMINDERS_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(title)
-            .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setContentTitle(notifTitle)
+            .setContentText(notifBody)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(notifBody))
             .setAutoCancel(true)
             .setContentIntent(mainPi)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setVibrate(NotificationChannels.VIBRATION_PATTERN)
+            .setSound(soundUri)
             .setGroup(GROUP_KEY)
             .addAction(R.drawable.ic_notification, "Concluir", completePi)
             .addAction(R.drawable.ic_notification, "Adiar 1h", snoozePi)
@@ -91,14 +98,13 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         manager.notify(notifId, builder.build())
 
         // ── Notificação de agrupamento (summary) ──────────────────────────────
-        // É necessária para que o Android agrupe visualmente as notificações.
         val summaryBuilder = NotificationCompat.Builder(context, NotificationChannels.REMINDERS_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("PetCare")
             .setContentText("Lembretes pendentes dos seus pets")
             .setStyle(
                 NotificationCompat.InboxStyle()
-                    .setSummaryText("PetCare Lembretes")
+                    .setSummaryText("PetCare — Lembretes")
             )
             .setGroup(GROUP_KEY)
             .setGroupSummary(true)
@@ -110,7 +116,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
     // ─────────────────────────────────────────────────────────────────────────
 
     companion object {
-        const val GROUP_KEY       = "com.petcare.app.REMINDERS_GROUP"
+        const val GROUP_KEY        = "com.petcare.app.REMINDERS_GROUP"
         const val SUMMARY_NOTIF_ID = 999_999
 
         const val EXTRA_REMINDER_ID    = "extra_reminder_id"
@@ -121,18 +127,85 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         const val EXTRA_NOTIF_ID       = "extra_notif_id"
 
         /**
-         * Gera corpo contextual baseado na categoria e no nome do pet.
+         * Gera título profissional baseado na categoria e no nome do pet.
+         * Se o usuário digitou um título personalizado (não vazio e diferente
+         * do padrão da categoria), usa o título dele — apenas capitalizado.
          */
-        fun contextualBody(category: String, petName: String): String {
-            val name = petName.ifBlank { "seu pet" }
+        fun professionalTitle(category: String, petName: String, userTitle: String = ""): String {
+            val name = petName.trim().ifBlank { null }
+
+            // Título padrão rico por categoria
+            val categoryTitle = when (category) {
+                "vacina"      -> if (name != null) "Vacina do $name" else "Hora da vacina"
+                "consulta"    -> if (name != null) "Consulta do $name" else "Consulta veterinária"
+                "banho"       -> if (name != null) "Banho e tosa do $name" else "Banho e tosa"
+                "medicacao"   -> if (name != null) "Medicação do $name" else "Hora do remédio"
+                "alimentacao" -> if (name != null) "$name está com fome!" else "Hora da refeição"
+                "vermifugo"   -> if (name != null) "Vermífugo do $name" else "Hora do vermífugo"
+                else          -> if (name != null) "Lembrete para $name" else "Lembrete PetCare"
+            }
+
+            // Se o usuário digitou um título personalizado, usa o dele
+            val trimmed = userTitle.trim()
+            return if (trimmed.isNotBlank() && trimmed.lowercase() != category) {
+                trimmed.replaceFirstChar { it.uppercaseChar() }
+            } else {
+                categoryTitle
+            }
+        }
+
+        /**
+         * Gera corpo de notificação profissional, cuidadoso e variado por categoria.
+         * A variação é feita com base no hashCode do petName para ser determinística
+         * por pet (o mesmo pet sempre recebe a mesma variante, mas pets diferentes
+         * recebem mensagens diferentes — evita monotonia sem ser aleatório a cada push).
+         */
+        fun professionalBody(category: String, petName: String): String {
+            val name = petName.trim().ifBlank { "seu pet" }
+            val variant = (name.hashCode() and 0x7FFFFFFF) % 3
+
             return when (category) {
-                "vacina"      -> "Hora da vacina de $name! Mantenha a saúde em dia."
-                "consulta"    -> "Consulta de $name agendada. Não esqueça!"
-                "banho"       -> "$name está esperando pelo banho e tosa!"
-                "medicacao"   -> "Hora da medicação de $name. Não pule a dose!"
-                "alimentacao" -> "Hora de alimentar $name. Ele está com fome!"
-                "vermifugo"   -> "Vermífugo de $name — previna parasitas!"
-                else          -> "Lembrete especial para $name."
+                "vacina" -> listOf(
+                    "Manter a vacinação em dia é o maior presente que você pode dar a $name. Vamos lá?",
+                    "Prevenção é saúde! Confira a vacina de $name e mantenha a proteção em dia.",
+                    "Uma vacina hoje, muita saúde amanhã. $name conta com você!",
+                )[variant]
+
+                "consulta" -> listOf(
+                    "O veterinário está esperando por $name. Cuide bem do seu companheiro!",
+                    "Hora do check-up! Leve $name à consulta e garanta que está tudo bem.",
+                    "Não esqueça: consulta marcada para $name. Saúde em dia, pet feliz!",
+                )[variant]
+
+                "banho" -> listOf(
+                    "$name merece um banho quentinho e muita capricho. Hora de brilhar!",
+                    "Banho e tosa fazem toda a diferença. $name vai adorar ficar cheiroso!",
+                    "Deixa $name limpinho e feliz — é hora do banho e tosa!",
+                )[variant]
+
+                "medicacao" -> listOf(
+                    "Não pule a dose de $name! Medicação em dia é saúde garantida.",
+                    "Hora do remédio de $name. Capricho e cuidado em cada dose.",
+                    "$name precisa da medicação agora. Você não esqueceu, né?",
+                )[variant]
+
+                "alimentacao" -> listOf(
+                    "$name está de olho no potinho. Hora da refeição!",
+                    "Barriga cheia, pet feliz! Não deixe $name esperando pela comida.",
+                    "Hora de alimentar $name. Ele(a) já está contando os segundos!",
+                )[variant]
+
+                "vermifugo" -> listOf(
+                    "Vermífugo previne parasitas e mantém $name saudável. Não adie!",
+                    "Uma dose de vermífugo agora significa meses de proteção para $name.",
+                    "Cuide de $name por dentro e por fora — hora do vermífugo!",
+                )[variant]
+
+                else -> listOf(
+                    "Você criou um lembrete especial para $name. Hora de cumpri-lo!",
+                    "$name conta com o seu cuidado. Não esqueça este lembrete!",
+                    "Lembrete ativo para $name. Cada detalhe importa quando o assunto é cuidado!",
+                )[variant]
             }
         }
 
