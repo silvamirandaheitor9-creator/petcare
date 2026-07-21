@@ -462,3 +462,25 @@ _3. **Diagnóstico de performance** — investigado e reportado. Fixes pendentes
 - Build #84 — sucesso ✅
 - petcare-release-signed: 9.2 MB
 - Expiração dos artifacts: 2026-07-28
+
+---
+
+## Melhoria 8 — Remove Compartilhar do Diário, ícones no lugar de emojis, nova imagem Home (2026-07-21)
+
+### Mudanças implementadas
+
+**`HomeScreen.kt`**
+- Estado vazio (sem pets): substituída imagem `vazio_meuspets` por `mel_avatar` (mascote completo, mais acolhedor)
+- Largura ajustada de 0.68f → 0.62f para proporcionar melhor encaixe visual
+
+**`DiaryScreen.kt`**
+- Removido botão "Compartilhar" (Button laranja + função `shareDiaryEntry`) — simplifica a ux e remove dependência de FileProvider/Intent
+- Barra de ações: substituída pelo layout data completa (texto sutil à esquerda) + ícones Editar / Excluir (sem o share)
+- Header de memórias: emoji `📸` → `Box` com `Icon(Icons.Rounded.PhotoAlbum)` num badge laranja arredondado
+- Badge de nome do pet na foto: texto `"🐾 $petName"` → `Row` com `Icon(Icons.Rounded.Pets, 12dp)` + texto, ambos brancos
+- Texto do estado vazio: `"Toque no 📸 para..."` → `"Toque no botão + para..."` (sem emoji)
+- Imports limpos: removidos `Intent`, `FileProvider`, `Share` icon; adicionados `PhotoAlbum`, `Pets`
+
+### APK gerado
+- Build #85 — sucesso ✅
+- Expiração dos artifacts: 2026-07-28
