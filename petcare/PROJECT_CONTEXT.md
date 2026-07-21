@@ -400,6 +400,7 @@ _3. **Diagnóstico de performance** — investigado e reportado. Fixes pendentes
 | 3 | Aba Início (Home) | ✅ 2026-07-20 | Redesign completo |
 | 4 | Aba Meus Pets (grid de cards) | ✅ 2026-07-20 | Cards em grade, animação escalonada, foto por espécie |
 | 5 | PetDetailScreen (abas de saúde) + ajustes PetsScreen | ✅ 2026-07-21 | Ver detalhes abaixo |
+| 6 (redesign anterior) | DiaryScreen, DiaryAddEntry, ícone Home, fix Próxima Consulta | ✅ 2026-07-21 | Ver Melhoria 7 abaixo |
 
 ### Melhoria #5 — detalhes (2026-07-21)
 
@@ -417,3 +418,47 @@ _3. **Diagnóstico de performance** — investigado e reportado. Fixes pendentes
 - **Formulários de novo registro:** `FormHeader` com gradiente laranja, ícone no badge branco translúcido + título branco bold
 
 **Próxima melhoria sugerida (#6):** Simplificar `NewPetScreen` de 3 etapas para 1 tela única (usuário confirmar antes de implementar).
+
+---
+
+## Melhoria 7 — Diário redesenhado + ícone Home + fix Próxima Consulta (2026-07-21)
+
+### Mudanças implementadas
+
+**`MainScreen.kt`**
+- Aba Início: `Icons.Rounded.Home` → `Icons.Rounded.Favorite` (coração laranja — mais quente e identitário)
+- Aba Diário: `Icons.Rounded.AutoStories` → `Icons.Rounded.PhotoLibrary` (mais representativo de memórias/fotos)
+
+**`DiaryScreen.kt` — redesign completo dos cards**
+- Header com contador de memórias ("📸 X memórias guardadas")
+- Cards redesenhados: foto aumentada para 260dp, gradiente escurecido na parte inferior para legibilidade
+- Badge do nome do pet sobreposto na foto (canto inferior esquerdo, pill laranja)
+- Badge de data amigável na foto (canto superior direito, pill escuro): "Hoje" / "Ontem" / nome do dia da semana / dd/MM/yyyy
+- Caption formatada como citação `"texto"` com alpha 0.82
+- Separador sutil entre caption e barra de ações
+- Botão "Compartilhar" em destaque laranja (icon + label), com edit/delete como IconButtons discretos
+- Texto de share temático: linha de título `💛 NOME — Diário PetCare`, citação da caption, data, hashtags `#PetCare #NomePet #MeuPet #AmorPelosPets`
+
+**`DiaryAddEntryScreen.kt` — redesign da tela de nova entrada**
+- Header com gradiente laranja horizontal (OrangeGradStart → OrangeGradEnd), título "Nova memória" + subtítulo
+- Frame polaroid aprimorado: fundo creme `#F5F0E8`, sombra 12dp, padding interno, label `📸 PetCare` no rodapé
+- 8 tags de momento (era 6): Passeio, Brincadeira, Banho, Consulta, Carinho, Especial, Ao ar livre, Petisco
+- Tags em `FlowRow` com animação de cor (laranja selecionado, cinza não selecionado), ✓ ao selecionar
+- Campo de legenda com `OutlinedTextField` arredondado e barra de progresso colorida (verde→laranja→vermelho conforme limite)
+- Seletor de pet em FlowRow animado (igual ao padrão das tags)
+- Botão salvar com animação de escala (comprime a 0.96f ao processar)
+
+**`HealthRecordDao.kt`**
+- Novo método `getUpcomingConsultations(nowMillis: Long): Flow<List<HealthRecord>>`
+- Filtra `type = 'consultation'` com `dateMillis > nowMillis`, ordenado ASC
+
+**`HomeViewModel.kt`**
+- `nextConsultDate` agora combina **duas fontes** (igual ao comportamento de `nextVaccineDate`):
+  1. Lembretes com `category == "consulta"` (criados via aba Lembretes)
+  2. HealthRecords `type = "consultation"` com `dateMillis` futuro (criados em PetDetailScreen)
+- Retorna a data mais próxima entre as duas fontes
+
+### APK gerado
+- Build #84 — sucesso ✅
+- petcare-release-signed: 9.2 MB
+- Expiração dos artifacts: 2026-07-28
