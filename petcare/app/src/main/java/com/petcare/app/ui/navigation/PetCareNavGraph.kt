@@ -1,6 +1,11 @@
 package com.petcare.app.ui.navigation
 
 import android.net.Uri
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -82,9 +87,36 @@ fun PetCareNavGraph() {
     val isOnboardingDone by appViewModel.isOnboardingDone.collectAsState()
     val isReady          by appViewModel.isReady.collectAsState()
 
-    NavHost(navController = navController, startDestination = Screen.Splash.route) {
+    // Duração padrão das transições de slide
+    val slideDuration = 300
 
-        composable(Screen.Splash.route) {
+    NavHost(
+        navController    = navController,
+        startDestination = Screen.Splash.route,
+        // Navegar PARA frente: nova tela entra pela direita
+        enterTransition  = {
+            slideInHorizontally(tween(slideDuration)) { it } + fadeIn(tween(slideDuration))
+        },
+        // Navegar PARA frente: tela atual sai pela esquerda (1/3)
+        exitTransition   = {
+            slideOutHorizontally(tween(slideDuration)) { -it / 3 } + fadeOut(tween(slideDuration))
+        },
+        // Voltar (popBackStack): tela anterior entra pela esquerda
+        popEnterTransition = {
+            slideInHorizontally(tween(slideDuration)) { -it / 3 } + fadeIn(tween(slideDuration))
+        },
+        // Voltar (popBackStack): tela atual sai pela direita
+        popExitTransition  = {
+            slideOutHorizontally(tween(slideDuration)) { it } + fadeOut(tween(slideDuration))
+        },
+    ) {
+
+        // Splash usa apenas fade (não slide), pois não há tela anterior
+        composable(
+            route          = Screen.Splash.route,
+            enterTransition = { fadeIn(tween(400)) },
+            exitTransition  = { fadeOut(tween(400)) },
+        ) {
             SplashScreen(
                 isReady    = isReady,
                 onNavigate = {
