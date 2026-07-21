@@ -1,9 +1,19 @@
 package com.petcare.app.ui.screen.main
 
 import android.net.Uri
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -158,33 +168,42 @@ fun MainScreen(
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
-            // ── Conteúdo da aba ───────────────────────────────────────────────
-            when (currentTab) {
-                MainTab.HOME ->
-                    HomeScreen(
-                        viewModel = homeViewModel,
-                        onAddPet  = { selectedTabIndex = MainTab.PETS.ordinal },
-                    )
-                MainTab.PETS ->
-                    PetsScreen(
-                        viewModel  = petsViewModel,
-                        onPetClick = onNavigateToPetDetail,
-                        onEditPet  = onNavigateToEditPet,
-                    )
-                MainTab.DIARY ->
-                    DiaryScreen(
-                        showAddEntryPlaceholder      = showAddDiaryEntry,
-                        onDismissAddEntryPlaceholder = { showAddDiaryEntry = false },
-                        onNavigateToPhotoEditor      = onNavigateToDiaryPhotoEditor,
-                        onEditEntry                  = onNavigateToEditDiaryEntry,
-                    )
-                MainTab.REMINDERS ->
-                    RemindersScreen(
-                        viewModel             = reminderViewModel,
-                        onNavigateToNewReminder = { id -> onNavigateToNewReminder(id) },
-                    )
-                MainTab.PROFILE ->
-                    ProfileScreen()
+            // ── Conteúdo da aba com crossfade suave ao trocar ─────────────────
+            AnimatedContent(
+                targetState   = currentTab,
+                transitionSpec = {
+                    fadeIn(tween(200)) togetherWith fadeOut(tween(140))
+                },
+                label = "tab_content",
+                modifier = Modifier.fillMaxSize(),
+            ) { tab ->
+                when (tab) {
+                    MainTab.HOME ->
+                        HomeScreen(
+                            viewModel = homeViewModel,
+                            onAddPet  = { selectedTabIndex = MainTab.PETS.ordinal },
+                        )
+                    MainTab.PETS ->
+                        PetsScreen(
+                            viewModel  = petsViewModel,
+                            onPetClick = onNavigateToPetDetail,
+                            onEditPet  = onNavigateToEditPet,
+                        )
+                    MainTab.DIARY ->
+                        DiaryScreen(
+                            showAddEntryPlaceholder      = showAddDiaryEntry,
+                            onDismissAddEntryPlaceholder = { showAddDiaryEntry = false },
+                            onNavigateToPhotoEditor      = onNavigateToDiaryPhotoEditor,
+                            onEditEntry                  = onNavigateToEditDiaryEntry,
+                        )
+                    MainTab.REMINDERS ->
+                        RemindersScreen(
+                            viewModel               = reminderViewModel,
+                            onNavigateToNewReminder = { id -> onNavigateToNewReminder(id) },
+                        )
+                    MainTab.PROFILE ->
+                        ProfileScreen()
+                }
             }
 
             // ── FAB "+" de ação (apenas abas com ação de adicionar) ──────────
@@ -334,7 +353,7 @@ private fun PetCareBottomBar(
     }
 }
 
-// ─── FAB "+" de ação ─────────────────────────────────────────────────────────
+// ─── FAB "+" de ação com pulso suave (SPEC 16.4 adaptado) ────────────────────
 
 @Composable
 private fun AddFab(
@@ -342,6 +361,18 @@ private fun AddFab(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    // Pulsação sutil: escala 1.0 → 1.10 → 1.0 em loop (respira como o Mel da spec)
+    val infiniteTransition = rememberInfiniteTransition(label = "fab_pulse")
+    val fabScale by infiniteTransition.animateFloat(
+        initialValue  = 1f,
+        targetValue   = 1.10f,
+        animationSpec = infiniteRepeatable(
+            animation  = tween(950, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "fab_scale",
+    )
+
     SmallFloatingActionButton(
         onClick        = onClick,
         containerColor = OrangePrimary,
@@ -350,7 +381,9 @@ private fun AddFab(
             defaultElevation = 4.dp,
             pressedElevation = 1.dp,
         ),
-        modifier = modifier.size(48.dp),
+        modifier = modifier
+            .size(48.dp)
+            .scale(fabScale),
     ) {
         Icon(
             imageVector        = Icons.Rounded.Add,

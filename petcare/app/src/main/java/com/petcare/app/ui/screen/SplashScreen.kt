@@ -1,6 +1,7 @@
 package com.petcare.app.ui.screen
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -52,22 +53,46 @@ fun SplashScreen(
     val dotsAlpha      = remember { Animatable(0f) }
 
     var animationDone by remember { mutableStateOf(false) }
+    var mascotSettled by remember { mutableStateOf(false) }
+
+    // ── Float suave do mascote após o quique (sobe/desce 6dp) ───────
+    // Só anima depois que mascotSettled = true para não conflitar com o spring inicial
+    val floatTransition = rememberInfiniteTransition(label = "mascot_float")
+    val mascotFloatY by floatTransition.animateFloat(
+        initialValue  = 0f,
+        targetValue   = if (mascotSettled) -6f else 0f,
+        animationSpec = infiniteRepeatable(
+            animation  = tween(1_300, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "float_y",
+    )
+
+    // ── Rotação sutil do mascote (±2°) ───────────────────────────────
+    val mascotSway by floatTransition.animateFloat(
+        initialValue  = -2f,
+        targetValue   = if (mascotSettled) 2f else 0f,
+        animationSpec = infiniteRepeatable(
+            animation  = tween(1_700, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "sway_z",
+    )
 
     // ── Dots pulsando em cascata ────────────────────────────────────
-    val dotTransition = rememberInfiniteTransition(label = "dots")
-    val dot1Alpha by dotTransition.animateFloat(
+    val dot1Alpha by floatTransition.animateFloat(
         initialValue  = 0.4f,
         targetValue   = 1f,
         animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
         label = "dot1",
     )
-    val dot2Alpha by dotTransition.animateFloat(
+    val dot2Alpha by floatTransition.animateFloat(
         initialValue  = 0.4f,
         targetValue   = 1f,
         animationSpec = infiniteRepeatable(tween(600, delayMillis = 200), RepeatMode.Reverse),
         label = "dot2",
     )
-    val dot3Alpha by dotTransition.animateFloat(
+    val dot3Alpha by floatTransition.animateFloat(
         initialValue  = 0.4f,
         targetValue   = 1f,
         animationSpec = infiniteRepeatable(tween(600, delayMillis = 400), RepeatMode.Reverse),
@@ -76,14 +101,15 @@ fun SplashScreen(
 
     // ── Sequência de entrada ────────────────────────────────────────
     LaunchedEffect(Unit) {
-        // 1. Mascote com quique
+        // 1. Mascote com quique (spring com DampingRatioLowBouncy para mais personalidade)
         mascotScale.animateTo(
             targetValue   = 1f,
             animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
+                dampingRatio = Spring.DampingRatioLowBouncy,
                 stiffness    = Spring.StiffnessMedium,
             ),
         )
+        mascotSettled = true   // ativa o float suave
 
         // 2. Texto e dots em paralelo
         launch { contentAlpha.animateTo(1f, tween(400)) }
@@ -110,15 +136,17 @@ fun SplashScreen(
             verticalArrangement = Arrangement.Center,
         ) {
 
-            // Mascote
+            // Mascote — spring de entrada + float suave depois
             Image(
                 painter            = painterResource(R.drawable.mascote_splash),
                 contentDescription = null,
                 modifier           = Modifier
                     .size(180.dp)
                     .graphicsLayer {
-                        scaleX = mascotScale.value
-                        scaleY = mascotScale.value
+                        scaleX       = mascotScale.value
+                        scaleY       = mascotScale.value
+                        translationY = if (mascotSettled) mascotFloatY * density else 0f
+                        rotationZ    = if (mascotSettled) mascotSway else 0f
                     },
             )
 
@@ -148,7 +176,7 @@ fun SplashScreen(
 
             Spacer(Modifier.height(40.dp))
 
-            // 3 pontinhos simples
+            // 3 pontinhos em cascata
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment     = Alignment.CenterVertically,

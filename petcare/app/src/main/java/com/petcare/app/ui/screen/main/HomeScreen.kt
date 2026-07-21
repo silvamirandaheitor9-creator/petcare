@@ -1,7 +1,17 @@
 package com.petcare.app.ui.screen.main
 
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -18,7 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,12 +46,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -61,10 +75,57 @@ import com.petcare.app.data.db.entity.Pet
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.HomeViewModel
 import com.petcare.app.util.PetCareTips
+import kotlinx.coroutines.delay
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+
+// ─── Animação de entrada fade + slide (usada em StatsCard e TipCard) ─────────
+
+@Composable
+private fun FadeSlideIn(
+    delayMs: Int = 0,
+    content: @Composable () -> Unit,
+) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(delayMs.toLong())
+        visible = true
+    }
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(360)) + slideInVertically(
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness    = Spring.StiffnessMediumLow,
+            ),
+            initialOffsetY = { it / 4 },
+        ),
+    ) {
+        content()
+    }
+}
+
+// ─── Card horizontal de pet com entrada escalonada ───────────────────────────
+
+@Composable
+private fun StaggeredHomePetCard(pet: Pet, index: Int) {
+    var visible by remember(pet.id) { mutableStateOf(false) }
+    LaunchedEffect(pet.id) {
+        delay((index * 70L).coerceAtMost(420L))
+        visible = true
+    }
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(300)) + slideInVertically(
+            tween(320),
+            initialOffsetY = { it / 3 },
+        ),
+    ) {
+        PetHorizontalCard(pet = pet)
+    }
+}
 
 // ─── Ponto de entrada da aba Início ─────────────────────────────────────────
 
@@ -84,24 +145,28 @@ fun HomeScreen(
         contentPadding  = PaddingValues(top = 16.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
-        // (1) Card de estatísticas
+        // (1) Card de estatísticas — fade+slide com delay 0
         item(key = "stats_card") {
-            StatsCard(
-                petCount        = petCount,
-                nextVaccineDate = nextVaccineDate,
-                nextConsultDate = nextConsultDate,
-                modifier        = Modifier.padding(horizontal = 16.dp),
-            )
+            FadeSlideIn(delayMs = 0) {
+                StatsCard(
+                    petCount        = petCount,
+                    nextVaccineDate = nextVaccineDate,
+                    nextConsultDate = nextConsultDate,
+                    modifier        = Modifier.padding(horizontal = 16.dp),
+                )
+            }
         }
 
         item(key = "stats_spacer") { Spacer(Modifier.height(16.dp)) }
 
-        // (2) Card de dica do dia
+        // (2) Card de dica do dia — fade+slide com delay 80ms
         item(key = "tip_card") {
-            TipCard(
-                species  = tipSpecies,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
+            FadeSlideIn(delayMs = 80) {
+                TipCard(
+                    species  = tipSpecies,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
         }
 
         item(key = "tip_spacer") { Spacer(Modifier.height(24.dp)) }
@@ -116,20 +181,22 @@ fun HomeScreen(
             }
         } else {
             item(key = "pets_header") {
-                Row(
-                    modifier              = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column {
-                        Text(
-                            text       = "Seus pets",
-                            style      = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color      = MaterialTheme.colorScheme.onBackground,
-                        )
+                FadeSlideIn(delayMs = 120) {
+                    Row(
+                        modifier              = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column {
+                            Text(
+                                text       = "Seus pets",
+                                style      = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color      = MaterialTheme.colorScheme.onBackground,
+                            )
+                        }
                     }
                 }
             }
@@ -139,8 +206,9 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding        = PaddingValues(horizontal = 16.dp),
                 ) {
-                    items(pets, key = { it.id }) { pet ->
-                        PetHorizontalCard(pet = pet)
+                    // Stagger escalonado em cada card de pet
+                    itemsIndexed(pets, key = { _, pet -> pet.id }) { index, pet ->
+                        StaggeredHomePetCard(pet = pet, index = index)
                     }
                 }
             }
@@ -428,6 +496,18 @@ private fun EmptyPetsSection(
     onAddPet: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Pulse animation no botão de chamada para ação
+    val infiniteTransition = rememberInfiniteTransition(label = "button_pulse")
+    val buttonScale by infiniteTransition.animateFloat(
+        initialValue  = 1f,
+        targetValue   = 1.055f,
+        animationSpec = infiniteRepeatable(
+            animation  = tween(900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "button_scale",
+    )
+
     Column(
         modifier              = modifier.fillMaxWidth(),
         horizontalAlignment   = Alignment.CenterHorizontally,
@@ -453,9 +533,13 @@ private fun EmptyPetsSection(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(4.dp))
+        // Botão com pulse sutil (SPEC §7.5)
         Button(
             onClick  = onAddPet,
-            modifier = Modifier.fillMaxWidth(0.80f).height(52.dp),
+            modifier = Modifier
+                .fillMaxWidth(0.80f)
+                .height(52.dp)
+                .scale(buttonScale),
             shape    = RoundedCornerShape(50.dp),
             colors   = ButtonDefaults.buttonColors(
                 containerColor = OrangePrimary,

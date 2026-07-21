@@ -5,9 +5,13 @@ import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +29,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.Canvas
@@ -132,18 +138,35 @@ fun RemindersScreen(
                 SectionHeader(label = group.label())
             }
 
-            items(items = items, key = { "reminder_${it.id}" }) { reminder ->
-                ReminderSwipeContainer(
-                    onDeleteDirect    = { viewModel.deleteReminder(reminder) },
-                    onToggleCompleted = { viewModel.toggleCompleted(reminder) },
+            // Cards de lembrete com stagger escalonado por grupo
+            itemsIndexed(items, key = { _, r -> "reminder_${r.id}" }) { index, reminder ->
+                var shown by remember(reminder.id) { mutableStateOf(false) }
+                LaunchedEffect(reminder.id) {
+                    delay((index * 60L).coerceAtMost(360L))
+                    shown = true
+                }
+                AnimatedVisibility(
+                    visible = shown,
+                    enter   = fadeIn(tween(280)) + slideInVertically(
+                        animationSpec  = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness    = Spring.StiffnessMediumLow,
+                        ),
+                        initialOffsetY = { it / 4 },
+                    ),
                 ) {
-                    ReminderCard(
-                        reminder          = reminder,
-                        pets              = pets,
-                        onEdit            = { onNavigateToNewReminder(reminder.id) },
-                        onDelete          = { viewModel.deleteReminder(reminder) },
+                    ReminderSwipeContainer(
+                        onDeleteDirect    = { viewModel.deleteReminder(reminder) },
                         onToggleCompleted = { viewModel.toggleCompleted(reminder) },
-                    )
+                    ) {
+                        ReminderCard(
+                            reminder          = reminder,
+                            pets              = pets,
+                            onEdit            = { onNavigateToNewReminder(reminder.id) },
+                            onDelete          = { viewModel.deleteReminder(reminder) },
+                            onToggleCompleted = { viewModel.toggleCompleted(reminder) },
+                        )
+                    }
                 }
             }
         }

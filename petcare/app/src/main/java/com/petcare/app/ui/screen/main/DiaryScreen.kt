@@ -3,11 +3,14 @@ package com.petcare.app.ui.screen.main
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +28,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -158,20 +163,36 @@ fun DiaryScreen(
                 item(key = "filter_spacer") { Spacer(Modifier.height(8.dp)) }
             }
 
-            items(visibleEntries, key = { it.id }) { entry ->
-                val pet = pets.firstOrNull { it.id == entry.petId }
-                PolaroidReveal(
-                    entryId       = entry.id,
-                    hasLoadedOnce = hasLoadedOnce.value,
-                    knownEntryIds = knownEntryIds,
+            // Entradas do diário com stagger na carga inicial e PolaroidReveal para novas
+            itemsIndexed(visibleEntries, key = { _, e -> e.id }) { index, entry ->
+                val pet    = pets.firstOrNull { it.id == entry.petId }
+                val isNew  = hasLoadedOnce.value && entry.id !in knownEntryIds
+                // Entradas novas: visíveis imediatamente (PolaroidReveal cuida da animação)
+                // Entradas da carga inicial: aparecem em stagger
+                var shown by remember(entry.id) { mutableStateOf(isNew) }
+                LaunchedEffect(entry.id) {
+                    if (!shown) {
+                        delay((index * 55L).coerceAtMost(380L))
+                        shown = true
+                    }
+                }
+                AnimatedVisibility(
+                    visible = shown,
+                    enter   = fadeIn(tween(320)) + slideInVertically(tween(340)) { it / 5 },
                 ) {
-                    DiaryEntryCard(
-                        entry           = entry,
-                        petName         = pet?.name ?: "Pet",
-                        onDeleteRequest = { entryPendingDelete = entry },
-                        onEditRequest   = { onEditEntry(entry.id) },
-                        modifier        = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
+                    PolaroidReveal(
+                        entryId       = entry.id,
+                        hasLoadedOnce = hasLoadedOnce.value,
+                        knownEntryIds = knownEntryIds,
+                    ) {
+                        DiaryEntryCard(
+                            entry           = entry,
+                            petName         = pet?.name ?: "Pet",
+                            onDeleteRequest = { entryPendingDelete = entry },
+                            onEditRequest   = { onEditEntry(entry.id) },
+                            modifier        = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
+                    }
                 }
             }
 
