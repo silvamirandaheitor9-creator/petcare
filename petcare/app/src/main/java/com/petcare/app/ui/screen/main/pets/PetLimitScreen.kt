@@ -78,8 +78,8 @@ import com.petcare.app.ui.viewmodel.PET_LIMIT_BONUS
 import com.petcare.app.ui.viewmodel.PET_LIMIT_FREE
 import kotlinx.coroutines.delay
 
-// ID de teste oficial do Google para rewarded ads
-private const val REWARDED_TEST_AD_UNIT_ID = "ca-app-pub-3940256099942544/5224354917"
+// ID de produção — Rewarded Ad Unit
+private const val REWARDED_TEST_AD_UNIT_ID = "ca-app-pub-2930629233574738/9944805172"
 
 // ─── Bottom sheet de limite de pets (SPEC §18.3-18.4 + §16.6) ────────────────
 

@@ -402,7 +402,7 @@ private fun BannerAdView(modifier: Modifier = Modifier) {
         factory = {
             AdView(context).apply {
                 setAdSize(AdSize.BANNER)
-                adUnitId = "ca-app-pub-3940256099942544/6300978111" // Test banner ID
+                adUnitId = "ca-app-pub-2930629233574738/3902141006" // Banner ID (produção)
                 loadAd(AdRequest.Builder().build())
             }
         },
