@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PetCare</string>
+    <string name="app_name">PataFácil</string>
     <string name="app_tagline">Cuidando dos seus pets com carinho</string>
 
     <!-- Navigation -->
@@ -44,7 +44,7 @@
     <string name="user_name_hint">Como podemos te chamar?</string>
     <string name="privacy_policy">Política de Privacidade</string>
     <string name="terms_of_use">Termos de Uso</string>
-    <string name="about">Sobre o PetCare</string>
+    <string name="about">Sobre o PataFácil</string>
     <string name="export_backup">Exportar backup</string>
     <string name="import_backup">Importar backup</string>
     <string name="delete_all_data">Apagar todos os dados</string>

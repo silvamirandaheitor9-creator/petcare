@@ -559,70 +559,50 @@ private val CATEGORIES = listOf(
 
 @Composable
 private fun CategoryGrid(selected: String, onSelect: (String) -> Unit) {
-    val chunked = CATEGORIES.chunked(4)
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        chunked.forEach { row ->
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                row.forEach { cat ->
-                    val isSelected = selected == cat.key
-                    val bgColor by animateColorAsState(
-                        targetValue   = if (isSelected) OrangePrimary.copy(alpha = 0.14f)
-                                        else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
-                        animationSpec = tween(180), label = "catBg",
-                    )
-                    val borderColor by animateColorAsState(
-                        targetValue   = if (isSelected) OrangePrimary
-                                        else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f),
-                        animationSpec = tween(180), label = "catBorder",
-                    )
-                    val borderWidth by animateDpAsState(
-                        targetValue   = if (isSelected) 2.dp else 1.dp,
-                        animationSpec = tween(180), label = "catBorderW",
-                    )
+    LazyRow(
+        contentPadding        = PaddingValues(horizontal = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(CATEGORIES) { cat ->
+            val isSelected = selected == cat.key
+            val bgColor by animateColorAsState(
+                targetValue   = if (isSelected) OrangePrimary.copy(alpha = 0.14f)
+                                else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                animationSpec = tween(180), label = "catBg",
+            )
+            val borderColor by animateColorAsState(
+                targetValue   = if (isSelected) OrangePrimary
+                                else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f),
+                animationSpec = tween(180), label = "catBorder",
+            )
+            val borderWidth by animateDpAsState(
+                targetValue   = if (isSelected) 2.dp else 1.dp,
+                animationSpec = tween(180), label = "catBorderW",
+            )
 
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(bgColor)
-                            .border(borderWidth, borderColor, RoundedCornerShape(14.dp))
-                            .clickable { onSelect(cat.key) }
-                            .padding(vertical = 12.dp, horizontal = 4.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        // Ícone dentro de badge circular quando selecionado
-                        Box(
-                            modifier         = Modifier
-                                .size(36.dp)
-                                .background(
-                                    if (isSelected) OrangePrimary.copy(alpha = 0.18f) else Color.Transparent,
-                                    CircleShape,
-                                ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Image(
-                                painter      = painterResource(cat.icon),
-                                contentDescription = cat.label,
-                                modifier     = Modifier.size(24.dp),
-                                contentScale = ContentScale.Fit,
-                            )
-                        }
-                        Text(
-                            text       = cat.label,
-                            style      = MaterialTheme.typography.labelSmall,
-                            color      = if (isSelected) OrangePrimary
-                                         else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            maxLines   = 1,
-                            textAlign  = TextAlign.Center,
-                        )
-                    }
-                }
-                repeat(4 - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(bgColor)
+                    .border(borderWidth, borderColor, RoundedCornerShape(24.dp))
+                    .clickable { onSelect(cat.key) }
+                    .padding(horizontal = 14.dp, vertical = 9.dp),
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
+            ) {
+                Image(
+                    painter            = painterResource(cat.icon),
+                    contentDescription = cat.label,
+                    modifier           = Modifier.size(20.dp),
+                    contentScale       = ContentScale.Fit,
+                )
+                Text(
+                    text       = cat.label,
+                    style      = MaterialTheme.typography.labelMedium,
+                    color      = if (isSelected) OrangePrimary
+                                 else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                )
             }
         }
     }

@@ -15,7 +15,7 @@ class OnboardingViewModel @Inject constructor(
     private val prefs: UserPreferencesRepository,
 ) : ViewModel() {
 
-    // ── Seleção de tema (tela 6) ─────────────────────────────────────────────
+    // ── Seleção de tema ──────────────────────────────────────────────────────
     private val _selectedDark = MutableStateFlow(false)
     val selectedDark: StateFlow<Boolean> = _selectedDark.asStateFlow()
 
@@ -24,9 +24,16 @@ class OnboardingViewModel @Inject constructor(
         viewModelScope.launch { prefs.setDarkTheme(dark) }
     }
 
-    // ── Aceite dos termos (tela 7) ───────────────────────────────────────────
-    // Estado local do checkbox durante o onboarding.
-    // Salvo definitivamente em prefs.setTermsAccepted() só ao chamar completeOnboarding().
+    // ── Nome inserido no onboarding (página opcional) ─────────────────────────
+    // Salvo em prefs apenas ao concluir o onboarding (completeOnboarding).
+    private val _onboardingName = MutableStateFlow("")
+    val onboardingName: StateFlow<String> = _onboardingName.asStateFlow()
+
+    fun setOnboardingName(name: String) {
+        _onboardingName.value = name
+    }
+
+    // ── Aceite dos termos ────────────────────────────────────────────────────
     private val _termsChecked = MutableStateFlow(false)
     val termsChecked: StateFlow<Boolean> = _termsChecked.asStateFlow()
 
@@ -34,9 +41,12 @@ class OnboardingViewModel @Inject constructor(
         _termsChecked.value = checked
     }
 
-    // ── Conclusão do onboarding (chamado ao pressionar "Aceitar e continuar") ─
+    // ── Conclusão do onboarding ──────────────────────────────────────────────
     fun completeOnboarding() {
         viewModelScope.launch {
+            if (_onboardingName.value.isNotBlank()) {
+                prefs.setUserName(_onboardingName.value.trim())
+            }
             prefs.setOnboardingDone(true)
             prefs.setTermsAccepted(true)
         }

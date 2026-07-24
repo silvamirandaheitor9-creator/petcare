@@ -1,7 +1,6 @@
 package com.petcare.app.ui.screen
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -21,7 +20,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -48,60 +47,36 @@ fun SplashScreen(
     onNavigate: () -> Unit,
 ) {
     // ── Animatables de entrada ──────────────────────────────────────
-    val mascotScale    = remember { Animatable(0f) }
-    val contentAlpha   = remember { Animatable(0f) }
-    val dotsAlpha      = remember { Animatable(0f) }
+    val mascotScale  = remember { Animatable(0f) }
+    val contentAlpha = remember { Animatable(0f) }
+    val dotsAlpha    = remember { Animatable(0f) }
 
     var animationDone by remember { mutableStateOf(false) }
-    var mascotSettled by remember { mutableStateOf(false) }
-
-    // ── Float suave do mascote após o quique (sobe/desce 6dp) ───────
-    // Só anima depois que mascotSettled = true para não conflitar com o spring inicial
-    val floatTransition = rememberInfiniteTransition(label = "mascot_float")
-    val mascotFloatY by floatTransition.animateFloat(
-        initialValue  = 0f,
-        targetValue   = if (mascotSettled) -6f else 0f,
-        animationSpec = infiniteRepeatable(
-            animation  = tween(1_300, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "float_y",
-    )
-
-    // ── Rotação sutil do mascote (±2°) ───────────────────────────────
-    val mascotSway by floatTransition.animateFloat(
-        initialValue  = -2f,
-        targetValue   = if (mascotSettled) 2f else 0f,
-        animationSpec = infiniteRepeatable(
-            animation  = tween(1_700, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "sway_z",
-    )
 
     // ── Dots pulsando em cascata ────────────────────────────────────
-    val dot1Alpha by floatTransition.animateFloat(
+    val dotsTransition = rememberInfiniteTransition(label = "dots")
+    val dot1Alpha by dotsTransition.animateFloat(
         initialValue  = 0.4f,
         targetValue   = 1f,
         animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
-        label = "dot1",
+        label         = "dot1",
     )
-    val dot2Alpha by floatTransition.animateFloat(
+    val dot2Alpha by dotsTransition.animateFloat(
         initialValue  = 0.4f,
         targetValue   = 1f,
         animationSpec = infiniteRepeatable(tween(600, delayMillis = 200), RepeatMode.Reverse),
-        label = "dot2",
+        label         = "dot2",
     )
-    val dot3Alpha by floatTransition.animateFloat(
+    val dot3Alpha by dotsTransition.animateFloat(
         initialValue  = 0.4f,
         targetValue   = 1f,
         animationSpec = infiniteRepeatable(tween(600, delayMillis = 400), RepeatMode.Reverse),
-        label = "dot3",
+        label         = "dot3",
     )
 
     // ── Sequência de entrada ────────────────────────────────────────
     LaunchedEffect(Unit) {
-        // 1. Mascote com quique (spring com DampingRatioLowBouncy para mais personalidade)
+        // 1. Mascote com quique (spring)
         mascotScale.animateTo(
             targetValue   = 1f,
             animationSpec = spring(
@@ -109,7 +84,6 @@ fun SplashScreen(
                 stiffness    = Spring.StiffnessMedium,
             ),
         )
-        mascotSettled = true   // ativa o float suave
 
         // 2. Texto e dots em paralelo
         launch { contentAlpha.animateTo(1f, tween(400)) }
@@ -126,7 +100,7 @@ fun SplashScreen(
 
     // ── Layout ──────────────────────────────────────────────────────
     Box(
-        modifier = Modifier
+        modifier         = Modifier
             .fillMaxSize()
             .background(OrangePrimary),
         contentAlignment = Alignment.Center,
@@ -136,25 +110,24 @@ fun SplashScreen(
             verticalArrangement = Arrangement.Center,
         ) {
 
-            // Mascote — spring de entrada + float suave depois
+            // Mascote — apenas spring de entrada (sem float/sway)
             Image(
                 painter            = painterResource(R.drawable.mascote_splash),
                 contentDescription = null,
+                contentScale       = ContentScale.Fit,
                 modifier           = Modifier
-                    .size(180.dp)
+                    .size(220.dp)
                     .graphicsLayer {
-                        scaleX       = mascotScale.value
-                        scaleY       = mascotScale.value
-                        translationY = if (mascotSettled) mascotFloatY * density else 0f
-                        rotationZ    = if (mascotSettled) mascotSway else 0f
+                        scaleX = mascotScale.value
+                        scaleY = mascotScale.value
                     },
             )
 
             Spacer(Modifier.height(24.dp))
 
-            // Título
+            // Nome do app
             Text(
-                text       = "PetCare",
+                text       = "PataFácil",
                 fontSize   = 36.sp,
                 fontWeight = FontWeight.Bold,
                 color      = Color.White,
@@ -163,7 +136,7 @@ fun SplashScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // Subtítulo
+            // Tagline
             Text(
                 text      = "Cuidando dos seus pets com carinho",
                 fontSize  = 13.sp,
@@ -180,7 +153,7 @@ fun SplashScreen(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment     = Alignment.CenterVertically,
-                modifier = Modifier.graphicsLayer { alpha = dotsAlpha.value },
+                modifier              = Modifier.graphicsLayer { alpha = dotsAlpha.value },
             ) {
                 listOf(dot1Alpha, dot2Alpha, dot3Alpha).forEach { dotAlpha ->
                     Box(

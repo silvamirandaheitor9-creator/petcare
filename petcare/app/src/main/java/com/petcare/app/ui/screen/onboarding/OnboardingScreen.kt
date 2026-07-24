@@ -26,13 +26,19 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.LightMode
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -40,12 +46,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,7 +70,7 @@ import kotlin.math.absoluteValue
 private fun buildPages(): List<OnboardingPageData> = listOf(
     OnboardingPageData(
         imageRes = R.drawable.mascote_splash,
-        title    = "Bem-vindo ao PetCare!",
+        title    = "Bem-vindo ao PataFácil!",
         subtitle = "Aqui começa uma nova forma de cuidar dos seus pets — com carinho, organização e muita alegria.",
     ),
     OnboardingPageData(
@@ -70,9 +79,10 @@ private fun buildPages(): List<OnboardingPageData> = listOf(
         subtitle = "Cadastre todos os seus companheiros, adicione fotos, registre a espécie, raça e data de nascimento. Organize tudo com carinho!",
     ),
     OnboardingPageData(
-        imageRes = R.drawable.onboarding_4_fotos,
-        title    = "Guarde cada momento especial",
-        subtitle = "Fotos, memórias e histórias dos seus pets em um diário bonito, só para vocês.",
+        imageRes     = R.drawable.onboarding_4_fotos,
+        title        = "Guarde cada momento especial",
+        subtitle     = "Fotos, memórias e histórias dos seus pets em um diário bonito, só para vocês.",
+        clipBottomDp = 30,
     ),
     OnboardingPageData(
         imageRes = R.drawable.onboarding_3_lembretes,
@@ -86,15 +96,21 @@ private fun buildPages(): List<OnboardingPageData> = listOf(
         isThemePage = true,
     ),
     OnboardingPageData(
+        imageRes   = null,
+        title      = "Como você se chama?",
+        subtitle   = "Opcional — você pode preencher depois na aba Perfil.",
+        isNamePage = true,
+    ),
+    OnboardingPageData(
         imageRes    = null,
         title       = "Antes de começar",
         subtitle    = "",
         isTermsPage = true,
     ),
     OnboardingPageData(
-        imageRes         = null,
-        title            = "Permissões",
-        subtitle         = "",
+        imageRes          = null,
+        title             = "Permissões",
+        subtitle          = "",
         isPermissionsPage = true,
     ),
 )
@@ -108,6 +124,7 @@ fun OnboardingScreen(
 ) {
     val pages            = remember { buildPages() }
     val totalPages       = pages.size
+    val nameIndex        = pages.indexOfFirst { it.isNamePage }
     val termsIndex       = pages.indexOfFirst { it.isTermsPage }
     val permissionsIndex = pages.indexOfFirst { it.isPermissionsPage }
 
@@ -115,8 +132,9 @@ fun OnboardingScreen(
     val scope       = rememberCoroutineScope()
     val currentPage = pagerState.currentPage
 
-    val selectedDark by viewModel.selectedDark.collectAsState()
-    val termsChecked by viewModel.termsChecked.collectAsState()
+    val selectedDark   by viewModel.selectedDark.collectAsState()
+    val termsChecked   by viewModel.termsChecked.collectAsState()
+    val onboardingName by viewModel.onboardingName.collectAsState()
 
     BackHandler(enabled = currentPage > 0) {
         scope.launch { pagerState.animateScrollToPage(currentPage - 1) }
@@ -151,6 +169,10 @@ fun OnboardingScreen(
                             selectedDark = selectedDark,
                             onSelect     = { viewModel.selectTheme(it) },
                         )
+                        pages[page].isNamePage -> NameInputPage(
+                            nameInput    = onboardingName,
+                            onNameChange = { viewModel.setOnboardingName(it) },
+                        )
                         pages[page].isTermsPage -> TermsPage(
                             isActive        = pagerState.currentPage == page,
                             checked         = termsChecked,
@@ -170,17 +192,19 @@ fun OnboardingScreen(
                     .fillMaxWidth()
                     .padding(bottom = 36.dp, top = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 // Pontinhos simples
                 DotsIndicator(pageCount = totalPages, currentPage = currentPage)
 
                 // Botão — rótulo e ação variam por página
+                val isNamePage    = currentPage == nameIndex
                 val isTerms       = currentPage == termsIndex
                 val isPermissions = currentPage == permissionsIndex
                 val btnLabel = when {
                     isTerms       -> "Aceitar e continuar"
-                    isPermissions -> "Entrar no PetCare!"
+                    isPermissions -> "Entrar no PataFácil!"
+                    isNamePage    -> "Continuar"
                     else          -> "PRÓXIMO"
                 }
                 NextButton(
@@ -189,13 +213,8 @@ fun OnboardingScreen(
                     onClick = {
                         when {
                             isPermissions -> {
-                                // Última página: salva prefs e navega
                                 viewModel.completeOnboarding()
                                 onFinished()
-                            }
-                            isTerms -> {
-                                // Aceite dos termos: avança para permissões
-                                scope.launch { pagerState.animateScrollToPage(currentPage + 1) }
                             }
                             else -> {
                                 scope.launch { pagerState.animateScrollToPage(currentPage + 1) }
@@ -203,6 +222,19 @@ fun OnboardingScreen(
                         }
                     },
                 )
+
+                // Botão "Pular" — só visível na página de nome
+                if (isNamePage) {
+                    TextButton(onClick = {
+                        scope.launch { pagerState.animateScrollToPage(currentPage + 1) }
+                    }) {
+                        Text(
+                            text  = "Pular",
+                            color = Color.White.copy(alpha = 0.72f),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
             }
         }
     }
@@ -223,34 +255,127 @@ private fun StandardOnboardingPage(data: OnboardingPageData) {
 
         // Imagem / mascote
         data.imageRes?.let { res ->
-            Image(
-                painter            = painterResource(id = res),
-                contentDescription = data.title,
-                modifier           = Modifier.size(220.dp),
-                contentScale       = ContentScale.Fit,
-            )
+            if (data.clipBottomDp > 0) {
+                // Crop da borda inferior para ocultar artefatos na base da imagem
+                Box(
+                    modifier         = Modifier
+                        .size(width = 220.dp, height = (220 - data.clipBottomDp).dp)
+                        .clipToBounds(),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    Image(
+                        painter            = painterResource(id = res),
+                        contentDescription = data.title,
+                        modifier           = Modifier.size(220.dp),
+                        contentScale       = ContentScale.Fit,
+                    )
+                }
+            } else {
+                Image(
+                    painter            = painterResource(id = res),
+                    contentDescription = data.title,
+                    modifier           = Modifier.size(220.dp),
+                    contentScale       = ContentScale.Fit,
+                )
+            }
         }
 
         Spacer(Modifier.height(32.dp))
 
-        // Título
         Text(
-            text      = data.title,
-            fontSize  = 22.sp,
+            text       = data.title,
+            fontSize   = 22.sp,
             fontWeight = FontWeight.Bold,
-            color     = Color.White,
-            textAlign = TextAlign.Center,
+            color      = Color.White,
+            textAlign  = TextAlign.Center,
         )
 
         Spacer(Modifier.height(12.dp))
 
-        // Subtítulo
         Text(
-            text      = data.subtitle,
-            fontSize  = 14.sp,
-            color     = Color.White.copy(alpha = 0.88f),
-            textAlign = TextAlign.Center,
+            text       = data.subtitle,
+            fontSize   = 14.sp,
+            color      = Color.White.copy(alpha = 0.88f),
+            textAlign  = TextAlign.Center,
             lineHeight = 22.sp,
+        )
+
+        Spacer(Modifier.weight(1f))
+    }
+}
+
+// ─── Página de nome (opcional) ────────────────────────────────────────────────
+
+@Composable
+private fun NameInputPage(
+    nameInput: String,
+    onNameChange: (String) -> Unit,
+) {
+    Column(
+        modifier            = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Spacer(Modifier.weight(0.4f))
+
+        Box(
+            modifier         = Modifier
+                .size(80.dp)
+                .background(Color.White.copy(alpha = 0.20f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector        = Icons.Rounded.Person,
+                contentDescription = null,
+                tint               = Color.White,
+                modifier           = Modifier.size(40.dp),
+            )
+        }
+
+        Spacer(Modifier.height(28.dp))
+
+        Text(
+            text       = "Como você se chama?",
+            fontSize   = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color      = Color.White,
+            textAlign  = TextAlign.Center,
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            text       = "Opcional — você pode preencher depois na aba Perfil.",
+            fontSize   = 14.sp,
+            color      = Color.White.copy(alpha = 0.80f),
+            textAlign  = TextAlign.Center,
+            lineHeight = 20.sp,
+        )
+
+        Spacer(Modifier.height(32.dp))
+
+        OutlinedTextField(
+            value            = nameInput,
+            onValueChange    = onNameChange,
+            placeholder      = { Text("Seu nome", color = Color.White.copy(alpha = 0.55f)) },
+            singleLine       = true,
+            modifier         = Modifier.fillMaxWidth(),
+            shape            = RoundedCornerShape(16.dp),
+            colors           = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor        = Color.White,
+                unfocusedBorderColor      = Color.White.copy(alpha = 0.45f),
+                cursorColor               = Color.White,
+                focusedTextColor          = Color.White,
+                unfocusedTextColor        = Color.White,
+                focusedPlaceholderColor   = Color.White.copy(alpha = 0.55f),
+                unfocusedPlaceholderColor = Color.White.copy(alpha = 0.55f),
+            ),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words,
+                imeAction      = ImeAction.Done,
+            ),
         )
 
         Spacer(Modifier.weight(1f))
@@ -259,12 +384,10 @@ private fun StandardOnboardingPage(data: OnboardingPageData) {
 
 // ─── Tela de seleção de tema ──────────────────────────────────────────────────
 
-// Cores do tema claro
 private val LightBg     = Color(0xFFFFF8F3)
 private val LightCard   = Color(0xFFFFFFFF)
 private val LightOrange = Color(0xFFFF7A3D)
 
-// Cores do tema escuro
 private val DarkBg      = Color(0xFF1E1A17)
 private val DarkCard    = Color(0xFF2B2420)
 private val DarkOrange  = Color(0xFFFF8C42)
@@ -298,7 +421,6 @@ private fun ThemeSelectionPage(
         )
         Spacer(Modifier.height(36.dp))
 
-        // Cards de preview lado a lado
         Row(
             modifier              = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -316,14 +438,9 @@ private fun ThemeSelectionPage(
                 modifier   = Modifier.weight(1f),
             )
         }
-
     }
 }
 
-/**
- * Card de preview que mostra visualmente como o tema ficará.
- * Ao ser selecionado, ganha borda laranja e escala leve.
- */
 @Composable
 private fun ThemePreviewCard(
     isDark: Boolean,
@@ -337,13 +454,13 @@ private fun ThemePreviewCard(
         label         = "theme_card_scale_$isDark",
     )
 
-    val bg     = if (isDark) DarkBg     else LightBg
-    val card   = if (isDark) DarkCard   else LightCard
-    val orange = if (isDark) DarkOrange else LightOrange
+    val bg           = if (isDark) DarkBg     else LightBg
+    val card         = if (isDark) DarkCard   else LightCard
+    val orange       = if (isDark) DarkOrange else LightOrange
     val txtPrimary   = if (isDark) Color.White else Color(0xFF1A120B)
     val txtSecondary = if (isDark) Color.White.copy(alpha = 0.55f) else Color(0xFF6B4F3A)
-    val icon   = if (isDark) Icons.Rounded.DarkMode else Icons.Rounded.LightMode
-    val label  = if (isDark) "Escuro" else "Claro"
+    val icon         = if (isDark) Icons.Rounded.DarkMode else Icons.Rounded.LightMode
+    val label        = if (isDark) "Escuro" else "Claro"
 
     Column(
         modifier            = modifier
@@ -358,7 +475,6 @@ private fun ThemePreviewCard(
             .padding(bottom = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Mini top bar (header laranja)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -368,10 +484,7 @@ private fun ThemePreviewCard(
                     shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
                 ),
         )
-
         Spacer(Modifier.height(10.dp))
-
-        // Mini card de conteúdo
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -379,33 +492,15 @@ private fun ThemePreviewCard(
                 .height(32.dp)
                 .background(card, RoundedCornerShape(8.dp)),
         )
-
         Spacer(Modifier.height(6.dp))
-
-        // Segunda linha mini
         Row(
-            modifier              = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp),
+            modifier              = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(0.55f)
-                    .height(20.dp)
-                    .background(card, RoundedCornerShape(6.dp)),
-            )
-            Box(
-                modifier = Modifier
-                    .weight(0.45f)
-                    .height(20.dp)
-                    .background(orange.copy(alpha = 0.35f), RoundedCornerShape(6.dp)),
-            )
+            Box(modifier = Modifier.weight(0.55f).height(20.dp).background(card, RoundedCornerShape(6.dp)))
+            Box(modifier = Modifier.weight(0.45f).height(20.dp).background(orange.copy(alpha = 0.35f), RoundedCornerShape(6.dp)))
         }
-
         Spacer(Modifier.height(12.dp))
-
-        // Ícone + label
         Icon(
             imageVector        = icon,
             contentDescription = null,
@@ -487,9 +582,9 @@ private fun NextButton(
         ),
     ) {
         Text(
-            text       = label,
-            fontWeight = FontWeight.Bold,
-            fontSize   = 15.sp,
+            text          = label,
+            fontWeight    = FontWeight.Bold,
+            fontSize      = 15.sp,
             letterSpacing = 0.5.sp,
         )
     }

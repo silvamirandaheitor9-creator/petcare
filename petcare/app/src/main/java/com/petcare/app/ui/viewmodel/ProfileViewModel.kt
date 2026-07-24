@@ -54,6 +54,28 @@ class ProfileViewModel @Inject constructor(
     val userName = prefs.userName
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
 
+    // ── Foto de perfil ────────────────────────────────────────────────────────
+    val profilePhotoPath = prefs.profilePhotoPath
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
+
+    /**
+     * Copia a imagem selecionada pelo usuário para o armazenamento interno do app
+     * e persiste o caminho absoluto no DataStore.
+     */
+    fun saveProfilePhoto(uri: android.net.Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val dir = java.io.File(context.filesDir, "profile")
+                dir.mkdirs()
+                val dest = java.io.File(dir, "profile_photo.jpg")
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    dest.outputStream().use { input.copyTo(it) }
+                }
+                prefs.setProfilePhotoPath(dest.absolutePath)
+            } catch (_: Exception) { /* erro silencioso */ }
+        }
+    }
+
     fun setUserName(name: String) {
         viewModelScope.launch { prefs.setUserName(name.trim()) }
     }
@@ -254,6 +276,7 @@ class ProfileViewModel @Inject constructor(
             try {
                 db.clearAllTables()
                 prefs.setUserName("")
+                prefs.setProfilePhotoPath("")
                 _events.emit(ProfileUiEvent.DeleteSuccess)
             } catch (_: Exception) { /* raramente falha */ }
         }

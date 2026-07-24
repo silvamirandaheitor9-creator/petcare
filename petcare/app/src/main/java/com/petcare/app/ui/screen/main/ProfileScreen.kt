@@ -105,6 +105,8 @@ import com.petcare.app.ui.viewmodel.ProfileViewModel
 import com.petcare.app.ui.viewmodel.ThemeViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.activity.result.PickVisualMediaRequest
+import coil.compose.AsyncImage
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ProfileScreen — redesign completo
@@ -129,6 +131,14 @@ fun ProfileScreen(
     var nameInput         by remember(userName) { mutableStateOf(userName) }
     var pendingImportUri  by remember { mutableStateOf<android.net.Uri?>(null) }
     var editingName       by remember { mutableStateOf(false) }
+
+    val profilePhotoPath by viewModel.profilePhotoPath.collectAsState()
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) viewModel.saveProfilePhoto(uri)
+    }
 
     var showImportDialog  by remember { mutableStateOf(false) }
     var showDeleteDialog1 by remember { mutableStateOf(false) }
@@ -315,6 +325,7 @@ fun ProfileScreen(
             item {
                 ProfileHeroHeader(
                     userName      = userName,
+                    photoPath     = profilePhotoPath,
                     petCount      = petCount,
                     diaryCount    = diaryCount,
                     reminderCount = reminderCount,
@@ -328,6 +339,11 @@ fun ProfileScreen(
                         focusManager.clearFocus()
                         editingName = false
                         scope.launch { snackbarState.showSnackbar("Nome salvo! 🐾") }
+                    },
+                    onPhotoClick  = {
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
                     },
                 )
             }
@@ -368,7 +384,7 @@ fun ProfileScreen(
                 StaggerSection(visible = sectionVisible[4].value, index = 4) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         LegalExpandableCard(
-                            title   = "Sobre o PetCare",
+                            title   = "Sobre o PataFácil",
                             icon    = Icons.Rounded.Info,
                             content = ABOUT_TEXT,
                         )
@@ -401,16 +417,18 @@ fun ProfileScreen(
 
 @Composable
 private fun ProfileHeroHeader(
-    userName      : String,
-    petCount      : Int,
-    diaryCount    : Int,
-    reminderCount : Int,
-    isDark        : Boolean,
-    editingName   : Boolean,
-    nameInput     : String,
+    userName         : String,
+    photoPath        : String,
+    petCount         : Int,
+    diaryCount       : Int,
+    reminderCount    : Int,
+    isDark           : Boolean,
+    editingName      : Boolean,
+    nameInput        : String,
     onNameInputChange: (String) -> Unit,
-    onEditToggle  : () -> Unit,
-    onNameSave    : () -> Unit,
+    onEditToggle     : () -> Unit,
+    onNameSave       : () -> Unit,
+    onPhotoClick     : () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         // ── Zona do gradiente com informações do usuário ──────────────────────
@@ -439,16 +457,24 @@ private fun ProfileHeroHeader(
                     .padding(horizontal = 24.dp, vertical = 28.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Avatar com inicial do nome
+                // Avatar com foto, inicial do nome, ou mascote padrão
                 Box(
-                    modifier = Modifier
+                    modifier         = Modifier
                         .size(72.dp)
                         .shadow(8.dp, CircleShape)
                         .clip(CircleShape)
-                        .background(Color.White),
+                        .background(Color.White)
+                        .clickable(onClick = onPhotoClick),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (userName.isNotBlank()) {
+                    if (photoPath.isNotBlank()) {
+                        AsyncImage(
+                            model              = java.io.File(photoPath),
+                            contentDescription = "Foto de perfil",
+                            modifier           = Modifier.fillMaxSize(),
+                            contentScale       = ContentScale.Crop,
+                        )
+                    } else if (userName.isNotBlank()) {
                         Text(
                             text       = userName.trim().first().uppercase(),
                             style      = MaterialTheme.typography.headlineMedium,
@@ -457,10 +483,25 @@ private fun ProfileHeroHeader(
                         )
                     } else {
                         Image(
-                            painter           = painterResource(R.drawable.mel_avatar_pequeno),
-                            contentDescription= "Mascote",
-                            modifier          = Modifier.fillMaxSize(),
-                            contentScale      = ContentScale.Crop,
+                            painter            = painterResource(R.drawable.mel_avatar_pequeno),
+                            contentDescription = "Mascote",
+                            modifier           = Modifier.fillMaxSize(),
+                            contentScale       = ContentScale.Crop,
+                        )
+                    }
+                    // Ícone de edição sobreposto na borda inferior
+                    Box(
+                        modifier         = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(22.dp)
+                            .background(OrangePrimary, CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector        = Icons.Rounded.Edit,
+                            contentDescription = "Alterar foto",
+                            tint               = Color.White,
+                            modifier           = Modifier.size(12.dp),
                         )
                     }
                 }
@@ -512,7 +553,7 @@ private fun ProfileHeroHeader(
                             color      = Color.White,
                         )
                         Text(
-                            text  = "Tutor PetCare",
+                            text  = "Tutor PataFácil",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.75f),
                         )
@@ -898,14 +939,14 @@ private fun PetCareDialog(onDismiss: () -> Unit, content: @Composable (androidx.
 
 // ─── Textos legais (SPEC §19) ─────────────────────────────────────────────────
 
-private const val PRIVACY_POLICY_TEXT = """Política de Privacidade do PetCare
+private const val PRIVACY_POLICY_TEXT = """Política de Privacidade do PataFácil
 Última atualização: Julho de 2026
 
 1. SOBRE ESTE DOCUMENTO
-Esta Política de Privacidade descreve como o aplicativo PetCare trata as informações dos seus usuários. Ao usar o app, você concorda com as práticas descritas aqui.
+Esta Política de Privacidade descreve como o aplicativo PataFácil trata as informações dos seus usuários. Ao usar o app, você concorda com as práticas descritas aqui.
 
 2. DADOS QUE FICAM NO SEU APARELHO
-O PetCare não exige criação de conta nem coleta dados pessoais em servidores próprios. Todas as informações que você cadastrar — nomes dos pets, fotos, datas, registros de saúde (vacinas, consultas, peso, medicamentos, alimentação), entradas do Diário e lembretes — ficam armazenadas exclusivamente no seu dispositivo.
+O PataFácil não exige criação de conta nem coleta dados pessoais em servidores próprios. Todas as informações que você cadastrar — nomes dos pets, fotos, datas, registros de saúde (vacinas, consultas, peso, medicamentos, alimentação), entradas do Diário e lembretes — ficam armazenadas exclusivamente no seu dispositivo.
 
 3. BACKUP E EXPORTAÇÃO
 O app oferece função de backup manual. O arquivo gerado é salvo na pasta que você escolher no próprio dispositivo. Você é responsável pela guarda e segurança desse arquivo.
@@ -917,13 +958,13 @@ O app oferece função de backup manual. O arquivo gerado é salvo na pasta que 
 Nenhuma permissão é solicitada antes do momento em que você realmente precisa dela.
 
 5. PUBLICIDADE — GOOGLE ADMOB
-O PetCare exibe anúncios fornecidos pelo Google AdMob para manter os recursos gratuitos. O AdMob pode coletar e processar dados como identificador de publicidade do dispositivo (GAID/IDFA), endereço IP e informações sobre o dispositivo, conforme a Política de Privacidade do Google (policies.google.com/privacy). Você pode redefinir ou desativar seu identificador de publicidade nas configurações do sistema operacional.
+O PataFácil exibe anúncios fornecidos pelo Google AdMob para manter os recursos gratuitos. O AdMob pode coletar e processar dados como identificador de publicidade do dispositivo (GAID/IDFA), endereço IP e informações sobre o dispositivo, conforme a Política de Privacidade do Google (policies.google.com/privacy). Você pode redefinir ou desativar seu identificador de publicidade nas configurações do sistema operacional.
 
 6. TERCEIROS
 O app não compartilha seus dados pessoais com empresas terceiras além do AdMob. Não utilizamos ferramentas de análise de comportamento ou rastreamento de usuário.
 
 7. CRIANÇAS
-O PetCare não é destinado a crianças menores de 13 anos. Não coletamos intencionalmente informações de menores.
+O PataFácil não é destinado a crianças menores de 13 anos. Não coletamos intencionalmente informações de menores.
 
 8. SEUS DIREITOS (LGPD — LEI 13.709/2018)
 Em conformidade com a Lei Geral de Proteção de Dados, você tem direito a:
@@ -936,17 +977,17 @@ Como todos os dados ficam no seu dispositivo, você exerce esses direitos direta
 9. ALTERAÇÕES NESTA POLÍTICA
 Podemos atualizar esta política periodicamente. Alterações relevantes serão comunicadas dentro do próprio app. A data de "última atualização" no topo sempre reflete a versão vigente."""
 
-private const val TERMS_OF_USE_TEXT = """Termos de Uso do PetCare
+private const val TERMS_OF_USE_TEXT = """Termos de Uso do PataFácil
 Última atualização: Julho de 2026
 
 1. ACEITAÇÃO DOS TERMOS
-Ao instalar ou usar o PetCare, você concorda com estes Termos de Uso. Se não concordar, não utilize o aplicativo.
+Ao instalar ou usar o PataFácil, você concorda com estes Termos de Uso. Se não concordar, não utilize o aplicativo.
 
 2. DESCRIÇÃO DO SERVIÇO
-O PetCare é um aplicativo de organização pessoal para tutores de animais de estimação. Permite cadastrar pets, registrar histórico de saúde, criar lembretes e manter um diário fotográfico — tudo armazenado localmente no seu dispositivo.
+O PataFácil é um aplicativo de organização pessoal para tutores de animais de estimação. Permite cadastrar pets, registrar histórico de saúde, criar lembretes e manter um diário fotográfico — tudo armazenado localmente no seu dispositivo.
 
 3. NÃO SUBSTITUI VETERINÁRIO
-As funcionalidades do PetCare — incluindo campos de saúde, lembretes e registros — têm finalidade exclusivamente organizacional. O app não oferece diagnósticos, prescrições ou orientações médico-veterinárias. Consulte sempre um médico-veterinário habilitado para decisões sobre a saúde dos seus pets.
+As funcionalidades do PataFácil — incluindo campos de saúde, lembretes e registros — têm finalidade exclusivamente organizacional. O app não oferece diagnósticos, prescrições ou orientações médico-veterinárias. Consulte sempre um médico-veterinário habilitado para decisões sobre a saúde dos seus pets.
 
 4. RESPONSABILIDADES DO USUÁRIO
 • Você é responsável pela veracidade das informações cadastradas.
@@ -958,10 +999,10 @@ As funcionalidades do PetCare — incluindo campos de saúde, lembretes e regist
 O app exibe anúncios do Google AdMob para viabilizar os recursos gratuitos. O número de pets gratuitos pode ser ampliado por meio de anúncios recompensados. Não nos responsabilizamos pelo conteúdo dos anúncios exibidos pela rede do Google.
 
 6. PROPRIEDADE INTELECTUAL
-O nome "PetCare", o mascote, o design, os ícones, os textos e demais elementos visuais são propriedade exclusiva dos criadores do app. É vedada a reprodução, cópia ou uso comercial sem autorização prévia por escrito.
+O nome "PataFácil", o mascote, o design, os ícones, os textos e demais elementos visuais são propriedade exclusiva dos criadores do app. É vedada a reprodução, cópia ou uso comercial sem autorização prévia por escrito.
 
 7. LIMITAÇÃO DE RESPONSABILIDADE
-O PetCare é fornecido "como está", sem garantias de disponibilidade ininterrupta ou ausência de erros. Não nos responsabilizamos por perdas de dados decorrentes de falhas no dispositivo, desinstalação do app ou ausência de backup.
+O PataFácil é fornecido "como está", sem garantias de disponibilidade ininterrupta ou ausência de erros. Não nos responsabilizamos por perdas de dados decorrentes de falhas no dispositivo, desinstalação do app ou ausência de backup.
 
 8. MODIFICAÇÕES
 Podemos alterar estes Termos a qualquer momento. O uso continuado do app após a publicação das alterações implica aceitação das novas condições. A data de "última atualização" no topo indica a versão vigente.
@@ -969,8 +1010,8 @@ Podemos alterar estes Termos a qualquer momento. O uso continuado do app após a
 9. LEI APLICÁVEL
 Estes Termos são regidos pelas leis da República Federativa do Brasil. Qualquer controvérsia será submetida ao foro da comarca do usuário, conforme o Código de Defesa do Consumidor."""
 
-private const val ABOUT_TEXT = """Sobre o PetCare
+private const val ABOUT_TEXT = """Sobre o PataFácil
 
-PetCare é um aplicativo criado para ajudar tutores a cuidarem melhor dos seus pets — de forma simples, organizada e com carinho.
+PataFácil é um aplicativo criado para ajudar tutores a cuidarem melhor dos seus pets — de forma simples, organizada e com carinho.
 
 Versão: 1.0.0"""

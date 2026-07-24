@@ -32,6 +32,7 @@ class UserPreferencesRepository @Inject constructor(
          * em instalações que tinham a flag booleana anterior ("extra_pet_slots").
          */
         private val KEY_PET_SLOTS_COUNT   = intPreferencesKey("extra_pet_slots_count")
+        private val KEY_PROFILE_PHOTO     = stringPreferencesKey("profile_photo_path")
     }
 
     val isDarkTheme: Flow<Boolean> = context.dataStore.data
@@ -78,5 +79,12 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun setUserName(name: String) {
         context.dataStore.edit { it[KEY_USER_NAME] = name }
+    }
+
+    val profilePhotoPath: Flow<String> = context.dataStore.data
+        .map { it[KEY_PROFILE_PHOTO] ?: "" }
+
+    suspend fun setProfilePhotoPath(path: String) {
+        context.dataStore.edit { it[KEY_PROFILE_PHOTO] = path }
     }
 }

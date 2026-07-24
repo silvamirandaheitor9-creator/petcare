@@ -79,7 +79,7 @@ import com.petcare.app.ui.viewmodel.PET_LIMIT_FREE
 import kotlinx.coroutines.delay
 
 // ID de produção — Rewarded Ad Unit
-private const val REWARDED_TEST_AD_UNIT_ID = "ca-app-pub-2930629233574738/9944805172"
+private const val REWARDED_AD_UNIT_ID = "ca-app-pub-2930629233574738/9944805172"
 
 // ─── Bottom sheet de limite de pets (SPEC §18.3-18.4 + §16.6) ────────────────
 
@@ -102,7 +102,7 @@ fun PetLimitSheet(
     LaunchedEffect(Unit) {
         RewardedAd.load(
             context,
-            REWARDED_TEST_AD_UNIT_ID,
+            REWARDED_AD_UNIT_ID,
             AdRequest.Builder().build(),
             object : RewardedAdLoadCallback() {
                 override fun onAdLoaded(ad: RewardedAd) {

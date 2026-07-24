@@ -100,11 +100,11 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         // ── Notificação de agrupamento (summary) ──────────────────────────────
         val summaryBuilder = NotificationCompat.Builder(context, NotificationChannels.REMINDERS_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("PetCare")
+            .setContentTitle("PataFácil")
             .setContentText("Lembretes pendentes dos seus pets")
             .setStyle(
                 NotificationCompat.InboxStyle()
-                    .setSummaryText("PetCare — Lembretes")
+                    .setSummaryText("PataFácil — Lembretes")
             )
             .setGroup(GROUP_KEY)
             .setGroupSummary(true)
@@ -142,7 +142,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
                 "medicacao"   -> if (name != null) "Medicação do $name" else "Hora do remédio"
                 "alimentacao" -> if (name != null) "$name está com fome!" else "Hora da refeição"
                 "vermifugo"   -> if (name != null) "Vermífugo do $name" else "Hora do vermífugo"
-                else          -> if (name != null) "Lembrete para $name" else "Lembrete PetCare"
+                else          -> if (name != null) "Lembrete para $name" else "Lembrete PataFácil"
             }
 
             // Se o usuário digitou um título personalizado, usa o dele
