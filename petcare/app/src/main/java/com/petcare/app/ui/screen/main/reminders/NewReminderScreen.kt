@@ -304,9 +304,9 @@ fun NewReminderScreen(
             title = { Text("Permissão de alarme necessária") },
             text = {
                 Text(
-                    "Para o lembrete disparar exatamente no horário escolhido, o PetCare " +
+                    "Para o lembrete disparar exatamente no horário escolhido, o PetIngle " +
                     "precisa da permissão de Alarmes e lembretes.\n\n" +
-                    "Toque em \"Abrir configurações\", ative o PetCare na lista e " +
+                    "Toque em \"Abrir configurações\", ative o PetIngle na lista e " +
                     "volte para criar o lembrete."
                 )
             },

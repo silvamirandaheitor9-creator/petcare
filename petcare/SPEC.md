@@ -1,4 +1,4 @@
-# PetCare — Documento mestre definitivo (projeto do zero)
+# PetIngle — Documento mestre definitivo (projeto do zero)
 
 <!--
 NOTA PARA O REPLIT AGENT (Replit AI):
@@ -9,7 +9,7 @@ Se qualquer instrução parecer ambígua, pare e pergunte ao usuário antes de a
 Consulte também o PROJECT_CONTEXT.md (seção 0.3) antes de iniciar ou retomar qualquer tarefa.
 -->
 
-Este é o único documento de referência para a construção do PetCare. Leia por completo antes de escrever qualquer código. Cada seção é obrigatória e específica — não simplifique, não presuma, não pule etapas. Se algo não estiver claro, pergunte antes de assumir.
+Este é o único documento de referência para a construção do PetIngle. Leia por completo antes de escrever qualquer código. Cada seção é obrigatória e específica — não simplifique, não presuma, não pule etapas. Se algo não estiver claro, pergunte antes de assumir.
 
 > **Stack obrigatória, sem exceção:** Kotlin nativo + Jetpack Compose + Room + Hilt + Gradle. Não usar React Native, Expo, Flutter, Kotlin Multiplatform ou qualquer camada de abstração multiplataforma — nem como ponto de partida, nem como sugestão de "forma mais rápida".
 
@@ -146,7 +146,7 @@ Esta tabela reflete o conteúdo visual real de cada arquivo após a renomeação
 
 ## 3. Identidade visual
 
-- **Nome do app:** PetCare
+- **Nome do app:** PetIngle
 - **Mascote:** Mel, filhote de cachorro bicolor marrom/branco, estilo chibi com contorno grosso, cel-shading.
 - **Cores (tema claro):** fundo `#FFF8F3`, cards brancos, laranja primário `#FF7A3D`, gradiente `#FF9152 → #FF5E3A`.
 - **Cores (tema escuro):** fundo `#1E1A17`, cards `#2B2420`, laranja `#FF8C42`.
@@ -161,7 +161,7 @@ Esta tabela reflete o conteúdo visual real de cada arquivo após a renomeação
 
 O app demorava com tela branca antes da splash aparecer — isso não pode acontecer. A splash deve:
 
-1. Mostrar uma **tela Compose customizada** com animação completa que aparece imediatamente ao abrir o app: o mascote Mel (`mascote_splash.png`) entra com uma animação de escala + leve quique (overshoot), o nome "PetCare" surge com fade/slide logo abaixo, e a frase "Cuidando dos seus pets com carinho" aparece por último.
+1. Mostrar uma **tela Compose customizada** com animação completa que aparece imediatamente ao abrir o app: o mascote Mel (`mascote_splash.png`) entra com uma animação de escala + leve quique (overshoot), o nome "PetIngle" surge com fade/slide logo abaixo, e a frase "Cuidando dos seus pets com carinho" aparece por último.
 2. A navegação para o onboarding (ou direto pro app, se já configurado antes) só deve acontecer quando a animação mínima terminar **E** o carregamento real de dados (verificação de "já viu onboarding" no DataStore) tiver concluído — o que demorar mais define quando a navegação ocorre. Nunca usar um temporizador cego desconectado do carregamento real.
 
 ---
@@ -303,7 +303,7 @@ Em vez do diálogo padrão do Android, criar um modal customizado: imagem `feedb
 - **Mensagem de backup salvo:** "Prontinho! Seus dados estão salvos com segurança 🐾".
 - Importar backup: pergunta mesclar ou substituir quando já houver dados.
 - **Apagar todos os dados:** confirmação dupla.
-- Política de Privacidade, Termos de Uso, Sobre o PetCare: **remover qualquer seção de "Suporte"/contato por e-mail**.
+- Política de Privacidade, Termos de Uso, Sobre o PetIngle: **remover qualquer seção de "Suporte"/contato por e-mail**.
 - Revisar a área de nome do usuário: "Como podemos te chamar?", por exemplo.
 
 ---
@@ -311,7 +311,7 @@ Em vez do diálogo padrão do Android, criar um modal customizado: imagem `feedb
 ## 15. Assistente Mel — recriar do zero
 
 - Botão flutuante com `mel_avatar_pequeno.png`, presente em **todas as 5 abas**, nunca sobrepondo outro elemento.
-- Ao tocar, abre um bottom sheet com o avatar `mel_avatar.png`, nome "Mel — Assistente PetCare", aviso de que é conteúdo informativo.
+- Ao tocar, abre um bottom sheet com o avatar `mel_avatar.png`, nome "Mel — Assistente PetIngle", aviso de que é conteúdo informativo.
 - **Respostas baseadas em palavras-chave/intenções fixas, 100% offline.** O banco de respostas deve cobrir **todas as funcionalidades do app**.
 - Chips de resposta rápida com perguntas comuns.
 - Tom com personalidade própria — caloroso, direto.
@@ -353,25 +353,25 @@ Nenhuma animação genérica. Todas devem remeter ao universo pet. Duração má
 ## 19. Textos legais (usar exatamente este conteúdo)
 
 ### Política de Privacidade
-> **Política de Privacidade do PetCare**
+> **Política de Privacidade do PetIngle**
 > Última atualização: Julho de 2026
-> O PetCare foi criado para funcionar sem exigir cadastro ou conta de usuário. Não coletamos nem armazenamos seus dados pessoais em nenhum servidor.
+> O PetIngle foi criado para funcionar sem exigir cadastro ou conta de usuário. Não coletamos nem armazenamos seus dados pessoais em nenhum servidor.
 > **Dados armazenados no seu dispositivo:** nomes, fotos, datas e informações de saúde dos seus pets, as entradas do Diário e os lembretes ficam salvos apenas no seu aparelho.
 > **Permissões usadas pelo app:** Câmera, Galeria e Notificações. Cada permissão só é solicitada no momento do uso.
-> **Publicidade:** o PetCare exibe anúncios fornecidos pelo Google AdMob. O AdMob pode coletar identificadores de publicidade do dispositivo.
+> **Publicidade:** o PetIngle exibe anúncios fornecidos pelo Google AdMob. O AdMob pode coletar identificadores de publicidade do dispositivo.
 > **Conformidade com a LGPD:** seguimos os princípios da Lei Geral de Proteção de Dados. Você tem controle total sobre seus dados.
 
 ### Termos de Uso
-> **Termos de Uso do PetCare**
+> **Termos de Uso do PetIngle**
 > Última atualização: Julho de 2026
 > **1. Natureza do app:** ferramenta de organização. As dicas do Mel **não substituem veterinário**.
 > **2. Seus dados:** armazenados localmente. Você é responsável pelos backups.
 > **3. Anúncios:** o app oferece recursos gratuitos com limite de pets, expansível via anúncios.
 > **4. Propriedade intelectual:** nome, mascote e design são de nossa propriedade.
 
-### Sobre o PetCare
-> **Sobre o PetCare**
-> PetCare é um aplicativo criado para ajudar tutores a cuidarem melhor dos seus pets — de forma simples, organizada e com carinho. 
+### Sobre o PetIngle
+> **Sobre o PetIngle**
+> PetIngle é um aplicativo criado para ajudar tutores a cuidarem melhor dos seus pets — de forma simples, organizada e com carinho. 
 > **Versão:** 1.0.0
 
 ---

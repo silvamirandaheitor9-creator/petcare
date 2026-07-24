@@ -70,7 +70,7 @@ import kotlin.math.absoluteValue
 private fun buildPages(): List<OnboardingPageData> = listOf(
     OnboardingPageData(
         imageRes = R.drawable.mascote_splash,
-        title    = "Bem-vindo ao PataFácil!",
+        title    = "Bem-vindo ao PetIngle!",
         subtitle = "Aqui começa uma nova forma de cuidar dos seus pets — com carinho, organização e muita alegria.",
     ),
     OnboardingPageData(
@@ -203,7 +203,7 @@ fun OnboardingScreen(
                 val isPermissions = currentPage == permissionsIndex
                 val btnLabel = when {
                     isTerms       -> "Aceitar e continuar"
-                    isPermissions -> "Entrar no PataFácil!"
+                    isPermissions -> "Entrar no PetIngle!"
                     isNamePage    -> "Continuar"
                     else          -> "PRÓXIMO"
                 }

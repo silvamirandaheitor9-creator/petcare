@@ -1,4 +1,4 @@
-# PROJECT_CONTEXT.md — PetCare
+# PROJECT_CONTEXT.md — PetIngle
 
 > Fonte de verdade do progresso. Consultar antes de iniciar ou retomar qualquer tarefa.
 > Atualizar a cada etapa concluída com frase curta do que foi feito.
@@ -20,7 +20,7 @@
 | # | Item | Status | Notas |
 |---|------|--------|-------|
 | 0.1 | Token do GitHub salvo nos Secrets | ✅ | Secret `GITHUB_TOKEN` no Replit |
-| 0.2 | Repositório privado criado no GitHub | ✅ | `silvamirandaheitor007-cloud/petcare` (privado) |
+| 0.2 | Repositório privado criado no GitHub | ✅ | `silvamirandaheitor007-cloud/petingle` (privado) |
 | 0.3 | GitHub Actions — workflow de build do APK | ✅ | `.github/workflows/build.yml` — build passou (debug 22 MB + release 2,9 MB) |
 | 0.4 | SPEC.md salvo na raiz do repositório | ✅ | Copiado de `attached_assets/SPEC_*.md` |
 | 0.5 | PROJECT_CONTEXT.md criado na raiz | ✅ | Este arquivo |
@@ -38,7 +38,7 @@
 | 1.5 | Coil configurado (carregamento de imagens) | ✅ | Coil 2.7.0 |
 | 1.6 | Fonte Nunito configurada globalmente | ✅ | Google Fonts via Downloadable Fonts API |
 | 1.7 | Material Symbols Rounded configurado | ✅ | Material3 + Compose BOM |
-| 1.8 | Tema claro/escuro implementado | ✅ | PetCareTheme.kt com ThemeViewModel |
+| 1.8 | Tema claro/escuro implementado | ✅ | PetIngleTheme.kt com ThemeViewModel |
 | 1.9 | Grade de espaçamento 8dp configurada | ✅ | Convenção definida, aplicar nas telas |
 | 1.10 | Gerenciamento de permissões | ✅ | Accompanist Permissions 0.36.0, receptores no manifesto |
 
@@ -104,11 +104,11 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 3.1 | Cores do tema claro definidas | 🔄 | Já existiam em `PetCareTheme.kt`/`colors.xml`: fundo #FFF8F3, laranja #FF7A3D, gradiente #FF9152→#FF5E3A. Aguardando validação visual no celular via `DesignSystemPreviewScreen`. |
+| 3.1 | Cores do tema claro definidas | 🔄 | Já existiam em `PetIngleTheme.kt`/`colors.xml`: fundo #FFF8F3, laranja #FF7A3D, gradiente #FF9152→#FF5E3A. Aguardando validação visual no celular via `DesignSystemPreviewScreen`. |
 | 3.2 | Cores do tema escuro definidas | 🔄 | Já existiam: fundo #1E1A17, cards #2B2420, laranja #FF8C42. Aguardando validação visual. |
-| 3.3 | Fonte Nunito em 100% dos textos | 🔄 | `PetCareTypography.kt` (Google Fonts) já cobria todos os estilos do Material3; nenhuma tela real construída ainda usa texto fora do Typography, então cobertura de 100% será reconfirmada tela a tela conforme forem implementadas. |
-| 3.4 | Raio de borda 16dp (cards) e 24dp (botões/pills) global | 🔄 | Novo: `PetCareShapes.kt` — `CardShape`/`MaterialTheme.shapes.medium` = 16dp, `PillShape`/`MaterialTheme.shapes.large` = 24dp, aplicado via `PetCareTheme(shapes = PetCareShapes)`. |
-| 3.5 | Grade de espaçamento 8dp (token reutilizável) | 🔄 | Novo: `PetCareSpacing.kt` — `MaterialTheme.spacing.{xs,sm,md,lg,xl,xxl}` = 8/16/24/32/40/48dp via `CompositionLocalProvider`. |
+| 3.3 | Fonte Nunito em 100% dos textos | 🔄 | `PetIngleTypography.kt` (Google Fonts) já cobria todos os estilos do Material3; nenhuma tela real construída ainda usa texto fora do Typography, então cobertura de 100% será reconfirmada tela a tela conforme forem implementadas. |
+| 3.4 | Raio de borda 16dp (cards) e 24dp (botões/pills) global | 🔄 | Novo: `PetIngleShapes.kt` — `CardShape`/`MaterialTheme.shapes.medium` = 16dp, `PillShape`/`MaterialTheme.shapes.large` = 24dp, aplicado via `PetIngleTheme(shapes = PetIngleShapes)`. |
+| 3.5 | Grade de espaçamento 8dp (token reutilizável) | 🔄 | Novo: `PetIngleSpacing.kt` — `MaterialTheme.spacing.{xs,sm,md,lg,xl,xxl}` = 8/16/24/32/40/48dp via `CompositionLocalProvider`. |
 | 3.6 | Ícones Material Symbols Rounded configurados | 🔄 | Já existia a dependência `material-icons-extended`; preview usa `Icons.Rounded.*` para confirmar disponibilidade/estilo. |
 | 3.7 | Preview de validação da base de design | 🔄 | Novo: `DesignSystemPreviewScreen.kt`, temporariamente acessível pela rota "onboarding" (ver nota abaixo) para inspeção visual no celular antes de qualquer tela real ser construída. Remover essa ligação temporária na tarefa da seção 5. |
 
@@ -118,9 +118,9 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 4.1 | Tela Compose customizada (sem tela branca inicial) | ✅ | `Theme.PetCare.Splash` (windowBackground laranja) elimina a tela branca antes do primeiro frame Compose. Confirmado visualmente no celular. |
+| 4.1 | Tela Compose customizada (sem tela branca inicial) | ✅ | `Theme.PetIngle.Splash` (windowBackground laranja) elimina a tela branca antes do primeiro frame Compose. Confirmado visualmente no celular. |
 | 4.2 | Animação: mascote com quique de entrada (escala + overshoot) | ✅ | Escala via `spring(dampingRatio = DampingRatioLowBouncy, stiffness = StiffnessHigh)`. Mascote visível e com quique perceptível, ~910ms (acima da meta de 400-500ms do SPEC, mas aceito pelo usuário — diferença visual pequena). |
-| 4.3 | Animação: nome "PetCare" com fade/slide | ✅ | Roda em sequência após o mascote (420ms). |
+| 4.3 | Animação: nome "PetIngle" com fade/slide | ✅ | Roda em sequência após o mascote (420ms). |
 | 4.4 | Animação: frase "Cuidando dos seus pets com carinho" | ✅ | Roda em sequência após o nome (380ms). |
 | 4.5 | Navegação aguarda animação + carregamento do DataStore | ✅ | `animationDone` (fim real das `animateTo`, sem `delay` arbitrário) combinado com `isReady` do `AppViewModel`; navega só quando ambos são verdadeiros. Tempo total até navegar ~1,93s. |
 
@@ -152,7 +152,7 @@
 | # | Item | Status | Notas |
 |---|------|--------|-------|
 | 6.1 | Bottom navigation com 5 abas | ✅ | `NavigationBar` Material3 com 5 abas. `MainScreen.kt`. Testado no celular. |
-| 6.2 | Cabeçalhos sem imagem do mascote (só texto + gradiente laranja) | ✅ | `PetCareTopBar`: gradiente `OrangeGradStart→OrangeGradEnd`, título branco, sem ilustração. Testado no celular. |
+| 6.2 | Cabeçalhos sem imagem do mascote (só texto + gradiente laranja) | ✅ | `PetIngleTopBar`: gradiente `OrangeGradStart→OrangeGradEnd`, título branco, sem ilustração. Testado no celular. |
 | 6.3 | ~~Botão flutuante Mel~~ | 🗑️ REMOVIDO | `MelFab` removido em 2026-07-18 junto com toda a seção 15. |
 | 6.4 | FAB "+" de ação (Meus Pets / Diário / Lembretes) | ✅ | `AddFab` (`SmallFloatingActionButton` 48dp laranja) alinhado ao canto inferior direito. Sem rotação "×" (era vinculado ao sheet do Mel). Exibido apenas nas abas `hasAddFab = true`. |
 | 6.5 | Ícone selecionado faz "pulo" (animação) | ✅ | `animateFloatAsState` + `spring(DampingRatioMediumBouncy, StiffnessHigh)` na escala do ícone. Testado no celular. |
@@ -163,7 +163,7 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 7.1 | Header com saudação por horário (Bom dia/tarde/noite + nome) | ✅ | `PetCareTopBar` em `MainScreen.kt` exibe greeting + `warmPhrase` como subtitle; hora lida via `Calendar`. |
+| 7.1 | Header com saudação por horário (Bom dia/tarde/noite + nome) | ✅ | `PetIngleTopBar` em `MainScreen.kt` exibe greeting + `warmPhrase` como subtitle; hora lida via `Calendar`. |
 | 7.2 | Card de estatísticas (Total pets / Próxima vacina / Próxima consulta) | ✅ | `StatsCard` 3 colunas com dividers; mostra "--" (sem "Em dia") quando reminders null. `HomeViewModel`. |
 | 7.3 | Card de dica do Mel (banco ≥30 dicas cães/gatos, ≥10 demais) | ✅ | `MelTips.kt`: 32 cachorro, 33 gato, 11 pássaro, 10 peixe, 10 réptil, 11 roedor. Baseadas em WSAVA/CFMV. |
 | 7.4 | Lista de pets como cards horizontais (foto + nome + dado rápido) | ✅ | `LazyRow` com `PetHorizontalCard` (140dp, foto circular 64dp, nome, idade calculada). Coil + fallback. |
@@ -178,7 +178,7 @@
 | # | Item | Status | Notas |
 |---|------|--------|-------|
 | 8.1 | Sem chips de ordenação | ✅ | `PetsScreen.kt`: apenas a grade, sem controles de ordenação/filtro. |
-| 8.2 | Badge "X/10" integrado ao título | ✅ | `PetCareTopBar` (`MainScreen.kt`) ganhou parâmetro `badge`; pill branca translúcida ao lado do título, populada via `PetsViewModel.petCount` só na aba Meus Pets. |
+| 8.2 | Badge "X/10" integrado ao título | ✅ | `PetIngleTopBar` (`MainScreen.kt`) ganhou parâmetro `badge`; pill branca translúcida ao lado do título, populada via `PetsViewModel.petCount` só na aba Meus Pets. |
 | 8.3 | Grade 2 colunas de cards (foto, nome, espécie/raça, badge sexo/castração) | ✅ | `LazyVerticalGrid(GridCells.Fixed(2))` + `PetGridCard`; badge de sexo (ícone Male/Female) e castração (ícone ContentCut) via `SexCastrationBadge`. |
 | 8.4 | Placeholder `avatar_pet_padrao.png` quando sem foto | ✅ | `AsyncImage` com `fallback`/`error`/`placeholder` = `avatar_pet_padrao`, mesmo padrão do `PetHorizontalCard` da Home. |
 | 8.5 | Estado vazio: `vazio_meuspets.png` centralizada | ✅ | `EmptyPetsGridState`: `Box(fillMaxSize, contentAlignment = Center)` — corrige o bug de canto documentado; sem botão (a aba já tem FAB "+" próprio). |
@@ -221,7 +221,7 @@
 | 10.5 | Seletor de data e hora com fuso horário correto | ✅ | `DatePickerDialog` (Material3) + `TimePicker` em `Dialog`; preserva hora ao trocar data e vice-versa via `Calendar`. |
 | 10.6 | Estado vazio: `vazio_lembretes.png` | ✅ | `ReminderEmptyState` em `RemindersScreen.kt`: `vazio_lembretes.png` centralizada + texto motivacional. |
 | 10.7 | Botão "+" posicionado corretamente (não sobrepõe Mel) | ✅ | Reaproveita a pilha FAB de `MainScreen.kt` (`hasAddFab = true` para `REMINDERS`); clique chama `onNavigateToNewReminder(-1L)`. |
-| 10.8 | Notificações locais reais (título/corpo contextual) | ✅ | `ReminderBroadcastReceiver.kt`: `contextualBody()` por categoria + nome do pet. Bug raiz corrigido: `NotificationChannels.createChannels()` nunca era chamado — canal não registrado → notificações descartadas silenciosamente no Android 8+. Fix: chamada em `PetCareApplication.onCreate()`. `SCHEDULE_EXACT_ALARM` sem `maxSdkVersion`. Testado no device (Android 16 / HyperOS 3.1). |
+| 10.8 | Notificações locais reais (título/corpo contextual) | ✅ | `ReminderBroadcastReceiver.kt`: `contextualBody()` por categoria + nome do pet. Bug raiz corrigido: `NotificationChannels.createChannels()` nunca era chamado — canal não registrado → notificações descartadas silenciosamente no Android 8+. Fix: chamada em `PetIngleApplication.onCreate()`. `SCHEDULE_EXACT_ALARM` sem `maxSdkVersion`. Testado no device (Android 16 / HyperOS 3.1). |
 | 10.9 | Notificação: foto do pet como imagem grande | ✅ | `loadLargeIcon()`: decodifica `pet_photos/<path>` como Bitmap → `setLargeIcon()`; fallback = PNG da categoria correspondente. |
 | 10.10 | Notificação: ícone de categoria | ✅ | Fallback do `loadLargeIcon()` usa `categoryIconRes()` mapeando as 7 categorias para `icone_*.png`. `setSmallIcon` usa `ic_notification` (monochrome vector, obrigatório API 23+). |
 | 10.11 | Notificação: botões "Concluir" e "Adiar 1h" | ✅ | `CompleteReminderReceiver`: marca `isCompleted=true` no DB + cancela notif. `SnoozeReminderReceiver`: atualiza `dateTimeMillis += 1h` no DB + reagenda alarme. Ambos usam `goAsync()`. |
@@ -229,7 +229,7 @@
 | 10.13 | Notificação: agrupamento nativo com várias simultâneas | ✅ | `setGroup(GROUP_KEY)` em cada notif + summary notification `setGroupSummary(true)` com `InboxStyle`. |
 | 10.14 | BroadcastReceiver para BOOT_COMPLETED (reagendar após reiniciar) | ✅ | `BootReceiver`: corrigido `android:permission="RECEIVE_BOOT_COMPLETED"` no `<receiver>` que bloqueava entrega pelo sistema. Lógica de grace period: lembretes perdidos até 2h durante boot disparam em 5s; mais antigos descartados. Testado no device. |
 | 10.15 | Editar e excluir lembrete | ✅ | Editar: `IconButton` → `onNavigateToNewReminder(reminder.id)` → `NewReminderScreen` com `loadReminder(id)`. Excluir: `AlertDialog` de confirmação → `ReminderViewModel.deleteReminder()`. |
-| 10.16 | Tela "Novo Lembrete" redesenhada (visual profissional) | ✅ | `NewReminderScreen.kt` (`ui/screen/main/reminders/`): cabeçalho gradiente laranja, grade de categorias, `PetDropdown`, seletores de data/hora, `RecurrenceSelector`, campo de observações, botão salvar com estado de loading. `NewReminderViewModel.kt`. Rota `new_reminder/{reminderId}` no `PetCareNavGraph.kt`. |
+| 10.16 | Tela "Novo Lembrete" redesenhada (visual profissional) | ✅ | `NewReminderScreen.kt` (`ui/screen/main/reminders/`): cabeçalho gradiente laranja, grade de categorias, `PetDropdown`, seletores de data/hora, `RecurrenceSelector`, campo de observações, botão salvar com estado de loading. `NewReminderViewModel.kt`. Rota `new_reminder/{reminderId}` no `PetIngleNavGraph.kt`. |
 | 10.17 | Animação: check com traço desenhado | ✅ | `ReminderCard`: `Animatable(0f→1f)` + `LaunchedEffect(isCompleted)` → Canvas drawing da path do checkmark com `PathEffect.dashPathEffect` (efeito de traço sendo desenhado). Ícone de categoria faz fade-out simultâneo via `Modifier.alpha(1f - progress)`. |
 | 10.18 | Animação: swipe com rastro de pegada | ✅ | `ReminderSwipeContainer` + `SwipeToDismissBox` (Material3): swipe direita = concluir (snaps back, estado muda), swipe esquerda = excluir (dismiss animado). `PawTrailBackground` mostra ícone de ação + 3 patas `Icons.Rounded.Pets` que aparecem em cascata conforme `state.progress` aumenta. |
 | 10.19 | Banner AdMob | ✅ | `BannerAdView` (mesmo padrão de HomeScreen/PetsScreen, test ID) adicionado como último item do `LazyColumn` em `RemindersScreen.kt`. |
@@ -281,11 +281,11 @@
 | # | Item | Status | Notas |
 |---|------|--------|-------|
 | 14.1 | Alternância de tema: ícone Lua (tema claro) / Sol (tema escuro) | ✅ | Switch com `Icons.Rounded.DarkMode` (lua) quando claro e `Icons.Rounded.LightMode` (sol) quando escuro no thumb; `animateColorAsState(tween 300ms)` para transição suave de cor; usa `ThemeViewModel.setDarkTheme()`. |
-| 14.2 | Exportar backup via SAF (Storage Access Framework) | ✅ | `OpenDocumentTree` → `takePersistableUriPermission` → WAL checkpoint → `DocumentsContract.createDocument` → copia bytes do `getDatabasePath("petcare.db")` para o SAF URI. |
+| 14.2 | Exportar backup via SAF (Storage Access Framework) | ✅ | `OpenDocumentTree` → `takePersistableUriPermission` → WAL checkpoint → `DocumentsContract.createDocument` → copia bytes do `getDatabasePath("petingle.db")` para o SAF URI. |
 | 14.3 | Mensagem de backup: "Prontinho! Seus dados estão salvos com segurança 🐾" | ✅ | `SnackbarHost` flutuante em `ProfileScreen`; `ProfileUiEvent.ExportSuccess` emite o texto exato do SPEC. |
 | 14.4 | Importar backup: pergunta mesclar ou substituir | ✅ | `OpenDocument("*/*")` → `Dialog` com "Mesclar com dados atuais" / "Substituir tudo"; `ProfileViewModel.importBackup(merge)` — lê o .db via SQLiteDatabase nativo, re-insere via DAOs com id=0 + mapeamento oldPetId→newPetId para preservar FKs. |
 | 14.5 | Apagar todos os dados: confirmação dupla | ✅ | Dois `Dialog` sequenciais (1ª: aviso; 2ª: "irreversível"); `ProfileViewModel.deleteAllData()` chama `db.clearAllTables()` + `prefs.setUserName("")`. |
-| 14.6 | Seções: Política de Privacidade, Termos de Uso, Sobre o PetCare | ✅ | `ExpandableSection` com `AnimatedVisibility(expandVertically+fadeIn, 250ms)`; textos exatos do SPEC §19; sem seção "Suporte"/e-mail. |
+| 14.6 | Seções: Política de Privacidade, Termos de Uso, Sobre o PetIngle | ✅ | `ExpandableSection` com `AnimatedVisibility(expandVertically+fadeIn, 250ms)`; textos exatos do SPEC §19; sem seção "Suporte"/e-mail. |
 | 14.7 | Campo nome do usuário: "Como podemos te chamar?" | ✅ | `OutlinedTextField` com `ImeAction.Done` → `prefs.setUserName()`; persiste em DataStore; aparece na saudação da aba Início. |
 
 ---
@@ -308,13 +308,13 @@
 |---|------|--------|-------|
 | 16.1 | Splash: mascote com quique de entrada | ✅ | Concluído com seção 4. |
 | 16.2 | Onboarding: slide + fade; pegadas no progresso; animação escalonada Termos | ✅ | Concluído com seção 5. |
-| 16.3 | Navegação: ícone selecionado faz "pulo" | ✅ | Já implementado em `MainScreen.kt` (`PetCareBottomBar`): `animateFloatAsState(target=1.22f, spring(DampingRatioMediumBouncy, StiffnessHigh))` + `.scale(scale)` no ícone. Estava marcado ⬜ por engano — confirmado no código. |
+| 16.3 | Navegação: ícone selecionado faz "pulo" | ✅ | Já implementado em `MainScreen.kt` (`PetIngleBottomBar`): `animateFloatAsState(target=1.22f, spring(DampingRatioMediumBouncy, StiffnessHigh))` + `.scale(scale)` no ícone. Estava marcado ⬜ por engano — confirmado no código. |
 | 16.4 | FAB: respiração sutil (Mel) 🗑️; "+" vira "×" 🗑️ | 🗑️ REMOVIDO | `MelFab` e sua animação de respiração removidos com a seção 15. `AddFab` simplificado — sem rotação (era vinculada ao `showMelSheet`). |
 | 16.5 | Sucesso: `feedback_sucesso.png` bounce + partículas de pegadas | ✅ | `PetSuccessOverlay` em `NewPetScreen.kt`: scrim 65%, `feedback_sucesso.png` com spring de entrada (MediumBouncy) + oscilação contínua −10dp. `PawParticle`: 5 ícones `Pets` em pentágono (72°), delays 200–560ms, fade-out tween 850ms. Auto-dismiss 2500ms. |
 | 16.6 | Desbloquear: `feedback_desbloquear.png` efeito "caixa abrindo" | ⬜ | Não implementado. Depende do fluxo rewarded AdMob (seção 18) — naturalmente fica para depois. |
 | 16.7 | Lembretes: check com traço desenhado; swipe com rastro de pegada | ✅ | Ambos já implementados em `RemindersScreen.kt`. **Check:** `Canvas` + `PathEffect.dashPathEffect` com `progress 0→1` animando o traço verde. **Swipe:** `PawTrailBackground` com 3 ícones `Icons.Rounded.Pets` em cascata proporcional ao `fraction`. Estava marcado ⬜ por engano. |
 | 16.8 | Diário: efeito polaroid | ✅ | Concluído com a seção 9 (parte 1) — `PolaroidReveal` em `DiaryScreen.kt`. |
-| 16.9 | Troca de tema: transição suave ~300-400ms | ✅ | `PetCareTheme.kt`: extensão `@Composable ColorScheme.animated()` anima os 16 slots de cor com `animateColorAsState(tween(350ms, FastOutSlowInEasing))`; `PetCareTheme` passa `targetScheme.animated()` ao `MaterialTheme`. |
+| 16.9 | Troca de tema: transição suave ~300-400ms | ✅ | `PetIngleTheme.kt`: extensão `@Composable ColorScheme.animated()` anima os 16 slots de cor com `animateColorAsState(tween(350ms, FastOutSlowInEasing))`; `PetIngleTheme` passa `targetScheme.animated()` ao `MaterialTheme`. |
 | 16.10 | ~~Carregamento: animação do Mel em loop~~ | 🗑️ REMOVIDO | `MelLoadingAnimation.kt` deletado. `LoadingBox` em `PetPhotoEditorScreen` agora usa `CircularProgressIndicator(color = OrangePrimary)`. `DiaryPhotoEditorScreen` removido. |
 
 ---
@@ -323,7 +323,7 @@
 
 | # | Item | Status | Notas |
 |---|------|--------|-------|
-| 17.1 | 100% local (Room + armazenamento interno para fotos) | ✅ | Confirmado na auditoria (2026-07-18): todos os dados ficam no Room (`petcare.db`) e fotos em `context.filesDir/diary_photos/` e `context.filesDir/pet_photos/`. Nenhum `FileOutputStream` ou `Bitmap.compress` fora das duas Utils. A permissão `INTERNET` no manifesto existe exclusivamente para a API de Downloadable Fonts (Nunito, seção 1.6) e futuramente AdMob (seção 18) — nenhum dado do app trafega pela rede. |
+| 17.1 | 100% local (Room + armazenamento interno para fotos) | ✅ | Confirmado na auditoria (2026-07-18): todos os dados ficam no Room (`petingle.db`) e fotos em `context.filesDir/diary_photos/` e `context.filesDir/pet_photos/`. Nenhum `FileOutputStream` ou `Bitmap.compress` fora das duas Utils. A permissão `INTERNET` no manifesto existe exclusivamente para a API de Downloadable Fonts (Nunito, seção 1.6) e futuramente AdMob (seção 18) — nenhum dado do app trafega pela rede. |
 | 17.2 | Sem login / sem conta / sem nuvem | ✅ | Confirmado na auditoria (2026-07-18): nenhuma dependência de Firebase, Retrofit, OkHttp, Ktor, Supabase, `AccountManager` ou qualquer SDK de auth/cloud no `build.gradle.kts` ou no código. Grep por `FirebaseAuth`, `FirebaseFirestore`, `@GET`, `@POST`, `login`, `auth` retornou zero resultados em arquivos `.kt`. |
 | 17.3 | Bug fix: ao salvar foto, desenhar sobre fundo branco antes de comprimir (sem fundo preto) | ✅ | **Confirmado em 100% dos pontos de salvamento** na auditoria (2026-07-18). `flattenOnWhiteBackground()` em `DiaryPhotoEditorUtils.kt` (função compartilhada): cria bitmap ARGB_8888, `drawColor(Color.WHITE)`, depois desenha a foto. Chamada em: (1) `saveDiaryPhotoJpeg` — fotos do Diário; (2) `savePetPhotoJpeg` em `PetPhotoEditorUtils.kt` — foto de perfil do pet (seção 11). Nenhum outro ponto de `compress(JPEG)` encontrado no projeto. |
 
@@ -347,7 +347,7 @@
 |---|------|--------|-------|
 | 19.1 | Política de Privacidade (exatamente o texto da seção 19) | ✅ | `PRIVACY_TEXT` em `TermsPage.kt` — aba "Privacidade" no diálogo da tela 7. Testado no celular ("Julho de 2026" confirmado). |
 | 19.2 | Termos de Uso (exatamente o texto da seção 19) | ✅ | `TERMS_TEXT` em `TermsPage.kt` — aba "Termos de Uso" no diálogo da tela 7. Testado no celular ("Julho de 2026" confirmado). |
-| 19.3 | Sobre o PetCare (exatamente o texto da seção 19) | ✅ | `ABOUT_TEXT` em `ProfileScreen.kt` — seção expansível "Sobre o PetCare". |
+| 19.3 | Sobre o PetIngle (exatamente o texto da seção 19) | ✅ | `ABOUT_TEXT` em `ProfileScreen.kt` — seção expansível "Sobre o PetIngle". |
 
 ---
 
@@ -437,11 +437,11 @@ _3. **Diagnóstico de performance** — investigado e reportado. Fixes pendentes
 - Caption formatada como citação `"texto"` com alpha 0.82
 - Separador sutil entre caption e barra de ações
 - Botão "Compartilhar" em destaque laranja (icon + label), com edit/delete como IconButtons discretos
-- Texto de share temático: linha de título `💛 NOME — Diário PetCare`, citação da caption, data, hashtags `#PetCare #NomePet #MeuPet #AmorPelosPets`
+- Texto de share temático: linha de título `💛 NOME — Diário PetIngle`, citação da caption, data, hashtags `#PetIngle #NomePet #MeuPet #AmorPelosPets`
 
 **`DiaryAddEntryScreen.kt` — redesign da tela de nova entrada**
 - Header com gradiente laranja horizontal (OrangeGradStart → OrangeGradEnd), título "Nova memória" + subtítulo
-- Frame polaroid aprimorado: fundo creme `#F5F0E8`, sombra 12dp, padding interno, label `📸 PetCare` no rodapé
+- Frame polaroid aprimorado: fundo creme `#F5F0E8`, sombra 12dp, padding interno, label `📸 PetIngle` no rodapé
 - 8 tags de momento (era 6): Passeio, Brincadeira, Banho, Consulta, Carinho, Especial, Ao ar livre, Petisco
 - Tags em `FlowRow` com animação de cor (laranja selecionado, cinza não selecionado), ✓ ao selecionar
 - Campo de legenda com `OutlinedTextField` arredondado e barra de progresso colorida (verde→laranja→vermelho conforme limite)
@@ -460,7 +460,7 @@ _3. **Diagnóstico de performance** — investigado e reportado. Fixes pendentes
 
 ### APK gerado
 - Build #84 — sucesso ✅
-- petcare-release-signed: 9.2 MB
+- petingle-release-signed: 9.2 MB
 - Expiração dos artifacts: 2026-07-28
 
 ---

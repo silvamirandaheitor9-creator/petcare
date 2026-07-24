@@ -205,7 +205,7 @@ fun DiaryAddEntryScreen(
                             )
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                text      = "📸  PataFácil",
+                                text      = "📸  PetIngle",
                                 style     = MaterialTheme.typography.labelSmall,
                                 color     = Color(0xFF9E8D7A),
                                 fontWeight = FontWeight.Medium,

@@ -127,7 +127,7 @@ fun SplashScreen(
 
             // Nome do app
             Text(
-                text       = "PataFácil",
+                text       = "PetIngle",
                 fontSize   = 36.sp,
                 fontWeight = FontWeight.Bold,
                 color      = Color.White,

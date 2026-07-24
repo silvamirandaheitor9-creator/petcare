@@ -2,12 +2,7 @@ package com.petcare.app.ui.screen.main
 
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -55,7 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -496,18 +490,6 @@ private fun EmptyPetsSection(
     onAddPet: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Pulse animation no botão de chamada para ação
-    val infiniteTransition = rememberInfiniteTransition(label = "button_pulse")
-    val buttonScale by infiniteTransition.animateFloat(
-        initialValue  = 1f,
-        targetValue   = 1.055f,
-        animationSpec = infiniteRepeatable(
-            animation  = tween(900, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "button_scale",
-    )
-
     Column(
         modifier              = modifier.fillMaxWidth(),
         horizontalAlignment   = Alignment.CenterHorizontally,
@@ -516,7 +498,7 @@ private fun EmptyPetsSection(
         Image(
             painter            = painterResource(R.drawable.onboarding_1_boasvindas),
             contentDescription = null,
-            modifier           = Modifier.fillMaxWidth(0.80f),
+            modifier           = Modifier.fillMaxWidth(0.62f),
         )
         Spacer(Modifier.height(4.dp))
         Text(
@@ -533,13 +515,11 @@ private fun EmptyPetsSection(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(4.dp))
-        // Botão com pulse sutil (SPEC §7.5)
         Button(
             onClick  = onAddPet,
             modifier = Modifier
                 .fillMaxWidth(0.80f)
-                .height(52.dp)
-                .scale(buttonScale),
+                .height(52.dp),
             shape    = RoundedCornerShape(50.dp),
             colors   = ButtonDefaults.buttonColors(
                 containerColor = OrangePrimary,

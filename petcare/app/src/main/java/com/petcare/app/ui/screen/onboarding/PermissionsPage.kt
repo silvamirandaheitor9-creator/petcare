@@ -185,7 +185,7 @@ fun PermissionsPage(isActive: Boolean) {
             enter   = fadeIn(tween(450, delayMillis = 140)),
         ) {
             Text(
-                text      = "O PetCare precisa dessas permissões para funcionar bem. Você pode alterar isso nas configurações do celular a qualquer momento.",
+                text      = "O PetIngle precisa dessas permissões para funcionar bem. Você pode alterar isso nas configurações do celular a qualquer momento.",
                 fontSize  = 13.sp,
                 color     = Color.White.copy(alpha = 0.88f),
                 textAlign = TextAlign.Center,
