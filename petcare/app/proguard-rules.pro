@@ -24,4 +24,4 @@
 -keep class com.google.android.gms.ads.** { *; }
 
 # Keep our app classes
--keep class com.petcare.app.** { *; }
+-keep class br.com.petingle.** { *; }
