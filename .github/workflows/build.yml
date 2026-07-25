@@ -1,4 +1,4 @@
-name: Build PetCare APK
+name: Build PetIngle APK
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: petcare
+        working-directory: petingle
 
     steps:
       - name: Checkout
@@ -41,7 +41,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('petcare/**/*.gradle*', 'petcare/**/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('petingle/**/*.gradle*', 'petingle/**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
@@ -52,19 +52,19 @@ jobs:
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: petcare-debug
-          path: petcare/app/build/outputs/apk/debug/app-debug.apk
+          name: petingle-debug
+          path: petingle/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
 
       # ── Release (signed) ─────────────────────────────────────────────────
       - name: Decode keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > $RUNNER_TEMP/petcare-release.p12
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > $RUNNER_TEMP/petingle-release.p12
 
       - name: Build Release APK (signed)
         run: |
           ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file=$RUNNER_TEMP/petcare-release.p12 \
+            -Pandroid.injected.signing.store.file=$RUNNER_TEMP/petingle-release.p12 \
             -Pandroid.injected.signing.store.password=${{ secrets.STORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
             -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }} \
@@ -73,7 +73,7 @@ jobs:
       - name: Upload Release APK (signed)
         uses: actions/upload-artifact@v4
         with:
-          name: petcare-release-signed
-          path: petcare/app/build/outputs/apk/release/app-release.apk
+          name: petingle-release-signed
+          path: petingle/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 7

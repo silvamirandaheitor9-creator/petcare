@@ -1,14 +1,14 @@
-# Política de Privacidade do PetCare
+# Política de Privacidade do PetIngle
 
 **Última atualização:** Julho de 2026
 
 ## 1. SOBRE ESTE DOCUMENTO
 
-Esta Política de Privacidade descreve como o aplicativo PetCare trata as informações dos seus usuários. Ao usar o app, você concorda com as práticas descritas aqui.
+Esta Política de Privacidade descreve como o aplicativo PetIngle trata as informações dos seus usuários. Ao usar o app, você concorda com as práticas descritas aqui.
 
 ## 2. DADOS QUE FICAM NO SEU APARELHO
 
-O PetCare não exige criação de conta nem coleta dados pessoais em servidores próprios. Todas as informações que você cadastrar — nomes dos pets, fotos, datas, registros de saúde (vacinas, consultas), lembretes e entradas do diário — **ficam exclusivamente no seu dispositivo**.
+O PetIngle não exige criação de conta nem coleta dados pessoais em servidores próprios. Todas as informações que você cadastrar — nomes dos pets, fotos, datas, registros de saúde (vacinas, consultas), lembretes e entradas do diário — **ficam exclusivamente no seu dispositivo**.
 
 Nenhum servidor nosso armazena essas informações. Você tem controle total sobre seus dados.
 
@@ -26,7 +26,7 @@ Nenhuma permissão é solicitada antes do momento em que você realmente precisa
 
 ## 5. PUBLICIDADE — GOOGLE ADMOB
 
-O PetCare exibe anúncios fornecidos pelo Google AdMob para manter os recursos gratuitos. O AdMob pode coletar e processar dados como identificador de publicidade do dispositivo (GAID/IDFA), endereço IP e informações sobre interações com anúncios.
+O PetIngle exibe anúncios fornecidos pelo Google AdMob para manter os recursos gratuitos. O AdMob pode coletar e processar dados como identificador de publicidade do dispositivo (GAID/IDFA), endereço IP e informações sobre interações com anúncios.
 
 Consulte a [Política de Privacidade do Google AdMob](https://policies.google.com/privacy) para mais detalhes.
 
@@ -36,7 +36,7 @@ O app não compartilha seus dados pessoais com empresas terceiras além do AdMob
 
 ## 7. CRIANÇAS
 
-O PetCare não é destinado a crianças menores de 13 anos. Não coletamos intencionalmente informações de menores.
+O PetIngle não é destinado a crianças menores de 13 anos. Não coletamos intencionalmente informações de menores.
 
 ## 8. SEUS DIREITOS (LGPD — LEI 13.709/2018)
 
@@ -55,4 +55,4 @@ Podemos atualizar esta política periodicamente. Alterações relevantes serão 
 
 ---
 
-**Dúvidas?** Entre em contato com os desenvolvedores do PetCare.
+**Dúvidas?** Entre em contato com os desenvolvedores do PetIngle.
