@@ -21,11 +21,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cake
 import androidx.compose.material.icons.rounded.MedicalServices
@@ -122,6 +123,7 @@ private fun StaggeredHomePetCard(pet: Pet, index: Int) {
 }
 
 // ─── Ponto de entrada da aba Início ─────────────────────────────────────────
+// Mudança: Substituído LazyColumn por Column com verticalScroll para manter padrão visual
 
 @Composable
 fun HomeScreen(
@@ -133,77 +135,69 @@ fun HomeScreen(
     val nextVaccineDate by viewModel.nextVaccineDate.collectAsState()
     val nextConsultDate by viewModel.nextConsultDate.collectAsState()
     val tipSpecies      = pets.firstOrNull()?.species
+    val scrollState     = rememberScrollState()
 
-    LazyColumn(
-        modifier        = Modifier.fillMaxSize(),
-        contentPadding  = PaddingValues(top = 16.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(0.dp),
+    Column(
+        modifier        = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(top = 16.dp, bottom = 96.dp),
     ) {
         // (1) Card de estatísticas — fade+slide com delay 0
-        item(key = "stats_card") {
-            FadeSlideIn(delayMs = 0) {
-                StatsCard(
-                    petCount        = petCount,
-                    nextVaccineDate = nextVaccineDate,
-                    nextConsultDate = nextConsultDate,
-                    modifier        = Modifier.padding(horizontal = 16.dp),
-                )
-            }
+        FadeSlideIn(delayMs = 0) {
+            StatsCard(
+                petCount        = petCount,
+                nextVaccineDate = nextVaccineDate,
+                nextConsultDate = nextConsultDate,
+                modifier        = Modifier.padding(horizontal = 16.dp),
+            )
         }
 
-        item(key = "stats_spacer") { Spacer(Modifier.height(16.dp)) }
+        Spacer(Modifier.height(16.dp))
 
         // (2) Card de dica do dia — fade+slide com delay 80ms
-        item(key = "tip_card") {
-            FadeSlideIn(delayMs = 80) {
-                TipCard(
-                    species  = tipSpecies,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-            }
+        FadeSlideIn(delayMs = 80) {
+            TipCard(
+                species  = tipSpecies,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
         }
 
-        item(key = "tip_spacer") { Spacer(Modifier.height(24.dp)) }
+        Spacer(Modifier.height(24.dp))
 
         // (3) Lista de pets ou estado vazio
         if (pets.isEmpty()) {
-            item(key = "empty_pets") {
-                EmptyPetsSection(
-                    onAddPet = onAddPet,
-                    modifier = Modifier.padding(horizontal = 24.dp),
-                )
-            }
+            EmptyPetsSection(
+                onAddPet = onAddPet,
+                modifier = Modifier.padding(horizontal = 24.dp),
+            )
         } else {
-            item(key = "pets_header") {
-                FadeSlideIn(delayMs = 120) {
-                    Row(
-                        modifier              = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment     = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Column {
-                            Text(
-                                text       = "Seus pets",
-                                style      = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color      = MaterialTheme.colorScheme.onBackground,
-                            )
-                        }
+            FadeSlideIn(delayMs = 120) {
+                Row(
+                    modifier              = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column {
+                        Text(
+                            text       = "Seus pets",
+                            style      = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color      = MaterialTheme.colorScheme.onBackground,
+                        )
                     }
                 }
             }
-            item(key = "pets_header_spacer") { Spacer(Modifier.height(12.dp)) }
-            item(key = "pets_row") {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding        = PaddingValues(horizontal = 16.dp),
-                ) {
-                    // Stagger escalonado em cada card de pet
-                    itemsIndexed(pets, key = { _, pet -> pet.id }) { index, pet ->
-                        StaggeredHomePetCard(pet = pet, index = index)
-                    }
+            Spacer(Modifier.height(12.dp))
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding        = PaddingValues(horizontal = 16.dp),
+            ) {
+                // Stagger escalonado em cada card de pet
+                itemsIndexed(pets, key = { _, pet -> pet.id }) { index, pet ->
+                    StaggeredHomePetCard(pet = pet, index = index)
                 }
             }
         }
@@ -541,7 +535,7 @@ private fun EmptyPetsSection(
     }
 }
 
-// ─── Helpers privados ─────────────────────────────────────────────────────────
+// ─── Helpers privados ───────────────────────────────────────────────────────
 
 private fun speciesDrawable(species: String): Int =
     when (species.lowercase(Locale.getDefault())) {

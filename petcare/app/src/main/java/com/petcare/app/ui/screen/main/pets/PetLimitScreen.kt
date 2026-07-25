@@ -2,14 +2,8 @@ package com.petcare.app.ui.screen.main.pets
 
 import android.app.Activity
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -25,15 +19,12 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.VideoLibrary
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -56,8 +47,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -82,6 +71,7 @@ import kotlinx.coroutines.delay
 private const val REWARDED_AD_UNIT_ID = "ca-app-pub-2930629233574738/9944805172"
 
 // ─── Bottom sheet de limite de pets (SPEC §18.3-18.4 + §16.6) ────────────────
+// Simplificado: foco direto no CTA, sem animações excessivas
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -127,101 +117,127 @@ fun PetLimitSheet(
             modifier            = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(bottom = 28.dp),
+                .padding(horizontal = 24.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // ── Cabeçalho com imagem e gradiente ─────────────────────────────
+            // ── Cabeçalho simples com imagem ──────────────────────────────────
             LimitHeader()
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(24.dp))
 
-            Column(
-                modifier            = Modifier
+            // ── Título ────────────────────────────────────────────────────────
+            Text(
+                text       = "Limite de pets atingido",
+                style      = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color      = MaterialTheme.colorScheme.onSurface,
+                textAlign  = TextAlign.Center,
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // ── Descrição clara e concisa ─────────────────────────────────────
+            Text(
+                text = "Você tem $petCount de $petLimit pets. Assista um anúncio rápido para ganhar +$PET_LIMIT_BONUS vagas extras!",
+                style      = MaterialTheme.typography.bodyMedium,
+                color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f),
+                textAlign  = TextAlign.Center,
+                lineHeight = 22.sp,
+            )
+
+            Spacer(Modifier.height(28.dp))
+
+            // ── Grade visual de vagas ─────────────────────────────────────────
+            SlotGridSimple(
+                used    = petCount,
+                base    = petLimit,
+                bonus   = PET_LIMIT_BONUS,
+            )
+
+            Spacer(Modifier.height(28.dp))
+
+            // ── Botão principal ──────────────────────────────────────────────────
+            Button(
+                onClick = {
+                    val activity = context as? Activity ?: return@Button
+                    rewardedAd?.show(activity) { _ ->
+                        onUnlocked()
+                        onDismiss()
+                    }
+                },
+                enabled  = !isLoading && !loadFailed && rewardedAd != null,
+                modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(0.dp),
+                    .height(52.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor         = OrangePrimary,
+                    contentColor           = Color.White,
+                    disabledContainerColor = OrangePrimary.copy(alpha = 0.35f),
+                    disabledContentColor   = Color.White,
+                ),
+                shape = RoundedCornerShape(16.dp),
             ) {
-                // ── Badge "+5 vagas grátis" ───────────────────────────────────
-                BonusBadge()
-
-                Spacer(Modifier.height(12.dp))
-
-                // ── Título ────────────────────────────────────────────────────
-                Text(
-                    text       = "Você chegou ao limite!",
-                    style      = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.ExtraBold,
-                    color      = MaterialTheme.colorScheme.onSurface,
-                    textAlign  = TextAlign.Center,
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                // ── Descrição ─────────────────────────────────────────────────
-                Text(
-                    text = "O plano gratuito inclui $PET_LIMIT_FREE pets. " +
-                           "Assista a um anúncio curto e ganhe $PET_LIMIT_BONUS vagas extras — sem assinar nada.",
-                    style      = MaterialTheme.typography.bodyMedium,
-                    color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
-                    textAlign  = TextAlign.Center,
-                    lineHeight = 22.sp,
-                )
-
-                Spacer(Modifier.height(22.dp))
-
-                // ── Indicador de vagas individual ─────────────────────────────
-                SlotGrid(
-                    used    = petCount,
-                    base    = petLimit,
-                    bonus   = PET_LIMIT_BONUS,
-                )
-
-                Spacer(Modifier.height(22.dp))
-
-                // ── Como funciona: 3 passos ───────────────────────────────────
-                HowItWorksRow()
-
-                Spacer(Modifier.height(22.dp))
-
-                // ── Botão principal com pulso ─────────────────────────────────
-                PulsatingButton(
-                    isLoading  = isLoading,
-                    loadFailed = loadFailed,
-                    enabled    = !isLoading && !loadFailed && rewardedAd != null,
-                    onClick    = {
-                        val activity = context as? Activity ?: return@PulsatingButton
-                        rewardedAd?.show(activity) { _ ->
-                            onUnlocked()
-                            onDismiss()
-                        }
-                    },
-                )
-
-                Spacer(Modifier.height(4.dp))
-
-                TextButton(onClick = onDismiss) {
-                    Text(
-                        text  = "Agora não",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                    )
+                when {
+                    isLoading  -> {
+                        CircularProgressIndicator(
+                            modifier    = Modifier.size(20.dp),
+                            color       = Color.White,
+                            strokeWidth = 2.5.dp,
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text       = "Carregando anúncio…",
+                            fontWeight = FontWeight.SemiBold,
+                            style      = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
+                    loadFailed -> {
+                        Text(
+                            text       = "Anúncio indisponível",
+                            fontWeight = FontWeight.SemiBold,
+                            style      = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
+                    else -> {
+                        Icon(
+                            Icons.Rounded.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text       = "Assistir anúncio e desbloquear",
+                            fontWeight = FontWeight.ExtraBold,
+                            style      = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
                 }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // ── Botão secundário ─────────────────────────────────────────────────
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text  = "Agora não",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f),
+                )
             }
         }
     }
 }
 
-// ─── Cabeçalho com imagem feedback_desbloquear e gradiente ───────────────────
+// ─── Cabeçalho simples com imagem ────────────────────────────────────────────
 
 @Composable
 private fun LimitHeader() {
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
 
-    // Animação de entrada: escala spring na imagem
+    // Animação de entrada suave: apenas escala, sem balanço
     val scale by animateFloatAsState(
-        targetValue   = if (entered) 1f else 0.3f,
+        targetValue   = if (entered) 1f else 0.6f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness    = Spring.StiffnessMediumLow,
@@ -229,109 +245,39 @@ private fun LimitHeader() {
         label = "header_image_scale",
     )
 
-    // Balanço contínuo suave
-    val rotation = rememberInfiniteTransition(label = "img_wobble")
-    val wobble by rotation.animateFloat(
-        initialValue  = -4f,
-        targetValue   = 4f,
-        animationSpec = infiniteRepeatable(
-            animation  = tween(1600, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "img_wobble_val",
-    )
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(160.dp)
+            .height(120.dp)
             .background(
                 Brush.horizontalGradient(listOf(OrangeGradStart, OrangeGradEnd)),
-            ),
+            )
+            .clip(RoundedCornerShape(16.dp)),
         contentAlignment = Alignment.Center,
     ) {
-        // Círculos decorativos concêntricos
-        Box(
-            modifier = Modifier
-                .size(220.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.06f)),
-        )
-        Box(
-            modifier = Modifier
-                .size(160.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.08f)),
-        )
-
-        // Imagem principal do mascote com animações
+        // Imagem principal do mascote (simples, sem decorações)
         androidx.compose.foundation.Image(
             painter           = painterResource(R.drawable.feedback_desbloquear),
             contentDescription= "Limite de pets",
             modifier          = Modifier
-                .size(110.dp)
-                .scale(scale)
-                .graphicsLayer { rotationZ = wobble * scale },
+                .size(80.dp)
+                .scale(scale),
             contentScale      = ContentScale.Fit,
         )
     }
 }
 
-// ─── Badge "+5 vagas grátis" com animação de entrada ─────────────────────────
+// ─── Grade visual simplificada ───────────────────────────────────────────────
 
 @Composable
-private fun BonusBadge() {
-    val alpha   = remember { Animatable(0f) }
-    val offsetY = remember { Animatable(-12f) }
-
-    LaunchedEffect(Unit) {
-        delay(200)
-        alpha.animateTo(1f, tween(300))
-        offsetY.animateTo(0f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium))
-    }
-
-    Box(
-        modifier = Modifier
-            .wrapContentWidth()
-            .graphicsLayer { this.alpha = alpha.value; translationY = offsetY.value }
-            .clip(RoundedCornerShape(50))
-            .background(
-                Brush.horizontalGradient(listOf(OrangeGradStart, OrangeGradEnd)),
-            )
-            .padding(horizontal = 18.dp, vertical = 7.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Icon(
-                Icons.Rounded.Star,
-                contentDescription = null,
-                tint     = Color.White,
-                modifier = Modifier.size(14.dp),
-            )
-            Text(
-                text       = "+$PET_LIMIT_BONUS vagas grátis disponíveis",
-                style      = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color      = Color.White,
-            )
-        }
-    }
-}
-
-// ─── Grade de vagas (círculos individuais) ────────────────────────────────────
-
-@Composable
-private fun SlotGrid(used: Int, base: Int, bonus: Int) {
+private fun SlotGridSimple(used: Int, base: Int, bonus: Int) {
     val total   = base + bonus
     val columns = 5
 
     Column(
         modifier            = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         // Texto de contagem
         Row(
@@ -340,56 +286,38 @@ private fun SlotGrid(used: Int, base: Int, bonus: Int) {
         ) {
             Text(
                 text       = "$used",
-                style      = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
+                style      = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
                 color      = OrangePrimary,
             )
             Text(
                 text  = "de $base vagas usadas",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
             )
         }
 
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(4.dp))
 
-        // Grade de círculos - stagger reveal
+        // Grade de círculos
         val rows = (total + columns - 1) / columns
         for (row in 0 until rows) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 for (col in 0 until columns) {
                     val index = row * columns + col
                     if (index < total) {
-                        SlotCircle(
-                            state = when {
-                                index < used  -> SlotState.USED
-                                index < base  -> SlotState.FREE
-                                else          -> SlotState.BONUS
-                            },
-                            animDelay = index * 30,
-                        )
+                        val state = when {
+                            index < used  -> SlotState.USED
+                            index < base  -> SlotState.FREE
+                            else          -> SlotState.BONUS
+                        }
+                        SlotCircleSimple(state = state)
                     }
                 }
             }
-        }
-
-        Spacer(Modifier.height(4.dp))
-
-        // Legenda
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            LegendDot(color = OrangePrimary, label = "Ocupada")
-            LegendDot(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), label = "Livre")
-            LegendDot(
-                color = OrangePrimary.copy(alpha = 0.35f),
-                label = "+$bonus ao assistir",
-                isDashed = true,
-            )
         }
     }
 }
@@ -397,22 +325,12 @@ private fun SlotGrid(used: Int, base: Int, bonus: Int) {
 private enum class SlotState { USED, FREE, BONUS }
 
 @Composable
-private fun SlotCircle(state: SlotState, animDelay: Int) {
-    val scale = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        delay(animDelay.toLong())
-        scale.animateTo(
-            1f,
-            spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium),
-        )
-    }
-
-    val size: Dp = 32.dp
+private fun SlotCircleSimple(state: SlotState) {
+    val size: Dp = 28.dp
 
     Box(
         modifier = Modifier
             .size(size)
-            .scale(scale.value)
             .clip(CircleShape)
             .then(
                 when (state) {
@@ -420,11 +338,11 @@ private fun SlotCircle(state: SlotState, animDelay: Int) {
                         Brush.radialGradient(listOf(OrangeGradStart, OrangeGradEnd))
                     )
                     SlotState.FREE  -> Modifier
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f))
-                        .border(1.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f), CircleShape)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                        .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f), CircleShape)
                     SlotState.BONUS -> Modifier
-                        .background(OrangePrimary.copy(alpha = 0.08f))
-                        .border(1.5.dp, OrangePrimary.copy(alpha = 0.35f), CircleShape)
+                        .background(OrangePrimary.copy(alpha = 0.12f))
+                        .border(1.5.dp, OrangePrimary.copy(alpha = 0.40f), CircleShape)
                 }
             ),
         contentAlignment = Alignment.Center,
@@ -434,184 +352,15 @@ private fun SlotCircle(state: SlotState, animDelay: Int) {
                 Icons.Rounded.Pets,
                 contentDescription = null,
                 tint     = Color.White,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(14.dp),
             )
             SlotState.BONUS -> Text(
                 "+",
-                style      = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color      = OrangePrimary.copy(alpha = 0.7f),
+                style      = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color      = OrangePrimary,
             )
             SlotState.FREE  -> {}
-        }
-    }
-}
-
-@Composable
-private fun LegendDot(color: Color, label: String, isDashed: Boolean = false) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .clip(CircleShape)
-                .background(color)
-                .then(
-                    if (isDashed) Modifier.border(1.dp, OrangePrimary.copy(alpha = 0.5f), CircleShape)
-                    else Modifier
-                ),
-        )
-        Text(
-            text  = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-        )
-    }
-}
-
-// ─── Seção "Como funciona": 3 passos ─────────────────────────────────────────
-
-@Composable
-private fun HowItWorksRow() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f))
-            .padding(horizontal = 12.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.Top,
-    ) {
-        HowItWorksStep(icon = Icons.Rounded.VideoLibrary, label = "Assiste\num anúncio")
-        StepArrow()
-        HowItWorksStep(icon = Icons.Rounded.Star, label = "Ganha\n+$PET_LIMIT_BONUS vagas")
-        StepArrow()
-        HowItWorksStep(icon = Icons.Rounded.CheckCircle, label = "Cadastra\nmais pets")
-    }
-}
-
-@Composable
-private fun HowItWorksStep(icon: ImageVector, label: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(OrangePrimary.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icon, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(20.dp))
-        }
-        Text(
-            text      = label,
-            style     = MaterialTheme.typography.labelSmall,
-            color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
-            textAlign = TextAlign.Center,
-            lineHeight= 16.sp,
-        )
-    }
-}
-
-@Composable
-private fun StepArrow() {
-    Text(
-        "→",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
-        modifier = Modifier.padding(top = 10.dp),
-    )
-}
-
-// ─── Botão com animação de pulso ──────────────────────────────────────────────
-
-@Composable
-private fun PulsatingButton(
-    isLoading  : Boolean,
-    loadFailed : Boolean,
-    enabled    : Boolean,
-    onClick    : () -> Unit,
-) {
-    val pulse = rememberInfiniteTransition(label = "btn_pulse")
-    val pulseScale by pulse.animateFloat(
-        initialValue  = 1f,
-        targetValue   = 1.03f,
-        animationSpec = infiniteRepeatable(
-            animation  = tween(700, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "btn_pulse_scale",
-    )
-
-    Box(
-        modifier         = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center,
-    ) {
-        // Halo pulsante
-        if (enabled) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .scale(pulseScale * 1.05f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(OrangePrimary.copy(alpha = 0.18f)),
-            )
-        }
-
-        Button(
-            onClick  = onClick,
-            enabled  = enabled,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor         = OrangePrimary,
-                contentColor           = Color.White,
-                disabledContainerColor = OrangePrimary.copy(alpha = 0.35f),
-                disabledContentColor   = Color.White,
-            ),
-            shape = RoundedCornerShape(16.dp),
-        ) {
-            when {
-                isLoading  -> {
-                    CircularProgressIndicator(
-                        modifier    = Modifier.size(20.dp),
-                        color       = Color.White,
-                        strokeWidth = 2.5.dp,
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        text       = "Carregando anúncio…",
-                        fontWeight = FontWeight.SemiBold,
-                        style      = MaterialTheme.typography.bodyLarge,
-                    )
-                }
-                loadFailed -> {
-                    Text(
-                        text       = "Anúncio indisponível",
-                        fontWeight = FontWeight.SemiBold,
-                        style      = MaterialTheme.typography.bodyLarge,
-                    )
-                }
-                else -> {
-                    Icon(
-                        Icons.Rounded.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text       = "Assistir e ganhar vagas",
-                        fontWeight = FontWeight.ExtraBold,
-                        style      = MaterialTheme.typography.bodyLarge,
-                    )
-                }
-            }
         }
     }
 }
