@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.petcare.app"
+    namespace = "br.com.petingle"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.petcare.app"
+        applicationId = "br.com.petingle"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
