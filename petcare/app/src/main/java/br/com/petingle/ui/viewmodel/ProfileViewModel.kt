@@ -103,7 +103,7 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val srcDb  = context.getDatabasePath("petingle.db")
-                val srcWal = File(srcDb.parent!!, "petcare.db-wal")
+                val srcWal = File(srcDb.parent!!, "petingle.db-wal")
 
                 if (!srcDb.exists()) {
                     _events.emit(ProfileUiEvent.ExportError(
@@ -111,11 +111,11 @@ class ProfileViewModel @Inject constructor(
                     return@launch
                 }
 
-                val tempDir = File(context.cacheDir, "petcare_export_tmp")
+                val tempDir = File(context.cacheDir, "petingle_export_tmp")
                 tempDir.deleteRecursively()
                 tempDir.mkdirs()
                 val tempDb  = File(tempDir, "petingle.db")
-                val tempWal = File(tempDir, "petcare.db-wal")
+                val tempWal = File(tempDir, "petingle.db-wal")
 
                 srcDb.copyTo(tempDb, overwrite = true)
                 if (srcWal.exists()) srcWal.copyTo(tempWal, overwrite = true)
