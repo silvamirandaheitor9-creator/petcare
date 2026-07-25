@@ -16,7 +16,7 @@ val PillShape = RoundedCornerShape(PillCornerRadius)
 // Shapes do MaterialTheme — mapeadas para que componentes padrão do Material3
 // (Card, Button, etc.) sigam os raios do SPEC sem precisar de override manual
 // em cada uso.
-val PetCareShapes = Shapes(
+val PetIngleShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
     small      = RoundedCornerShape(12.dp),
     medium     = CardShape,   // usado por Card por padrão no Material3

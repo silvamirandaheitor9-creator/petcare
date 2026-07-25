@@ -8,7 +8,7 @@ import android.provider.DocumentsContract
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.petcare.app.data.datastore.UserPreferencesRepository
-import com.petcare.app.data.db.PetCareDatabase
+import com.petcare.app.data.db.PetIngleDatabase
 import com.petcare.app.data.db.dao.DiaryDao
 import com.petcare.app.data.db.dao.HealthRecordDao
 import com.petcare.app.data.db.dao.PetDao
@@ -42,7 +42,7 @@ sealed class ProfileUiEvent {
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val prefs            : UserPreferencesRepository,
-    private val db               : PetCareDatabase,
+    private val db               : PetIngleDatabase,
     private val petDao           : PetDao,
     private val reminderDao      : ReminderDao,
     private val diaryDao         : DiaryDao,

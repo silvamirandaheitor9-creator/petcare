@@ -7,8 +7,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.petcare.app.ui.navigation.PetCareNavGraph
-import com.petcare.app.ui.theme.PetCareTheme
+import com.petcare.app.ui.navigation.PetIngleNavGraph
+import com.petcare.app.ui.theme.PetIngleTheme
 import com.petcare.app.ui.viewmodel.ThemeViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -21,8 +21,8 @@ class MainActivity : ComponentActivity() {
             val themeViewModel: ThemeViewModel = hiltViewModel()
             val isDarkTheme by themeViewModel.isDarkTheme.collectAsState()
 
-            PetCareTheme(darkTheme = isDarkTheme) {
-                PetCareNavGraph()
+            PetIngleTheme(darkTheme = isDarkTheme) {
+                PetIngleNavGraph()
             }
         }
     }

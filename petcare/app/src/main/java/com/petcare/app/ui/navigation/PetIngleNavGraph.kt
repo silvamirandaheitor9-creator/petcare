@@ -79,7 +79,7 @@ sealed class Screen(val route: String) {
 }
 
 @Composable
-fun PetCareNavGraph() {
+fun PetIngleNavGraph() {
     val navController = rememberNavController()
     val appViewModel: AppViewModel = hiltViewModel()
     val isOnboardingDone by appViewModel.isOnboardingDone.collectAsState()

@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
-class PetCareApplication : Application(), Configuration.Provider {
+class PetIngleApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
@@ -36,7 +36,7 @@ class PetCareApplication : Application(), Configuration.Provider {
         // Por isso a inicialização roda em background, fora do caminho
         // síncrono de startup do app.
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
-            MobileAds.initialize(this@PetCareApplication)
+            MobileAds.initialize(this@PetIngleApplication)
         }
     }
 }

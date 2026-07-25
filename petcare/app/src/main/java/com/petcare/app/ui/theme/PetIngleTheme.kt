@@ -118,18 +118,18 @@ private fun ColorScheme.animated(): ColorScheme {
 }
 
 @Composable
-fun PetCareTheme(
+fun PetIngleTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
     val targetScheme  = if (darkTheme) DarkColorScheme else LightColorScheme
     val colorScheme   = targetScheme.animated()
 
-    androidx.compose.runtime.CompositionLocalProvider(LocalPetCareSpacing provides PetCareSpacing()) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalPetIngleSpacing provides PetIngleSpacing()) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography  = PetCareTypography,
-            shapes      = PetCareShapes,
+            typography  = PetIngleTypography,
+            shapes      = PetIngleShapes,
             content     = content,
         )
     }

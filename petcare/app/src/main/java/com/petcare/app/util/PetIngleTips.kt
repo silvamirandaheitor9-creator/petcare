@@ -7,7 +7,7 @@ import java.util.Calendar
  * 30 dicas para Cão e Gato; 10+ para Pássaro, Peixe, Réptil e Roedor;
  * lista geral como fallback quando nenhum pet está cadastrado.
  */
-object PetCareTips {
+object PetIngleTips {
 
     private val dogTips = listOf(
         "Cães precisam de água fresca disponível o dia todo — troque pelo menos duas vezes ao dia.",

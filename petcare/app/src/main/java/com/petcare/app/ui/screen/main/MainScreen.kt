@@ -141,7 +141,7 @@ fun MainScreen(
 
     Scaffold(
         topBar = {
-            PetCareTopBar(
+            PetIngleTopBar(
                 title    = if (selectedTabIndex == 0) greeting else currentTab.label,
                 subtitle = if (selectedTabIndex == 0) warmPhrase else null,
                 badge    = if (currentTab == MainTab.PETS) "$petCount/$petLimit" else null,
@@ -155,7 +155,7 @@ fun MainScreen(
                         .height(50.dp)
                         .padding(horizontal = 12.dp),
                 )
-                PetCareBottomBar(
+                PetIngleBottomBar(
                     tabs          = MainTab.entries,
                     selectedIndex = selectedTabIndex,
                     onTabSelected = { selectedTabIndex = it },
@@ -243,7 +243,7 @@ fun MainScreen(
 // ─── Cabeçalho: gradiente laranja + título + subtitle opcional ────────────────
 
 @Composable
-private fun PetCareTopBar(
+private fun PetIngleTopBar(
     title: String,
     subtitle: String? = null,
     badge: String? = null,
@@ -300,7 +300,7 @@ private fun PetCareTopBar(
 // ─── Barra de navegação inferior com animação "pulo" (SPEC 6.5) ──────────────
 
 @Composable
-private fun PetCareBottomBar(
+private fun PetIngleBottomBar(
     tabs: List<MainTab>,
     selectedIndex: Int,
     onTabSelected: (Int) -> Unit,

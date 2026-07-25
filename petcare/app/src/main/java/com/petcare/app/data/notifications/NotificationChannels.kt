@@ -41,7 +41,7 @@ object NotificationChannels {
                 setShowBadge(true)
                 setSound(soundUri, audioAttributes)
                 enableLights(true)
-                lightColor = 0xFFFF6B2C.toInt() // laranja PetCare
+                lightColor = 0xFFFF6B2C.toInt() // laranja PetIngle
             }
 
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

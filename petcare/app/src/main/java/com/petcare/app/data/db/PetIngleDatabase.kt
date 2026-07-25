@@ -16,7 +16,7 @@ import com.petcare.app.data.db.entity.Reminder
     version = 2, // v2: adicionados índices em petId (health_records, diary_entries, reminders)
     exportSchema = true,
 )
-abstract class PetCareDatabase : RoomDatabase() {
+abstract class PetIngleDatabase : RoomDatabase() {
     abstract fun petDao(): PetDao
     abstract fun reminderDao(): ReminderDao
     abstract fun diaryDao(): DiaryDao

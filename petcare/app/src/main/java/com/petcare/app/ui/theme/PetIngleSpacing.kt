@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.dp
 // Usar estes tokens em todos os paddings/margins do app em vez de valores
 // soltos (magic numbers), para garantir consistência em 100% das telas.
 @Immutable
-data class PetCareSpacing(
+data class PetIngleSpacing(
     val none: Dp = 0.dp,
     val xs: Dp = 8.dp,
     val sm: Dp = 16.dp,
@@ -21,13 +21,13 @@ data class PetCareSpacing(
     val xxl: Dp = 48.dp,
 )
 
-val LocalPetCareSpacing = staticCompositionLocalOf { PetCareSpacing() }
+val LocalPetIngleSpacing = staticCompositionLocalOf { PetIngleSpacing() }
 
 /**
  * Acesso conveniente: `MaterialTheme.spacing.sm` dentro de qualquer Composable
- * envolvido por `PetCareTheme`. Extension sobre `MaterialTheme` (em vez de um
- * objeto `PetCareTheme` próprio) para não colidir com a função Composable
- * `PetCareTheme(...)` definida em PetCareTheme.kt.
+ * envolvido por `PetIngleTheme`. Extension sobre `MaterialTheme` (em vez de um
+ * objeto `PetIngleTheme` próprio) para não colidir com a função Composable
+ * `PetIngleTheme(...)` definida em PetIngleTheme.kt.
  */
-val MaterialTheme.spacing: PetCareSpacing
-    @Composable get() = LocalPetCareSpacing.current
+val MaterialTheme.spacing: PetIngleSpacing
+    @Composable get() = LocalPetIngleSpacing.current

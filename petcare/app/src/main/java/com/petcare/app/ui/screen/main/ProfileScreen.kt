@@ -197,7 +197,7 @@ fun ProfileScreen(
 
     // ── Diálogos ──────────────────────────────────────────────────────────────
     if (showImportDialog && pendingImportUri != null) {
-        PetCareDialog(onDismiss = { showImportDialog = false }) {
+        PetIngleDialog(onDismiss = { showImportDialog = false }) {
             Text(
                 "Importar Backup",
                 style = MaterialTheme.typography.titleLarge,
@@ -237,7 +237,7 @@ fun ProfileScreen(
     }
 
     if (showDeleteDialog1) {
-        PetCareDialog(onDismiss = { showDeleteDialog1 = false }) {
+        PetIngleDialog(onDismiss = { showDeleteDialog1 = false }) {
             Box(
                 modifier = Modifier
                     .size(56.dp)
@@ -283,7 +283,7 @@ fun ProfileScreen(
     }
 
     if (showDeleteDialog2) {
-        PetCareDialog(onDismiss = { showDeleteDialog2 = false }) {
+        PetIngleDialog(onDismiss = { showDeleteDialog2 = false }) {
             Text(
                 "Tem certeza absoluta?",
                 style = MaterialTheme.typography.titleLarge,
@@ -921,7 +921,7 @@ private fun ProfileSectionCard(
 }
 
 @Composable
-private fun PetCareDialog(onDismiss: () -> Unit, content: @Composable (androidx.compose.foundation.layout.ColumnScope.() -> Unit)) {
+private fun PetIngleDialog(onDismiss: () -> Unit, content: @Composable (androidx.compose.foundation.layout.ColumnScope.() -> Unit)) {
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape     = RoundedCornerShape(24.dp),

@@ -29,7 +29,7 @@ private val NunitoFontFamily: FontFamily by lazy {
     )
 }
 
-val PetCareTypography: Typography by lazy {
+val PetIngleTypography: Typography by lazy {
     Typography(
         displayLarge   = TextStyle(fontFamily = NunitoFontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 57.sp),
         displayMedium  = TextStyle(fontFamily = NunitoFontFamily, fontWeight = FontWeight.Bold,      fontSize = 45.sp),

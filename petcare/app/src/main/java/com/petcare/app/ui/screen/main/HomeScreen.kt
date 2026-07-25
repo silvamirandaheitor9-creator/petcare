@@ -69,7 +69,7 @@ import com.petcare.app.R
 import com.petcare.app.data.db.entity.Pet
 import com.petcare.app.ui.theme.OrangePrimary
 import com.petcare.app.ui.viewmodel.HomeViewModel
-import com.petcare.app.util.PetCareTips
+import com.petcare.app.util.PetIngleTips
 import kotlinx.coroutines.delay
 import java.io.File
 import java.text.SimpleDateFormat
@@ -303,7 +303,7 @@ private fun StatItem(
 
 @Composable
 private fun TipCard(species: String?, modifier: Modifier = Modifier) {
-    val tip = remember(species) { PetCareTips.getTodayTip(species) }
+    val tip = remember(species) { PetIngleTips.getTodayTip(species) }
     Card(
         modifier  = modifier.fillMaxWidth(),
         shape     = RoundedCornerShape(20.dp),

@@ -2,7 +2,7 @@ package com.petcare.app.di
 
 import android.content.Context
 import androidx.room.Room
-import com.petcare.app.data.db.PetCareDatabase
+import com.petcare.app.data.db.PetIngleDatabase
 import com.petcare.app.data.db.dao.DiaryDao
 import com.petcare.app.data.db.dao.HealthRecordDao
 import com.petcare.app.data.db.dao.PetDao
@@ -20,13 +20,13 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): PetCareDatabase =
-        Room.databaseBuilder(context, PetCareDatabase::class.java, "petcare.db")
+    fun provideDatabase(@ApplicationContext context: Context): PetIngleDatabase =
+        Room.databaseBuilder(context, PetIngleDatabase::class.java, "petcare.db")
             .fallbackToDestructiveMigration()
             .build()
 
-    @Provides fun providePetDao(db: PetCareDatabase): PetDao = db.petDao()
-    @Provides fun provideReminderDao(db: PetCareDatabase): ReminderDao = db.reminderDao()
-    @Provides fun provideDiaryDao(db: PetCareDatabase): DiaryDao = db.diaryDao()
-    @Provides fun provideHealthRecordDao(db: PetCareDatabase): HealthRecordDao = db.healthRecordDao()
+    @Provides fun providePetDao(db: PetIngleDatabase): PetDao = db.petDao()
+    @Provides fun provideReminderDao(db: PetIngleDatabase): ReminderDao = db.reminderDao()
+    @Provides fun provideDiaryDao(db: PetIngleDatabase): DiaryDao = db.diaryDao()
+    @Provides fun provideHealthRecordDao(db: PetIngleDatabase): HealthRecordDao = db.healthRecordDao()
 }

@@ -5,7 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.room.Room
-import com.petcare.app.data.db.PetCareDatabase
+import com.petcare.app.data.db.PetIngleDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -29,7 +29,7 @@ class CompleteReminderReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db = Room.databaseBuilder(context, PetCareDatabase::class.java, "petcare.db")
+                val db = Room.databaseBuilder(context, PetIngleDatabase::class.java, "petcare.db")
                     .fallbackToDestructiveMigration()
                     .build()
                 val reminder = db.reminderDao().getReminderById(reminderId)
