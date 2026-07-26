@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -56,11 +55,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.viewinterop.AndroidView
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.AdSize
-import com.google.android.gms.ads.AdView
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -69,7 +63,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import br.com.petingle.ui.theme.OrangeGradEnd
 import br.com.petingle.ui.theme.OrangeGradStart
 import br.com.petingle.ui.theme.OrangePrimary
-import br.com.petingle.ui.screen.main.pets.PetLimitSheet
 import br.com.petingle.ui.viewmodel.HomeViewModel
 import br.com.petingle.ui.viewmodel.PetsViewModel
 import br.com.petingle.ui.viewmodel.ReminderViewModel
@@ -108,13 +101,9 @@ fun MainScreen(
     val homeViewModel: HomeViewModel = hiltViewModel()
     val userName by homeViewModel.userName.collectAsState()
 
-    // ── Badge "X/N" da aba Meus Pets (SPEC 8.2 + §18) ───────────────────────
+    // ── Badge da aba Meus Pets ───────────────────────────────────────────────
     val petsViewModel: PetsViewModel = hiltViewModel()
     val petCount by petsViewModel.petCount.collectAsState()
-    val petLimit by petsViewModel.petLimit.collectAsState()
-
-    // ── Controle do sheet de limite de pets (SPEC §18.3-18.4) ────────────────
-    var showPetLimitSheet by remember { mutableStateOf(false) }
 
     // ── ViewModel de Lembretes ────────────────────────────────────────────────
     val reminderViewModel: ReminderViewModel = hiltViewModel()
@@ -144,23 +133,15 @@ fun MainScreen(
             PetIngleTopBar(
                 title    = if (selectedTabIndex == 0) greeting else currentTab.label,
                 subtitle = if (selectedTabIndex == 0) warmPhrase else null,
-                badge    = if (currentTab == MainTab.PETS) "$petCount/$petLimit" else null,
+                badge    = if (currentTab == MainTab.PETS) "$petCount" else null,
             )
         },
         bottomBar = {
-            Column {
-                BannerAdView(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .padding(horizontal = 12.dp),
-                )
-                PetIngleBottomBar(
-                    tabs          = MainTab.entries,
-                    selectedIndex = selectedTabIndex,
-                    onTabSelected = { selectedTabIndex = it },
-                )
-            }
+            PetIngleBottomBar(
+                tabs          = MainTab.entries,
+                selectedIndex = selectedTabIndex,
+                onTabSelected = { selectedTabIndex = it },
+            )
         },
     ) { paddingValues ->
         Box(
@@ -215,28 +196,15 @@ fun MainScreen(
                         .padding(end = 16.dp, bottom = 16.dp),
                     onClick = {
                         when (currentTab) {
-                            MainTab.PETS -> {
-                                if (petCount >= petLimit) showPetLimitSheet = true
-                                else onNavigateToNewPet()
-                            }
-                            MainTab.DIARY      -> showAddDiaryEntry = true
-                            MainTab.REMINDERS  -> onNavigateToNewReminder(-1L)
+                            MainTab.PETS      -> onNavigateToNewPet()
+                            MainTab.DIARY     -> showAddDiaryEntry = true
+                            MainTab.REMINDERS -> onNavigateToNewReminder(-1L)
                             else -> {}
                         }
                     },
                 )
             }
         }
-    }
-
-    // ── Sheet de limite de pets com rewarded ad (SPEC §18.3-18.4) ───────────
-    if (showPetLimitSheet) {
-        PetLimitSheet(
-            petCount   = petCount,
-            petLimit   = petLimit,
-            onUnlocked = { petsViewModel.unlockExtraSlots() },
-            onDismiss  = { showPetLimitSheet = false },
-        )
     }
 }
 
@@ -297,7 +265,7 @@ private fun PetIngleTopBar(
     }
 }
 
-// ─── Barra de navegação inferior com animação "pulo" (SPEC 6.5) ──────────────
+// ─── Barra de navegação inferior com animação "pulo" ─────────────────────────
 
 @Composable
 private fun PetIngleBottomBar(
@@ -353,7 +321,7 @@ private fun PetIngleBottomBar(
     }
 }
 
-// ─── FAB "+" de ação com pulso suave (SPEC 16.4 adaptado) ────────────────────
+// ─── FAB "+" de ação com pulso suave ─────────────────────────────────────────
 
 @Composable
 private fun AddFab(
@@ -361,7 +329,6 @@ private fun AddFab(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    // Pulsação sutil: escala 1.0 → 1.10 → 1.0 em loop (respira como o Mel da spec)
     val infiniteTransition = rememberInfiniteTransition(label = "fab_pulse")
     val fabScale by infiniteTransition.animateFloat(
         initialValue  = 1f,
@@ -391,21 +358,4 @@ private fun AddFab(
             modifier           = Modifier.size(24.dp),
         )
     }
-}
-
-// ─── Banner AdMob (centralizado aqui para todas as abas) ─────────────────────
-
-@Composable
-private fun BannerAdView(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    AndroidView(
-        factory = {
-            AdView(context).apply {
-                setAdSize(AdSize.BANNER)
-                adUnitId = "ca-app-pub-2930629233574738/3902141006" // Banner ID (produção)
-                loadAd(AdRequest.Builder().build())
-            }
-        },
-        modifier = modifier,
-    )
 }

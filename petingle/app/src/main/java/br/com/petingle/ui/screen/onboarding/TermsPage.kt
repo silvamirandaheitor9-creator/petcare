@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.Shield
@@ -72,16 +71,13 @@ O app oferece função de backup manual. O arquivo gerado é salvo na pasta que 
 • Notificações: usadas para enviar lembretes de vacinas, consultas e outros cuidados que você cadastrar. Você pode desativar notificações a qualquer momento nas configurações do sistema.
 Nenhuma permissão é solicitada antes do momento em que você realmente precisa dela.
 
-5. PUBLICIDADE — GOOGLE ADMOB
-O PetIngle exibe anúncios fornecidos pelo Google AdMob para manter os recursos gratuitos. O AdMob pode coletar e processar dados como identificador de publicidade do dispositivo (GAID/IDFA), endereço IP e informações sobre o dispositivo, conforme a Política de Privacidade do Google (policies.google.com/privacy). Você pode redefinir ou desativar seu identificador de publicidade nas configurações do sistema operacional.
+5. TERCEIROS
+O app não compartilha seus dados pessoais com nenhuma empresa terceira. Não utilizamos ferramentas de análise de comportamento ou rastreamento de usuário.
 
-6. TERCEIROS
-O app não compartilha seus dados pessoais com empresas terceiras além do AdMob. Não utilizamos ferramentas de análise de comportamento ou rastreamento de usuário.
-
-7. CRIANÇAS
+6. CRIANÇAS
 O PetIngle não é destinado a crianças menores de 13 anos. Não coletamos intencionalmente informações de menores.
 
-8. SEUS DIREITOS (LGPD — LEI 13.709/2018)
+7. SEUS DIREITOS (LGPD — LEI 13.709/2018)
 Em conformidade com a Lei Geral de Proteção de Dados, você tem direito a:
 • Confirmar a existência de tratamento de dados;
 • Acessar, corrigir ou excluir seus dados (feito diretamente no app);
@@ -89,7 +85,7 @@ Em conformidade com a Lei Geral de Proteção de Dados, você tem direito a:
 • Revogar consentimentos a qualquer momento.
 Como todos os dados ficam no seu dispositivo, você exerce esses direitos diretamente pelo app ou desinstalando-o.
 
-9. ALTERAÇÕES NESTA POLÍTICA
+8. ALTERAÇÕES NESTA POLÍTICA
 Podemos atualizar esta política periodicamente. Alterações relevantes serão comunicadas dentro do próprio app. A data de "última atualização" no topo sempre reflete a versão vigente.
 """.trimIndent()
 
@@ -112,19 +108,16 @@ As funcionalidades do PetIngle — incluindo campos de saúde, lembretes e regis
 • Você concorda em usar o app somente para fins lícitos e pessoais.
 • Não é permitido usar o app para fins comerciais sem autorização expressa.
 
-5. PUBLICIDADE
-O app exibe anúncios do Google AdMob para viabilizar os recursos gratuitos. O número de pets gratuitos pode ser ampliado por meio de anúncios recompensados. Não nos responsabilizamos pelo conteúdo dos anúncios exibidos pela rede do Google.
-
-6. PROPRIEDADE INTELECTUAL
+5. PROPRIEDADE INTELECTUAL
 O nome "PetIngle", o mascote, o design, os ícones, os textos e demais elementos visuais são propriedade exclusiva dos criadores do app. É vedada a reprodução, cópia ou uso comercial sem autorização prévia por escrito.
 
-7. LIMITAÇÃO DE RESPONSABILIDADE
+6. LIMITAÇÃO DE RESPONSABILIDADE
 O PetIngle é fornecido "como está", sem garantias de disponibilidade ininterrupta ou ausência de erros. Não nos responsabilizamos por perdas de dados decorrentes de falhas no dispositivo, desinstalação do app ou ausência de backup.
 
-8. MODIFICAÇÕES
+7. MODIFICAÇÕES
 Podemos alterar estes Termos a qualquer momento. O uso continuado do app após a publicação das alterações implica aceitação das novas condições. A data de "última atualização" no topo indica a versão vigente.
 
-9. LEI APLICÁVEL
+8. LEI APLICÁVEL
 Estes Termos são regidos pelas leis da República Federativa do Brasil. Qualquer controvérsia será submetida ao foro da comarca do usuário, conforme o Código de Defesa do Consumidor.
 """.trimIndent()
 
@@ -137,8 +130,6 @@ private val BULLET_ITEMS = listOf(
         "Seus dados ficam só no aparelho — nenhuma conta obrigatória."),
     BulletItem(Icons.Outlined.NotificationsNone,
         "Notificações chegam só quando você criar lembretes."),
-    BulletItem(Icons.Outlined.Campaign,
-        "O app exibe anúncios para manter os recursos gratuitos."),
 )
 
 // ─── Composable principal ─────────────────────────────────────────────────────

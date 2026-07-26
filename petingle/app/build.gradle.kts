@@ -77,7 +77,6 @@ dependencies {
     implementation(libs.compose.material.icons)
     implementation(libs.compose.animation)
     implementation(libs.compose.foundation)
-    // libs.compose.ui.text.google.fonts removido: Nunito agora é TTF local (res/font/)
     debugImplementation(libs.compose.ui.tooling)
 
     // Navigation
@@ -98,9 +97,6 @@ dependencies {
 
     // Coil
     implementation(libs.coil.compose)
-
-    // AdMob
-    implementation(libs.play.services.ads)
 
     // WorkManager + Hilt
     implementation(libs.work.runtime.ktx)
