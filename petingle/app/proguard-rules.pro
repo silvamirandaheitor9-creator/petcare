@@ -1,4 +1,4 @@
-# PetCare ProGuard Rules
+# PetIngle ProGuard Rules
 
 # Keep Hilt
 -keep class dagger.hilt.** { *; }
